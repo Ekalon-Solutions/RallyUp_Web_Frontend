@@ -5,7 +5,7 @@ import { VolunteerOpportunityCard } from '@/components/volunteer/volunteer-oppor
 import { VolunteerSignUpModal } from '@/components/volunteer/volunteer-signup-modal';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { apiClient, VolunteerOpportunity, VolunteerProfile } from '@/lib/api';
 import { activeSignups, findSignupByUserId } from '@/lib/volunteerSignup';
 
@@ -24,7 +24,6 @@ export default function VolunteerDashboard() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [signingUp, setSigningUp] = React.useState<string | null>(null); // Track which opportunity is being signed up for
-  const { toast } = useToast();
 
   const fetchVolunteerProfile = React.useCallback(async () => {
     try {
@@ -71,15 +70,11 @@ export default function VolunteerDashboard() {
       // // console.error('Error fetching opportunities:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch volunteer opportunities';
       setError(errorMessage);
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [toast, user, clubId]); // Add user as dependency
+  }, [user, clubId]); // Add user as dependency
 
   React.useEffect(() => {
     // // console.log('🔄 Effect triggered - fetching opportunities and volunteer profile');
@@ -124,10 +119,8 @@ export default function VolunteerDashboard() {
       if (opportunity) {
         const timeSlot = opportunity.timeSlots.find(slot => slot._id === timeSlotId);
         if (timeSlot && findSignupByUserId(activeSignups(timeSlot.volunteersAssigned), String(user._id))) {
-          toast({
-            title: 'Already Signed Up',
+          toast.success('Already Signed Up', {
             description: 'You are already signed up for this time slot',
-            variant: 'default',
           });
           return;
         }
@@ -146,27 +139,16 @@ export default function VolunteerDashboard() {
       
       if (response.success) {
         // // console.log('✅ Successfully signed up for opportunity');
-        toast({
-          title: 'Success',
-          description: 'Successfully signed up for the volunteer opportunity',
-        });
+        toast.success('Successfully signed up for the volunteer opportunity');
         fetchOpportunities();
         fetchVolunteerProfile(); // Refresh volunteer profile to update myOpportunities
       } else {
         // // console.log('❌ Failed to sign up:', response.error);
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to sign up for the volunteer opportunity',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to sign up for the volunteer opportunity');
       }
     } catch (error) {
       // // console.error('❌ Error in sign up:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to sign up for the volunteer opportunity',
-        variant: 'destructive',
-      });
+      toast.error('Failed to sign up for the volunteer opportunity');
     } finally {
       setSigningUp(null);
     }
@@ -179,10 +161,8 @@ export default function VolunteerDashboard() {
       ?.timeSlots?.find((s: any) => s._id === timeSlotId);
     const isAssigned = !!findSignupByUserId(activeSignups(timeSlot?.volunteersAssigned), String(user._id));
     if (!isAssigned) {
-      toast({
-        title: 'Not Signed Up',
+      toast.error('Not Signed Up', {
         description: 'You are not signed up for this time slot',
-        variant: 'destructive',
       });
       return;
     }
@@ -197,27 +177,16 @@ export default function VolunteerDashboard() {
       
       if (response.success) {
         // // console.log('✅ Successfully withdrawn from opportunity');
-        toast({
-          title: 'Success',
-          description: 'Successfully withdrawn from the volunteer opportunity',
-        });
+        toast.success('Successfully withdrawn from the volunteer opportunity');
         fetchOpportunities();
         fetchVolunteerProfile(); // Refresh volunteer profile to update myOpportunities
       } else {
         // // console.log('❌ Failed to withdraw:', response.error);
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to withdraw from the volunteer opportunity',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to withdraw from the volunteer opportunity');
       }
     } catch (error) {
       // // console.error('❌ Error in withdraw:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to withdraw from the volunteer opportunity',
-        variant: 'destructive',
-      });
+      toast.error('Failed to withdraw from the volunteer opportunity');
     }
   };
 
@@ -270,10 +239,7 @@ export default function VolunteerDashboard() {
           // Refresh volunteer profile from API
           fetchVolunteerProfile();
           setIsModalOpen(false);
-          toast({
-            title: 'Success',
-            description: 'Successfully created volunteer profile',
-          });
+          toast.success('Successfully created volunteer profile');
         } else {
           throw new Error(createResponse.error || 'Failed to create volunteer profile');
         }
@@ -298,21 +264,14 @@ export default function VolunteerDashboard() {
           // Refresh volunteer profile from API
           fetchVolunteerProfile();
           setIsModalOpen(false);
-          toast({
-            title: 'Success',
-            description: 'Successfully updated volunteer preferences',
-          });
+          toast.success('Successfully updated volunteer preferences');
         } else {
           throw new Error(updateResponse.error || 'Failed to update volunteer profile');
         }
       }
     } catch (error) {
       // // console.error('❌ Error updating preferences:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update volunteer preferences',
-        variant: 'destructive',
-      });
+      toast.error('Unable to save your volunteer preferences. Please try again.');
     }
   };
 

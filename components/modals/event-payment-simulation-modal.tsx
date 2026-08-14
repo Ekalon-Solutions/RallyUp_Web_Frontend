@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   CreditCard, Loader2, Tag
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { apiClient } from "@/lib/api";
 
 interface EventPaymentSimulationModalProps {
@@ -43,7 +43,6 @@ export function EventPaymentSimulationModal({
   onPaymentSuccess,
   onPaymentFailure,
 }: EventPaymentSimulationModalProps) {
-  const { toast } = useToast();
   const [processing, setProcessing] = useState(false);
   const [simulating, setSimulating] = useState<"success" | "failure" | null>(
     null
@@ -92,25 +91,19 @@ export function EventPaymentSimulationModal({
           couponCode
         );
         if (response.success) {
-          toast({
-            title: "Payment Successful!",
-            description:
-              "Your payment was processed successfully, and you are registered for the event.",
+          toast.success("Payment Successful!", {
+            description: "Your payment was processed successfully, and you are registered for the event.",
           });
           onPaymentSuccess();
         } else {
-          toast({
-            title: "Event registration failed after payment.",
-            description:
-              "Your payment was processed successfully, but event registration failed.",
-          })
+          toast.error("Event registration failed after payment.", {
+            description: "Your payment was processed successfully, but event registration failed.",
+          });
           throw new Error("Event registration failed after payment.");
         }
       } else {
-        toast({
-          title: "Payment Failed",
+        toast.error("Payment Failed", {
           description: "Please try again.",
-          variant: "destructive",
         });
         onPaymentFailure();
       }
@@ -118,12 +111,7 @@ export function EventPaymentSimulationModal({
       onClose();
     } catch (error) {
       // // console.error("Payment simulation error:", error);
-      toast({
-        title: "Error",
-        description:
-          "An error occurred during payment simulation or event registration.",
-        variant: "destructive",
-      });
+      toast.error("An error occurred during payment simulation or event registration.");
     } finally {
       setProcessing(false);
       setSimulating(null);

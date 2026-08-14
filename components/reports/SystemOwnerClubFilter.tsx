@@ -61,7 +61,7 @@ export function SystemOwnerClubFilter({
         onValueChange={handleChange}
         disabled={loading}
       >
-        <SelectTrigger className="w-52 border-primary/30 bg-primary/5">
+        <SelectTrigger className="w-full sm:w-52 border-primary/30 bg-primary/5">
           <Building2 className="w-3.5 h-3.5 mr-1.5 text-primary shrink-0" />
           <SelectValue placeholder="All Clubs" />
         </SelectTrigger>

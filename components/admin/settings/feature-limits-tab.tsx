@@ -76,7 +76,7 @@ export function FeatureLimitsTab() {
         toast.error("Failed to load tier limits")
       }
     } catch (error) {
-      toast.error("Error loading tier limits")
+      toast.error('Failed to load feature limits. Please refresh the page.')
     } finally {
       setLoading(false)
     }
@@ -91,6 +91,7 @@ export function FeatureLimitsTab() {
       }
     } catch (error) {
       console.error("Error loading requests:", error)
+      toast.error('Failed to load feature usage data. Please refresh the page.')
     }
   }
 

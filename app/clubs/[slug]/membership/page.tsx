@@ -70,6 +70,13 @@ export default function ClubMembershipPlansPage() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
   const [showJoinModal, setShowJoinModal] = useState(false)
+  const [isAppRedirect, setIsAppRedirect] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("appRedirect") === "true") {
+      setIsAppRedirect(true)
+    }
+  }, [])
 
   const isLoggedIn = Boolean(
     user?._id || (typeof window !== "undefined" && localStorage.getItem("token"))
@@ -116,11 +123,11 @@ export default function ClubMembershipPlansPage() {
       const raw = sessionStorage.getItem("clubs_pending_join")
       if (raw) pending = JSON.parse(raw)
     } catch (_) {}
-    if (!pending || pending.clubId !== club._id) return
+    if (!pending || (pending.clubId !== club._id && pending.clubId !== (club as any).slug && pending.clubId !== slug)) return
     sessionStorage.removeItem("clubs_pending_join")
     setSelectedPlanId(pending.membershipPlanId)
     setShowJoinModal(true)
-  }, [club?._id])
+  }, [club?._id, slug])
 
   const activeMembership = (user as any)?.memberships?.find(
     (m: any) => (m.club_id?._id === club?._id || m.club_id === club?._id) && m.status === "active"
@@ -212,13 +219,23 @@ export default function ClubMembershipPlansPage() {
     <div className="min-h-screen bg-muted/20">
       <div className="border-b bg-background">
         <div className="container mx-auto px-6 py-5 flex items-center justify-between gap-4">
-          <button
-            onClick={() => router.push(`/clubs/${slug}`)}
-            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to {club.name}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push(`/clubs/${slug}`)}
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to {club.name}
+            </button>
+            {isAppRedirect && (
+              <a
+                href="wingmanpro://sso-callback?status=cancelled"
+                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
+              >
+                Return to Mobile App
+              </a>
+            )}
+          </div>
           {!isLoggedIn && (
             <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
               Member Login

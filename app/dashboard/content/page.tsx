@@ -270,13 +270,13 @@ export default function ContentManagementPage() {
           {clubId && (
             <FeatureUnavailableOverlay featureKey="news" featureLabel="News & Content" clubId={clubId} />
           )}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">News & Updates</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">News & Updates</h1>
               <p className="text-muted-foreground">Manage all news articles and content for your club</p>
               {maxNewsPosts !== null && <UsageMeter current={totalNewsPosts} max={maxNewsPosts} label="News posts" className="mt-2 max-w-xs" />}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Button onClick={handleCreateNews}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create News

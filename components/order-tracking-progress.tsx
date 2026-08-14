@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { apiClient } from '@/lib/api'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -98,7 +98,6 @@ function formatDate(value?: string) {
 }
 
 export function OrderTrackingProgress({ order, onOrderUpdate }: OrderTrackingProgressProps) {
-  const { toast } = useToast()
   const [copied, setCopied] = useState(false)
   const [ratingOpen, setRatingOpen] = useState(false)
   const [ratingValue, setRatingValue] = useState(0)
@@ -139,10 +138,10 @@ export function OrderTrackingProgress({ order, onOrderUpdate }: OrderTrackingPro
     try {
       await navigator.clipboard.writeText(order.awbCode)
       setCopied(true)
-      toast({ title: 'Copied', description: 'AWB number copied to clipboard.' })
+      toast.success('AWB number copied to clipboard.')
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast({ title: 'Could not copy', description: 'Please copy the AWB number manually.', variant: 'destructive' })
+      toast.error('Could not copy. Please copy the AWB number manually.')
     }
   }
 
@@ -156,14 +155,14 @@ export function OrderTrackingProgress({ order, onOrderUpdate }: OrderTrackingPro
     try {
       const res = await apiClient.confirmOrderReceipt(order._id)
       if (res.success) {
-        toast({ title: 'Thanks!', description: 'Receipt confirmed.' })
+        toast.success('Receipt confirmed!')
         onOrderUpdate?.({
           ...order,
           ...(res.data || {}),
           customerConfirmedDeliveryAt: res.data?.customerConfirmedDeliveryAt || new Date().toISOString(),
         })
       } else {
-        toast({ title: 'Error', description: res.error || 'Failed to confirm receipt', variant: 'destructive' })
+        toast.error(res.error || 'Failed to confirm receipt. Please try again.')
       }
     } finally {
       setConfirming(false)
@@ -172,14 +171,14 @@ export function OrderTrackingProgress({ order, onOrderUpdate }: OrderTrackingPro
 
   const handleSubmitRating = async () => {
     if (ratingValue < 1) {
-      toast({ title: 'Select a rating', description: 'Please choose between 1 and 5 stars.', variant: 'destructive' })
+      toast.error('Please select a rating between 1 and 5 stars.')
       return
     }
     setSubmitting(true)
     try {
       const res = await apiClient.rateOrder(order._id, ratingValue, feedback)
       if (res.success) {
-        toast({ title: 'Thanks for your feedback!', description: 'Your rating has been submitted.' })
+        toast.success('Rating submitted! Thanks for your feedback.')
         setRatingOpen(false)
         onOrderUpdate?.({
           ...order,
@@ -190,7 +189,7 @@ export function OrderTrackingProgress({ order, onOrderUpdate }: OrderTrackingPro
             res.data?.customerConfirmedDeliveryAt || order.customerConfirmedDeliveryAt || new Date().toISOString(),
         })
       } else {
-        toast({ title: 'Error', description: res.error || 'Failed to submit rating', variant: 'destructive' })
+        toast.error(res.error || 'Failed to submit rating. Please try again.')
       }
     } finally {
       setSubmitting(false)

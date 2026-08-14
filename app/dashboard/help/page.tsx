@@ -174,7 +174,7 @@ export default function HelpPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Help & Support</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Help & Support</h1>
           <p className="text-muted-foreground">Find answers to common questions and get support for your club</p>
         </div>
 

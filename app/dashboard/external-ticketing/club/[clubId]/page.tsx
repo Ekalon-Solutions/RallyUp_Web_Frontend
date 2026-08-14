@@ -1,8 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard-layout'
+import { ProtectedRoute } from '@/components/protected-route'
+import { useAuth } from '@/contexts/auth-context'
+import { buildAccessibleClubs } from '@/lib/clubContext'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,15 +15,20 @@ import { toast } from 'sonner'
 import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils'
 import { CheckCircle, XCircle } from 'lucide-react'
 
-export default function ClubExternalTicketsPage() {
+function ClubExternalTicketsPageInner() {
   const params = useParams() as any
   const clubId = params.clubId
+  const { user } = useAuth()
   const [requests, setRequests] = useState<ExternalTicketRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
 
+  const isSystemOwner = user?.role === 'system_owner'
+  const accessibleClubIds = useMemo(() => buildAccessibleClubs(user).map((c) => c._id), [user])
+  const hasClubAccess = isSystemOwner || accessibleClubIds.includes(clubId)
+
   useEffect(() => {
-    if (!clubId) return
+    if (!clubId || !hasClubAccess) return
     const load = async () => {
       setLoading(true)
       const resp = await apiClient.listExternalTicketRequestsForClub(clubId, { limit: 200 })
@@ -36,7 +44,7 @@ export default function ClubExternalTicketsPage() {
       setLoading(false)
     }
     load()
-  }, [clubId])
+  }, [clubId, hasClubAccess])
 
   const updateStatus = async (id: string, status: string) => {
     const resp = await apiClient.updateExternalTicketRequestStatus(id, status as any)
@@ -74,10 +82,21 @@ export default function ClubExternalTicketsPage() {
 
   const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
+  if (!hasClubAccess) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-16">
+          <h3 className="text-lg font-medium text-gray-900">Access denied</h3>
+          <p className="text-gray-500">You don't have access to this club's ticket requests.</p>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">External Ticket Requests</h1>
           </div>
@@ -181,5 +200,13 @@ export default function ClubExternalTicketsPage() {
         </Card>
       </div>
     </DashboardLayout>
+  )
+}
+
+export default function ClubExternalTicketsPage() {
+  return (
+    <ProtectedRoute requireAdmin>
+      <ClubExternalTicketsPageInner />
+    </ProtectedRoute>
   )
 }

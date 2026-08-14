@@ -237,8 +237,26 @@ html.dashboard-theme.dark,
   * {
     @apply border-border;
   }
+  html {
+    /* Clip horizontal overflow without breaking position:fixed sheets/modals */
+    overflow-x: clip;
+    width: 100%;
+    max-width: 100vw;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground min-w-0;
+    overflow-x: clip;
+    width: 100%;
+    max-width: 100vw;
+    /* Mobile browser chrome: keep layout within the visual viewport */
+    min-height: 100dvh;
+  }
+  /* Prevent flex/grid children from forcing page-wide horizontal scroll */
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
   }
 }
 

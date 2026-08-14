@@ -16,7 +16,6 @@ import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { resolveCheckoutCharge, type FeeHandlingType } from "@/lib/transactionFees"
 import { PriceBreakdown } from "@/components/checkout/price-breakdown"
-import { MemberValidationModal } from "./member-validation-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-checkout-line"
 import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
@@ -76,20 +75,16 @@ interface EventCheckoutModalProps {
   onSuccess: () => void
   onFailure: () => void
   onCancellation?: () => void | Promise<void>
-  /** Skip the in-modal MemberValidationModal — use when the caller already confirmed non-member intent */
-  skipMemberValidation?: boolean
 }
 
-export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure, onCancellation, skipMemberValidation }: EventCheckoutModalProps) {
-  const { user } = useAuth()
+export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure, onCancellation }: EventCheckoutModalProps) {
+  const { user, isAdmin } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [razorpayOpen, setRazorpayOpen] = useState(false)
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponName, setCouponName] = useState("")
   const [scriptLoaded, setScriptLoaded] = useState(false)
-  const [showMemberValidation, setShowMemberValidation] = useState(false)
-  const [memberValidated, setMemberValidated] = useState(false)
   const [eventData, setEventData] = useState<any>(null)
   const [redeemPoints, setRedeemPoints] = useState<number | string>("")
   const [reservationToken, setReservationToken] = useState<string | null>(null)
@@ -158,7 +153,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
   useEffect(() => {
     if (isOpen) {
-      setMemberValidated(Boolean(skipMemberValidation || user))
       setLocalCouponCode("")
       setCouponApplied(false)
       setCouponDiscount(0)
@@ -169,7 +163,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       setAttributedClubError("")
       setShowClubAlert(false)
     }
-  }, [isOpen, skipMemberValidation, user])
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen && !scriptLoaded) {
@@ -408,6 +402,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const affiliationClubOptions = getJointScreeningClubNames(jointScreening ?? undefined)
 
   const handlePayment = async () => {
+    if (isAdmin) {
+      toast.error("Admin accounts cannot purchase tickets. Please log in as a member.")
+      return
+    }
     if (!refundPolicy.ensureAgreed()) {
       toast.error('Review the refund policy and tap "I Agree" before continuing.')
       return
@@ -437,22 +435,18 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       }
     }
 
-    if (!user && !memberValidated) {
-      setShowMemberValidation(true)
-      return
-    }
-
     if (!user) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!guestEmail.trim()) {
         setGuestEmailError("Email is required")
         return
       }
-      if (!emailRegex.test(guestEmail.trim())) {
-        setGuestEmailError("Enter a valid email address")
-        return
-      }
       setGuestEmailError("")
+    }
+
+    if (!scriptLoaded || typeof window === 'undefined' || !window.Razorpay) {
+      toast.error("Payment system is loading. Please try again in a moment.")
+      return
     }
 
     setLoading(true)
@@ -524,11 +518,13 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const clubFeePercent = event?.platformFeePercent ?? eventData?.platformFeePercent ?? 5
       const { amountToCharge } = resolveCheckoutCharge(paymentNet, event?.feeHandlingType, clubFeePercent)
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) authHeaders['Authorization'] = `Bearer ${token}`
+
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: authHeaders,
         body: JSON.stringify({
           amount: amountToCharge,
           currency: event.currency || 'INR',
@@ -538,7 +534,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create payment order')
+        const errBody = await response.json().catch(() => null)
+        throw new Error(errBody?.error || errBody?.details || 'Failed to create payment order')
       }
 
       const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
@@ -624,7 +621,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             try {
               const verifyResponse = await fetch('/api/razorpay/verify-payment', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders,
                 body: JSON.stringify({
                   razorpay_order_id: orderId,
                   razorpay_payment_id: paymentId,
@@ -1199,25 +1196,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         />
       )}
 
-      {eventData?.clubId && (
-        <MemberValidationModal
-          isOpen={showMemberValidation}
-          onClose={() => setShowMemberValidation(false)}
-          clubId={eventData.clubId}
-          onMemberFound={() => {
-            router.push('/login')
-            onClose()
-          }}
-          onNonMemberContinue={() => {
-            setMemberValidated(true)
-            setShowMemberValidation(false)
-          }}
-          onBecomeMember={() => {
-            router.push(`/membership-plans?clubId=${eventData.clubId}`)
-            onClose()
-          }}
-        />
-      )}
+
     </Dialog>
     </>
   )

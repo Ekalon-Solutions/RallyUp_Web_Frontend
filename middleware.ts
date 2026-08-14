@@ -159,8 +159,6 @@ const PUBLIC_BYPASS_PATHS = new Set([
   '/faqs',
   '/refund',
   '/child-safety',
-  '/login',
-  '/register',
   '/splash',
   '/clubs',
   '/merchandise',
@@ -194,9 +192,16 @@ export function middleware(request: NextRequest) {
 
   if (
     request.cookies.get('verified')?.value === 'true' ||
-    isAuthenticatedSession(request)
+    isAuthenticatedSession(request) ||
+    request.nextUrl.searchParams.has('ssoTicket') ||
+    request.nextUrl.searchParams.has('token') ||
+    request.nextUrl.searchParams.has('authToken')
   ) {
-    return applySecurityHeaders(NextResponse.next(), pathname)
+    const res = applySecurityHeaders(NextResponse.next(), pathname)
+    if (request.nextUrl.searchParams.has('ssoTicket') || request.nextUrl.searchParams.has('token')) {
+      res.cookies.set(AUTH_SESSION_COOKIE, '1', { path: '/' })
+    }
+    return res
   }
   
   const userAgent = request.headers.get('user-agent') || ''

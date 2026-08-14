@@ -30,6 +30,7 @@ import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/points-redemption"
 import { getBookingWindowClosedLabel, hasVenueTierMatrix, isBookingWindowOpen, isEventPaid } from "@/lib/event-display-price"
 import { formatPhoneForDisplay } from "@/components/modals/purchase-flow-modal"
+import { slugify } from "@/lib/utils"
 
 declare global {
   interface Window { Razorpay: any }
@@ -48,7 +49,6 @@ interface VenueTierCartModalProps {
   onSuccess: () => void
   onFailure: () => void
   onCancellation?: () => void | Promise<void>
-  onLogin?: (guest: GuestIdentity) => void
   onSignup?: (guest: GuestIdentity) => void
   waitlistToken?: string | null
 }
@@ -97,8 +97,8 @@ const normalizeCountryCode = (code: string) => {
 
 type GuestStep = 'identify' | 'member-found' | 'guest-or-signup' | 'otp' | 'attendees'
 
-export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onCancellation, onLogin, onSignup, waitlistToken }: VenueTierCartModalProps) {
-  const { user, checkAuth, login } = useAuth()
+export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onCancellation, onSignup, waitlistToken }: VenueTierCartModalProps) {
+  const { user, checkAuth, login, isAdmin } = useAuth()
   const router = useRouter()
 
   const hasAuthToken = typeof window !== "undefined" && !!localStorage.getItem("token")
@@ -763,17 +763,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setStep(isMember ? 'member-found' : 'guest-or-signup')
     } catch (error) {
       console.error('Check event registration by phone error:', error)
-      toast.error('Something went wrong. Please try again.')
+      toast.error('Unable to verify your phone number. Please check your number and try again.')
     } finally {
       setIdentifyChecking(false)
     }
-  }
-
-  const handleGuestLogin = () => {
-    const digits = digitsOnly(primaryPhone)
-    const countryCode = normalizeCountryCode(primaryCountryCode)
-    onClose()
-    onLogin && onLogin({ name: primaryName.trim(), phone: digits, countryCode })
   }
 
   const handleGuestSignup = () => {
@@ -865,6 +858,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const handlePayment = async () => {
     if (!event) return
+    if (isAdmin) {
+      toast.error("Admin accounts cannot purchase tickets. Please log in as a member.")
+      return
+    }
     if (!refundPolicy.ensureAgreed()) {
       toast.error('Review the refund policy and tap "I Agree" before continuing.')
       return
@@ -999,7 +996,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         handler: async (response: any) => {
           const { razorpay_payment_id: paymentId, razorpay_order_id: orderId } = response
           try {
-            await fetch("/api/razorpay/verify-payment", {
+            // Fast client-side signature check. The endpoint is stateless (checks the
+            // HMAC and returns a verdict, no DB write), so a failure here is logged but
+            // never blocks booking — the backend booking endpoint re-validates the
+            // signature server-side before confirming the ticket, which is the real
+            // security boundary. See event-checkout-modal.tsx for the same pattern.
+            const verifyResp = await fetch("/api/razorpay/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -1008,7 +1010,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                 razorpay_signature: response.razorpay_signature,
                 orderId: `event_${event._id}_${Date.now()}`,
               }),
-            }).catch(() => {})
+            }).catch((err) => { console.warn("[VenueTierCart] Signature check request failed:", err); return null })
+            if (verifyResp && !verifyResp.ok) {
+              console.warn("[VenueTierCart] Signature check returned non-OK; proceeding, backend will re-verify")
+            }
 
             if (reservationToken) {
               await apiClient.confirmReservation(reservationToken, orderId).catch(() => {})
@@ -1207,7 +1212,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         handler: async (response: any) => {
           const { razorpay_payment_id: paymentId, razorpay_order_id: orderId, razorpay_signature: signature } = response
           try {
-            await fetch("/api/razorpay/verify-payment", {
+            // Fast client-side signature check. The endpoint is stateless (checks the
+            // HMAC and returns a verdict, no DB write), so a failure here is logged but
+            // never blocks booking — the backend booking endpoint re-validates the
+            // signature server-side before confirming the ticket, which is the real
+            // security boundary. See event-checkout-modal.tsx for the same pattern.
+            const verifyResp = await fetch("/api/razorpay/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -1216,7 +1226,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                 razorpay_signature: signature,
                 orderId: `event_${event._id}_${Date.now()}`,
               }),
-            }).catch(() => {})
+            }).catch((err) => { console.warn("[VenueTierCart] Signature check request failed:", err); return null })
+            if (verifyResp && !verifyResp.ok) {
+              console.warn("[VenueTierCart] Signature check returned non-OK; proceeding, backend will re-verify")
+            }
 
             if (reservationToken) {
               await apiClient.confirmReservation(reservationToken, orderId).catch(() => {})
@@ -1338,7 +1351,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           }
           let available = Math.max(0, (tier.allocation ?? 0) - (tier.sold ?? 0))
           if (attributedClub && tier.clubAllocations?.length) {
-            const ca = tier.clubAllocations.find((ca) => ca.clubName === attributedClub)
+            const ca = tier.clubAllocations.find((c) =>
+              c.clubName?.trim().toLowerCase() === attributedClub.trim().toLowerCase() ||
+              slugify(c.clubName || "") === slugify(attributedClub || "")
+            )
             available = ca ? Math.max(0, (ca.allocation ?? 0) - (ca.sold ?? 0)) : 0
           }
           if (item.quantity > available) {
@@ -1427,7 +1443,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         handler: async (response: any) => {
           const { razorpay_payment_id: paymentId, razorpay_order_id: orderId } = response
           try {
-            await fetch("/api/razorpay/verify-payment", {
+            // Fast client-side signature check. The endpoint is stateless (checks the
+            // HMAC and returns a verdict, no DB write), so a failure here is logged but
+            // never blocks booking — the backend booking endpoint re-validates the
+            // signature server-side before confirming the ticket, which is the real
+            // security boundary. See event-checkout-modal.tsx for the same pattern.
+            const verifyResp = await fetch("/api/razorpay/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -1436,7 +1457,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                 razorpay_signature: response.razorpay_signature,
                 orderId: `event_${event._id}_${Date.now()}`,
               }),
-            }).catch(() => {})
+            }).catch((err) => { console.warn("[VenueTierCart] Signature check request failed:", err); return null })
+            if (verifyResp && !verifyResp.ok) {
+              console.warn("[VenueTierCart] Signature check returned non-OK; proceeding, backend will re-verify")
+            }
 
             if (reservationToken) {
               await apiClient.confirmReservation(reservationToken, orderId).catch(() => {})
@@ -1545,7 +1569,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
           let available = Math.max(0, (tier.allocation ?? 0) - (tier.sold ?? 0))
           if (attributedClub && tier.clubAllocations?.length) {
-            const clubAllocation = tier.clubAllocations.find((ca) => ca.clubName === attributedClub)
+            const clubAllocation = tier.clubAllocations.find((ca) =>
+              ca.clubName?.trim().toLowerCase() === attributedClub.trim().toLowerCase() ||
+              slugify(ca.clubName || "") === slugify(attributedClub || "")
+            )
             available = clubAllocation ? Math.max(0, (clubAllocation.allocation ?? 0) - (clubAllocation.sold ?? 0)) : 0
           }
 
@@ -1591,9 +1618,13 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const authHeaders: Record<string, string> = { "Content-Type": "application/json" }
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`
+
       const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
           amount: amountToCharge,
           currency: event.currency ?? "INR",
@@ -1601,7 +1632,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           orderNumber: `EVT-MTX-${Date.now()}`,
         }),
       })
-      if (!orderRes.ok) throw new Error("Failed to create payment order")
+      if (!orderRes.ok) {
+        const errBody = await orderRes.json().catch(() => null)
+        throw new Error(errBody?.error || errBody?.details || "Failed to create payment order")
+      }
       const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
       await apiClient.createPendingVenueTierBooking(event._id, {
@@ -1627,16 +1661,24 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         handler: async (response: any) => {
           const { razorpay_payment_id: paymentId, razorpay_order_id: orderId } = response
           try {
-            await fetch("/api/razorpay/verify-payment", {
+            // Fast client-side signature check. The endpoint is stateless (checks the
+            // HMAC and returns a verdict, no DB write), so a failure here is logged but
+            // never blocks booking — the backend booking endpoint re-validates the
+            // signature server-side before confirming the ticket, which is the real
+            // security boundary. See event-checkout-modal.tsx for the same pattern.
+            const verifyResp = await fetch("/api/razorpay/verify-payment", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: authHeaders,
               body: JSON.stringify({
                 razorpay_order_id: orderId,
                 razorpay_payment_id: paymentId,
                 razorpay_signature: response.razorpay_signature,
                 orderId: `event_${event._id}_${Date.now()}`,
               }),
-            }).catch(() => {})
+            }).catch((err) => { console.warn("[VenueTierCart] Signature check request failed:", err); return null })
+            if (verifyResp && !verifyResp.ok) {
+              console.warn("[VenueTierCart] Signature check returned non-OK; proceeding, backend will re-verify")
+            }
 
             if (reservationToken) {
               await apiClient.confirmReservation(reservationToken, orderId).catch(() => {})

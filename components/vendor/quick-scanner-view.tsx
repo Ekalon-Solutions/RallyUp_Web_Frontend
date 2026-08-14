@@ -95,7 +95,7 @@ export function QuickScannerView({
   const [sessionCount, setSessionCount] = useState(0);
   const [pendingSync, setPendingSync] = useState(0);
   const [checkOutMode, setCheckOutMode] = useState(false);
-  const [dashboardExpanded, setDashboardExpanded] = useState(true);
+  const [dashboardExpanded, setDashboardExpanded] = useState(false);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const [overrideOpen, setOverrideOpen] = useState(false);
 
@@ -464,7 +464,7 @@ export function QuickScannerView({
   };
 
   return (
-    <div className="flex h-[82dvh] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-black text-white shadow-sm select-none touch-manipulation">
+    <div className="flex min-h-[600px] sm:min-h-[680px] flex-col overflow-x-hidden overflow-y-auto rounded-2xl border border-zinc-800 bg-black text-white shadow-sm select-none touch-manipulation">
       {/* Top bar */}
       <VenueLockBanner
         assignment={activeAssignment}
@@ -525,7 +525,7 @@ export function QuickScannerView({
       )}
 
       {/* Viewfinder */}
-      <div className="relative flex-1 min-h-0">
+      <div className="relative flex-1 min-h-[280px] sm:min-h-[350px]">
         <video
           ref={videoRef}
           className="absolute inset-0 h-full w-full object-cover"
@@ -537,7 +537,7 @@ export function QuickScannerView({
 
         {scanning && overlay.type === 'idle' && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="relative h-56 w-56 rounded-2xl border-2 border-emerald-400/80">
+            <div className="relative h-48 w-48 sm:h-56 sm:w-56 rounded-2xl border-2 border-emerald-400/80">
               <span className="absolute -left-px -top-px h-8 w-8 rounded-tl-2xl border-l-4 border-t-4 border-emerald-400" />
               <span className="absolute -right-px -top-px h-8 w-8 rounded-tr-2xl border-r-4 border-t-4 border-emerald-400" />
               <span className="absolute -bottom-px -left-px h-8 w-8 rounded-bl-2xl border-b-4 border-l-4 border-emerald-400" />

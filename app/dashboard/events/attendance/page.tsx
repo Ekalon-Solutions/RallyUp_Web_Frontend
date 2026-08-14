@@ -45,6 +45,7 @@ function AttendanceLandingPageInner() {
   const registrationId = searchParams.get('registrationId')
   const attendeeId = searchParams.get('attendeeId')
   const clubId = searchParams.get('clubId') ?? undefined
+  const expectedEventId = searchParams.get('eventId') ?? undefined
 
   const [state, setState] = useState<PageState>('loading')
   const [preview, setPreview] = useState<ScanPreview | null>(null)
@@ -66,6 +67,13 @@ function AttendanceLandingPageInner() {
           setErrorMessage(res.error || res.message || 'Failed to load ticket details')
           return
         }
+        if (expectedEventId && res.data && res.data.eventId !== expectedEventId) {
+          setState('error')
+          setErrorMessage(
+            `This ticket is for "${res.data.eventTitle}", not the event you're scanning for. Reject and rescan at the correct event.`
+          )
+          return
+        }
         setPreview(res.data!)
         setState('preview')
       } catch (err: any) {
@@ -74,10 +82,10 @@ function AttendanceLandingPageInner() {
       }
     }
     load()
-  }, [registrationId, attendeeId])
+  }, [registrationId, attendeeId, expectedEventId])
 
   const handleMarkAttendance = async () => {
-    if (!registrationId || !attendeeId) return
+    if (!registrationId || !attendeeId || preview?.attended) return
     setState('marking')
     try {
       const response = await apiClient.adminLogAttendance({ registrationId, attendeeId, clubId })
@@ -90,7 +98,11 @@ function AttendanceLandingPageInner() {
       } else {
         const msg = response.error || response.message || 'Failed to mark attendance'
         setErrorMessage(msg)
-        if (msg.toLowerCase().includes('already marked') || msg.toLowerCase().includes('already attended')) {
+        if (
+          response.code === 'ALREADY_SCANNED' ||
+          msg.toLowerCase().includes('already marked') ||
+          msg.toLowerCase().includes('already attended')
+        ) {
           setState('already_marked')
         } else {
           setState('error')
@@ -213,9 +225,10 @@ function AttendanceLandingPageInner() {
                 <Button
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                   onClick={handleMarkAttendance}
+                  disabled={preview!.attended}
                 >
                   <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Mark Attendance
+                  {preview!.attended ? 'Already Attended' : 'Mark Attendance'}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground text-center">
@@ -349,7 +362,7 @@ function AttendanceLandingPageInner() {
   return (
     <ProtectedRoute requireAdmin>
       <DashboardLayout>
-        <div className="p-6 min-h-screen flex items-center justify-center">
+        <div className="min-h-[50vh] flex items-center justify-center">
           <div className="w-full">
             <h1 className="text-2xl font-bold mb-6 text-center">Event Attendance</h1>
             {renderContent()}

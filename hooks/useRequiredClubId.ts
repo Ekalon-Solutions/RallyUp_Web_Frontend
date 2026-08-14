@@ -13,9 +13,9 @@ export function useRequiredClubId(): string | null {
     if (clubId) return
     const userAny = user as { memberships?: Array<{ club_id?: { _id?: string } | string; status?: string }> }
     const memberships = userAny?.memberships ?? []
-    const activeMemberships = memberships.filter((m) => m?.status === "active")
+    const relevantMemberships = memberships.filter((m) => m?.status === "active" || m?.status === "expired")
     const uniqueClubIds = new Set<string>()
-    activeMemberships.forEach((m) => {
+    relevantMemberships.forEach((m) => {
       const club = m?.club_id
       const id = typeof club === "string" ? club : club?._id ?? null
       if (id) uniqueClubIds.add(id)

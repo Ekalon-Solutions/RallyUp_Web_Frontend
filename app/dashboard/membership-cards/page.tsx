@@ -29,8 +29,7 @@ import {
 import { MembershipCard } from "@/components/membership-card"
 import { apiClient, PublicMembershipCardDisplay, CreateMembershipCardRequest } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
-import { useToast } from "@/hooks/use-toast"
-import { toast as sonnerToast } from "sonner"
+import { toast } from "sonner"
 import { getBaseUrl, getApiUrl } from "@/lib/config"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
@@ -91,6 +90,7 @@ function MembershipCardsPage() {
     secondaryColor: string;
     fontFamily: string;
     logoSize: 'small' | 'medium' | 'large';
+    idPrefix: string;
   }>({
     cardStyle: 'default',
     showLogo: true,
@@ -98,7 +98,8 @@ function MembershipCardsPage() {
     primaryColor: CARD_STYLE_COLORS['default'].primaryColor,
     secondaryColor: CARD_STYLE_COLORS['default'].secondaryColor,
     fontFamily: 'Inter',
-    logoSize: 'medium'
+    logoSize: 'medium',
+    idPrefix: 'UM'
   })
 
   const [cards, setCards] = useState<PublicMembershipCardDisplay[]>([])
@@ -114,7 +115,6 @@ function MembershipCardsPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [editingCard, setEditingCard] = useState<PublicMembershipCardDisplay | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const { toast } = useToast()
 
   const normalizeCustomization = (
     value?: Partial<NonNullable<PublicMembershipCardDisplay["card"]["customization"]>>
@@ -125,6 +125,7 @@ function MembershipCardsPage() {
     logoSize: value?.logoSize ?? "medium",
     showLogo: value?.showLogo ?? true,
     showUserProfile: value?.showUserProfile ?? false,
+    idPrefix: value?.idPrefix ?? "UM",
     ...(value?.customLogo ? { customLogo: value.customLogo } : {}),
   })
 
@@ -172,10 +173,8 @@ function MembershipCardsPage() {
         const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
         setError(errorMessage)
         setCards([])
-        toast({
-          title: "Error Loading Membership Cards",
+        toast.error("Error Loading Membership Cards", {
           description: `Failed to fetch membership cards for club (ID: ${targetClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your authentication and try again.`,
-          variant: "destructive",
         })
       }
     } catch (err: any) {
@@ -184,13 +183,11 @@ function MembershipCardsPage() {
       const statusCode = err?.response?.status || 'Unknown'
       setError(errorMessage)
       setCards([])
-      toast({
-        title: "Error Fetching Cards",
+      toast.error("Error Fetching Cards", {
         description: `Failed to fetch membership cards for club (ID: ${targetClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
-        variant: "destructive",
       })
     }
-  }, [toast])
+  }, [])
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -226,10 +223,8 @@ function MembershipCardsPage() {
         const errorDetails = err?.response?.data || {}
         const statusCode = err?.response?.status || 'Unknown'
         setError(errorMessage)
-        toast({
-          title: "Error Loading Initial Data",
+        toast.error("Error Loading Initial Data", {
           description: `Failed to fetch initial data (club and membership cards): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your internet connection and try again.`,
-          variant: "destructive",
         })
       } finally {
         setLoading(false)
@@ -237,7 +232,7 @@ function MembershipCardsPage() {
     }
 
     fetchInitialData()
-  }, [toast, fetchCards, activeClubId])
+  }, [fetchCards, activeClubId])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -277,41 +272,23 @@ function MembershipCardsPage() {
 
   const handleSaveCustomization = async () => {
     try {
-      toast({
-        title: "Success",
-        description: "Card customization saved successfully",
-      })
+      toast.success("Card customization saved successfully")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save customization",
-        variant: "destructive",
-      })
+      toast.error("Failed to save customization")
     }
   }
 
   const handleExportCards = async () => {
     try {
-      toast({
-        title: "Success",
-        description: "Cards exported successfully",
-      })
+      toast.success("Cards exported successfully")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to export cards",
-        variant: "destructive",
-      })
+      toast.error("Failed to export cards")
     }
   }
 
   const handleCreateCard = async () => {
     if (!effectiveClubId || !selectedPlanId) {
-      toast({
-        title: "Error",
-        description: "Please select a membership plan",
-        variant: "destructive",
-      })
+      toast.error("Please select a membership plan")
       return
     }
 
@@ -347,6 +324,7 @@ function MembershipCardsPage() {
           logoSize: customization.logoSize,
           showLogo: customization.showLogo,
           showUserProfile: customization.showUserProfile,
+          idPrefix: customization.idPrefix,
           customLogo: customLogoUrl
         }
       }
@@ -362,7 +340,7 @@ function MembershipCardsPage() {
       const hasCreatedCard = !!(payload && (payload as { card?: unknown }).card)
 
       if (isSuccess || hasCreatedCard) {
-        sonnerToast.success("Card created successfully", {
+        toast.success("Card created successfully", {
           description: `Membership card for plan "${planName}" has been created.`,
         })
         setSelectedPlanId("")
@@ -377,10 +355,8 @@ function MembershipCardsPage() {
         const statusCode = errorDetails.statusCode || (response as any).statusCode || 'Unknown'
         const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
         const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-        toast({
-          title: "Failed to Create Membership Card",
+        toast.error("Failed to Create Membership Card", {
           description: `Failed to create membership card for plan "${planName}" (Plan ID: ${selectedPlanId}): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check the plan details and try again.`,
-          variant: "destructive",
         })
       }
     } catch (error: any) {
@@ -390,10 +366,8 @@ function MembershipCardsPage() {
       const statusCode = error?.response?.status || 'Unknown'
       const validationErrors = errorDetails.errors || []
       const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-      toast({
-        title: "Error Creating Membership Card",
+      toast.error("Error Creating Membership Card", {
         description: `Failed to create membership card for plan "${planName}" (Plan ID: ${selectedPlanId}) due to: ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
-        variant: "destructive",
       })
     } finally {
       setIsCreating(false)
@@ -410,8 +384,7 @@ function MembershipCardsPage() {
 
       if (response.success) {
         setCards(prev => prev.filter(card => card.card._id !== cardId))
-        toast({
-          title: "Membership Card Deleted Successfully",
+        toast.success("Membership Card Deleted Successfully", {
           description: `Membership card for plan "${planName}" (Card number: ${cardNumber}) has been deleted successfully. The card is no longer available.`,
         })
       } else {
@@ -426,10 +399,8 @@ function MembershipCardsPage() {
       const errorMessage = error?.message || 'Network error or server unavailable'
       const errorDetails = error?.response?.data || {}
       const statusCode = error?.response?.status || 'Unknown'
-      toast({
-        title: "Failed to Delete Membership Card",
+      toast.error("Failed to Delete Membership Card", {
         description: `Failed to delete membership card for plan "${planName}" (Card ID: ${cardId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
-        variant: "destructive",
       })
     }
   }
@@ -468,20 +439,16 @@ function MembershipCardsPage() {
         const errorDetails = (cardsResponse as any).errorDetails || {}
         const errorMessage = cardsResponse.error || 'Unknown error occurred'
         const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
-        toast({
-          title: "Error Refreshing Membership Cards",
+        toast.error("Error Refreshing Membership Cards", {
           description: `Failed to refresh membership cards for club (ID: ${effectiveClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
-          variant: "destructive",
         })
       }
     } catch (err: any) {
       const errorMessage = err?.message || 'Network error or server unavailable'
       const errorDetails = err?.response?.data || {}
       const statusCode = err?.response?.status || 'Unknown'
-      toast({
-        title: "Error Refreshing Data",
+      toast.error("Error Refreshing Data", {
         description: `Failed to refresh membership cards and plans for club (ID: ${effectiveClubId || 'Unknown'}) due to: ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
-        variant: "destructive",
       })
     } finally {
       setLoading(false)
@@ -502,8 +469,7 @@ function MembershipCardsPage() {
             ? { ...card, card: { ...card.card, qrCode: response.data?.qrCode } }
             : card
         ))
-        toast({
-          title: "QR Code Regenerated Successfully",
+        toast.success("QR Code Regenerated Successfully", {
           description: `QR code for membership card "${cardNumber}" (Plan: "${planName}") has been regenerated successfully. The new QR code is now active.`,
         })
       } else {
@@ -518,10 +484,8 @@ function MembershipCardsPage() {
       const errorMessage = error?.message || 'Network error or server unavailable'
       const errorDetails = error?.response?.data || {}
       const statusCode = error?.response?.status || 'Unknown'
-      toast({
-        title: "Failed to Regenerate QR Code",
+      toast.error("Failed to Regenerate QR Code", {
         description: `Failed to regenerate QR code for membership card (Card ID: ${cardId}, Plan: "${planName}"): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
-        variant: "destructive",
       })
     }
   }
@@ -586,11 +550,7 @@ function MembershipCardsPage() {
             }
           } : null)
         } catch (error) {
-          toast({
-            title: "Error",
-            description: "Failed to upload logo file",
-            variant: "destructive",
-          })
+          toast.error("Failed to upload logo file")
           return
         }
       }
@@ -603,6 +563,7 @@ function MembershipCardsPage() {
         logoSize: baseCustomization.logoSize,
         showLogo: baseCustomization.showLogo,
         showUserProfile: baseCustomization.showUserProfile,
+        idPrefix: baseCustomization.idPrefix,
         ...(baseCustomization.customLogo !== undefined && { customLogo: baseCustomization.customLogo }),
         ...(customLogoUrl !== undefined && { customLogo: customLogoUrl }),
       }
@@ -639,8 +600,7 @@ function MembershipCardsPage() {
 
         const statusText = updateData.status ? ` Status: ${updateData.status}.` : ''
         const accessLevelText = updateData.accessLevel ? ` Access level: ${updateData.accessLevel}.` : ''
-        toast({
-          title: "Membership Card Updated Successfully",
+        toast.success("Membership Card Updated Successfully", {
           description: `Membership card "${cardNumber}" for plan "${planName}" has been updated successfully.${statusText}${accessLevelText} All changes have been saved.`,
         })
 
@@ -661,10 +621,8 @@ function MembershipCardsPage() {
       const statusCode = error?.response?.status || 'Unknown'
       const validationErrors = errorDetails.errors || []
       const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-      toast({
-        title: "Failed to Update Membership Card",
+      toast.error("Failed to Update Membership Card", {
         description: `Failed to update membership card "${cardNumber}" for plan "${planName}" (Card ID: ${editingCard?.card._id}): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your changes and try again.`,
-        variant: "destructive",
       })
     } finally {
       setIsEditing(false)
@@ -802,6 +760,20 @@ function MembershipCardsPage() {
     })
   }, [])
 
+  const handleIdPrefixChange = useCallback((value: string) => {
+    setEditingCard(prev => {
+      if (!prev) return null
+      const base = normalizeCustomization(prev.card.customization)
+      return {
+        ...prev,
+        card: {
+          ...prev.card,
+          customization: { ...base, idPrefix: value.toUpperCase().replace(/[^A-Z0-9_-]/g, '') }
+        }
+      }
+    })
+  }, [])
+
   const getPreviewProfilePicture = (showUserProfile?: boolean) =>
     showUserProfile ? MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE : undefined
 
@@ -824,7 +796,7 @@ function MembershipCardsPage() {
     return (
       <ProtectedRoute requireAdmin>
         <DashboardLayout>
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
@@ -837,7 +809,7 @@ function MembershipCardsPage() {
   return (
     <ProtectedRoute requireAdmin>
       <DashboardLayout>
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Membership Cards</h1>
@@ -884,7 +856,7 @@ function MembershipCardsPage() {
                                 cardStyle={editingCard.card.cardStyle}
                                 showLogo={editingCard.card.customization?.showLogo ?? true}
                                 userName="John Doe"
-                                membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
+                                membershipId={editingCard.card.membershipId ? editingCard.card.membershipId.replace(/^[^-]+/, editingCard.card.customization?.idPrefix || 'UM') : `${editingCard.card.customization?.idPrefix || 'UM'}-2026-123456`}
                                 profilePicture={getPreviewProfilePicture(editingCard.card.customization?.showUserProfile)}
                               />
                             </div>
@@ -1145,6 +1117,22 @@ function MembershipCardsPage() {
                 {/* Left Column - Settings */}
                 <div className="flex-shrink-0 lg:w-[380px] xl:w-[420px] space-y-4 overflow-y-auto">
                   <div>
+                    <Label htmlFor="idPrefix">Card ID Prefix</Label>
+                    <Input
+                      id="idPrefix"
+                      type="text"
+                      placeholder="UM"
+                      maxLength={10}
+                      value={normalizeCustomization(editingCard.card.customization).idPrefix}
+                      onChange={(e) => handleIdPrefixChange(e.target.value)}
+                      className="h-10 w-full font-mono uppercase"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Prefix for member IDs (e.g. {normalizeCustomization(editingCard.card.customization).idPrefix || 'UM'}-{new Date().getFullYear()}-XXXXXX)
+                    </p>
+                  </div>
+
+                  <div>
                     <Label htmlFor="status">Status</Label>
                     <Select
                       value={editingCard.card.status ?? "active"}
@@ -1382,7 +1370,7 @@ function MembershipCardsPage() {
                         cardStyle={editingCard.card.cardStyle}
                         showLogo={editingCard.card.customization?.showLogo ?? true}
                         userName="John Doe"
-                        membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
+                        membershipId={editingCard.card.membershipId ? editingCard.card.membershipId.replace(/^[^-]+/, editingCard.card.customization?.idPrefix || 'UM') : `${editingCard.card.customization?.idPrefix || 'UM'}-2026-123456`}
                         profilePicture={getPreviewProfilePicture(editingCard.card.customization?.showUserProfile)}
                       />
                     </div>
@@ -1410,7 +1398,7 @@ function MembershipCardsPage() {
 export default function MembershipCardsPageWrapper() {
   return (
     <Suspense fallback={
-      <div className="p-6 flex justify-center items-center h-64">
+      <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     }>

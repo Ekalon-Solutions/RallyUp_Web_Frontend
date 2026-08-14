@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { apiClient, User, Admin, SystemOwner } from '../lib/api';
+import { apiClient, User, Admin, SystemOwner, SESSION_EXPIRED_EVENT } from '../lib/api';
 import { buildAccessibleClubs, reconcileActiveClubId } from '../lib/clubContext';
 import { clearAllFeatureCaches } from '../lib/featureCacheStore';
 import {
@@ -22,7 +22,7 @@ interface AuthContextType {
   activeClubId: string | null;
   setActiveClubId: (clubId: string | null) => void;
   login: (email: string, phoneNumber: string, countryCode: string, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
-  switchRole: (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => Promise<{ success: boolean; error?: string }>;
+  switchRole: (accountType: 'user' | 'admin' | 'system_owner', accountId: string, targetClubId?: string) => Promise<{ success: boolean; error?: string }>;
   register: (userData: any, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -42,17 +42,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeClubId, setActiveClubIdState] = useState<string | null>(getInitialActiveClubId);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userType = localStorage.getItem('userType');
-    const savedClubId = localStorage.getItem('activeClubId');
-    syncAuthSessionCookieFromStorage();
-    if (savedClubId && savedClubId !== activeClubId) {
-      setActiveClubIdState(savedClubId);
+    let isMounted = true;
+
+    const initAuth = async () => {
       if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem('selectedClubId', savedClubId);
+        const searchParams = new URLSearchParams(window.location.search);
+        const ssoTicket = searchParams.get('ssoTicket');
+
+        if (ssoTicket) {
+          try {
+            const res = await apiClient.ssoExchange(ssoTicket);
+            if (res.success && res.data?.token) {
+              localStorage.setItem('token', res.data.token);
+              const role = res.data.user?.role;
+              const uType = role === 'admin' || role === 'vendor' ? 'admin' : role === 'system_owner' ? 'system_owner' : 'user';
+              localStorage.setItem('userType', uType);
+              syncAuthSessionCookieFromStorage();
+            }
+          } catch (err) {
+            console.error('Failed to exchange SSO ticket:', err);
+          }
+        } else {
+          const urlToken = searchParams.get('token') || searchParams.get('authToken');
+          if (urlToken) {
+            localStorage.setItem('token', urlToken);
+            localStorage.setItem('userType', 'user');
+          }
+        }
+
+        const urlClubId = searchParams.get('clubId');
+        if (urlClubId) {
+          localStorage.setItem('activeClubId', urlClubId);
+          window.sessionStorage.setItem('selectedClubId', urlClubId);
+          setActiveClubIdState(urlClubId);
+        }
+
+        const isAppRedirectParam = searchParams.get('appRedirect') === 'true' || searchParams.has('appRedirect');
+        if (isAppRedirectParam) {
+          window.sessionStorage.setItem('appRedirect', 'true');
+        }
+
+        // Clean sensitive query parameters from browser address bar
+        if (ssoTicket || searchParams.has('token') || searchParams.has('authToken') || searchParams.has('email') || searchParams.has('phone') || searchParams.has('appRedirect')) {
+          searchParams.delete('ssoTicket');
+          searchParams.delete('token');
+          searchParams.delete('authToken');
+          searchParams.delete('email');
+          searchParams.delete('phone');
+          searchParams.delete('appRedirect');
+          const cleanQuery = searchParams.toString();
+          const cleanUrl = window.location.pathname + (cleanQuery ? `?${cleanQuery}` : '') + window.location.hash;
+          window.history.replaceState({}, '', cleanUrl);
+        }
       }
-    }
-    checkAuth();
+
+      const savedClubId = localStorage.getItem('activeClubId');
+      syncAuthSessionCookieFromStorage();
+      if (savedClubId && savedClubId !== activeClubId) {
+        setActiveClubIdState(savedClubId);
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.setItem('selectedClubId', savedClubId);
+        }
+      }
+      if (isMounted) {
+        checkAuth();
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -108,8 +169,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const memberships = Array.isArray(u?.memberships) ? u.memberships : [];
-    const activeMembership = memberships.find((m: any) => m?.status === 'active');
-    const clubId = activeMembership?.club_id?._id || activeMembership?.club_id;
+    const relevantMembership = memberships.find((m: any) => m?.status === 'active') || memberships.find((m: any) => m?.status === 'expired');
+    const clubId = relevantMembership?.club_id?._id || relevantMembership?.club_id;
     return clubId || null;
   };
 
@@ -142,15 +203,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const reconciled = reconcileActiveClubId(storedClubId, accessible);
         if (reconciled) {
           setActiveClubId(reconciled);
-        } else if (storedClubId) {
+        } else if (storedClubId && (isSystemOwner || isAdmin)) {
           // Preserve a previously stored selection even when accessible clubs are
           // empty (e.g. system_owner whose user profile lacks a clubs field).
           setActiveClubId(storedClubId);
         } else {
           const fallback = deriveActiveClubIdFromUser(profile);
-          if (fallback) {
-            setActiveClubId(fallback);
-          }
+          setActiveClubId(fallback);
         }
         return profile;
       }
@@ -180,18 +239,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       let profileResponse = null;
 
-      if (userType === 'admin' || userType === 'vendor') {
+      if (userType === 'admin' || userType === 'super_admin' || userType === 'vendor') {
         try {
-          // console.log('Trying admin profile (from userType)...');
           const adminResponse = await apiClient.adminProfile();
           if (adminResponse.success && adminResponse.data) {
-            // console.log('Setting user from admin profile:', adminResponse.data);
             setUser(adminResponse.data);
             setIsLoading(false);
             return;
           }
         } catch (error) {
-          // console.log('Admin profile failed, falling back to discovery');
         }
       } else if (userType === 'system_owner') {
         try {
@@ -206,7 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           // console.log('System owner profile failed, falling back to discovery');
         }
-      } else if (userType === 'member' || userType === 'user') {
+      } else if (userType === 'member' || userType === 'user' || userType === 'guest') {
         try {
           // console.log('Trying user profile (from userType)...');
           const userResponse = await apiClient.userProfile();
@@ -273,11 +329,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const getRoleRank = (role: string): number => {
+    if (role === 'system_owner') return 1;
+    if (role === 'super_admin') return 2;
+    if (role === 'admin') return 3;
+    if (role === 'vendor') return 4;
+    return 5;
+  };
+
   const login = async (email: string, phoneNumber: string, countryCode: string, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
     try {
       const loginData: any = {};
       if (email && email.trim()) {
-        loginData.email = email.trim();
+        loginData.email = email.trim().toLowerCase();
       } else if (phoneNumber && phoneNumber.trim()) {
         loginData.phoneNumber = phoneNumber.trim();
         if (countryCode && countryCode.trim()) {
@@ -287,43 +351,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Please provide either email or phone number' };
       }
 
-      let response;
+      let response: any = null;
+      let effectiveIsSystemOwner = isSystemOwner;
+      let effectiveIsAdmin = isAdmin;
+
       if (isSystemOwner) {
         response = await apiClient.systemOwnerLogin(loginData);
       } else if (isAdmin) {
         response = await apiClient.adminLogin(loginData);
       } else {
-        response = await apiClient.userLogin(loginData);
+        // Unified login discovery — try system_owner -> admin -> user
+        try {
+          response = await apiClient.systemOwnerLogin(loginData);
+          if (response?.success && response?.data) {
+            effectiveIsSystemOwner = true;
+          }
+        } catch (_) {}
+
+        if (!response?.success || !response?.data) {
+          try {
+            response = await apiClient.adminLogin(loginData);
+            if (response?.success && response?.data) {
+              effectiveIsAdmin = true;
+            }
+          } catch (_) {}
+        }
+
+        if (!response?.success || !response?.data) {
+          response = await apiClient.userLogin(loginData);
+        }
       }
 
-      if (response.success && response.data) {
+      if (response && response.success && response.data) {
         localStorage.setItem('token', (response.data as any).token);
         setAuthSessionCookie();
         let userData: any;
 
-        if (isSystemOwner) {
+        if (effectiveIsSystemOwner) {
           userData = (response.data as any).systemOwner || response.data;
           localStorage.setItem('userType', 'system_owner');
-        } else if (isAdmin) {
+        } else if (effectiveIsAdmin) {
           userData = (response.data as any).admin || response.data;
-          localStorage.setItem('userType', userData.role);
+          localStorage.setItem('userType', userData.role || 'admin');
         } else {
           userData = (response.data as any).user || response.data;
-          localStorage.setItem('userType', 'member');
+          localStorage.setItem('userType', userData?.role || 'member');
         }
 
         setUser(userData);
         clearAllFeatureCaches();
-        const hydrated = await hydrateUserProfile({
-          isAdmin,
-          isSystemOwner,
+        let hydrated = await hydrateUserProfile({
+          isAdmin: effectiveIsAdmin,
+          isSystemOwner: effectiveIsSystemOwner,
           fallbackUserData: userData
         });
         setUser(hydrated);
+
+        // Attempt highest-role account switch if higher role is linked
+        try {
+          const rolesRes = await apiClient.getAvailableRoles();
+          if (rolesRes.success && rolesRes.data?.accounts && rolesRes.data.accounts.length > 0) {
+            const accounts = [...rolesRes.data.accounts];
+            accounts.sort((a: any, b: any) => getRoleRank(a.role) - getRoleRank(b.role));
+            const highestAccount = accounts[0];
+            const currentRole = (hydrated as any)?.role || localStorage.getItem('userType') || 'member';
+
+            if (getRoleRank(highestAccount.role) < getRoleRank(currentRole)) {
+              console.log(`Auto-switching login to highest role: ${highestAccount.role} (${highestAccount.accountId})`);
+              const switchRes = await switchRole(highestAccount.accountType, highestAccount.accountId);
+              if (switchRes.success) {
+                return { success: true };
+              }
+            }
+          }
+        } catch (_) {}
+
         return { success: true };
       } else {
-        const errorMessage = response.error || response.message ||
-          (response.errorDetails?.type === 'network_error'
+        const errorMessage = response?.error || response?.message ||
+          (response?.errorDetails?.type === 'network_error'
             ? 'Connection failed. Please check your internet connection or try again later.'
             : 'Login failed. Please check your credentials and try again.');
         return { success: false, error: errorMessage };
@@ -338,7 +444,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const switchRole = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string): Promise<{ success: boolean; error?: string }> => {
+  const switchRole = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string, targetClubId?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await apiClient.switchAccountRole({ accountType, accountId });
 
@@ -353,19 +459,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isSystemOwner) {
           localStorage.setItem('userType', 'system_owner');
         } else if (isAdmin) {
-          localStorage.setItem('userType', accountData.role);
+          localStorage.setItem('userType', accountData.role || 'admin');
         } else {
           localStorage.setItem('userType', 'member');
         }
 
-        setUser(accountData);
+        // Reset active club so the newly active role derives its own primary club —
+        // unless the caller is switching specifically to reach a known club, in which
+        // case that explicit selection must survive the switch, not get wiped here.
+        if (targetClubId) {
+          localStorage.setItem('activeClubId', targetClubId);
+        } else {
+          localStorage.removeItem('activeClubId');
+        }
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem('selectedClubId');
+        }
+
         clearAllFeatureCaches();
-        const hydrated = await hydrateUserProfile({
-          isAdmin,
-          isSystemOwner,
-          fallbackUserData: accountData
-        });
-        setUser(hydrated);
+
+        const targetPath = isSystemOwner
+          ? '/dashboard/club-management'
+          : isAdmin
+          ? '/dashboard'
+          : '/dashboard/user';
+
+        if (typeof window !== 'undefined') {
+          window.location.href = targetPath;
+        }
+
         return { success: true };
       }
 
@@ -421,6 +543,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    const isVendorUser = user?.role === 'vendor' || (user as any)?.isVendor;
     localStorage.removeItem('token');
     localStorage.removeItem('userType');
     localStorage.removeItem('activeClubId');
@@ -428,10 +551,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('hasSeenUserDashboardLogo');
     clearAuthSessionCookie();
     clearAllFeatureCaches();
+    try {
+      sessionStorage.removeItem('vendorScanSessionToken');
+      sessionStorage.removeItem('vendorScanSessionMeta');
+    } catch {}
     setUser(null);
     setActiveClubIdState(null);
-    window.location.href = '/';
+    window.location.href = isVendorUser ? '/vendor/login' : '/';
   };
+
+  useEffect(() => {
+    const onSessionExpired = () => logout();
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+  }, []);
 
   const updateProfile = async (data: any): Promise<{ success: boolean; error?: string }> => {
     try {

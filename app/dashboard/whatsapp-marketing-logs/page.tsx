@@ -159,7 +159,7 @@ export default function WhatsAppMarketingLogsPage() {
       <DashboardLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
               <Lock className="w-7 h-7" /> WhatsApp Opt-in Audit Log
             </h1>
             <p className="text-muted-foreground">

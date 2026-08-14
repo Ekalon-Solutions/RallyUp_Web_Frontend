@@ -158,7 +158,7 @@ export default function WhatsAppConfigPage() {
             <div className="flex items-center gap-3">
               <MessageSquare className="w-7 h-7 text-green-600" />
               <div>
-                <h1 className="text-3xl font-bold">WhatsApp / AiSensy</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold">WhatsApp / AiSensy</h1>
                 <p className="text-muted-foreground">
                   System User configuration for WhatsApp messaging
                 </p>
@@ -254,7 +254,7 @@ export default function WhatsAppConfigPage() {
                 onValueChange={(v) => handleTierChange(v as WhatsAppMetaTier)}
                 disabled={savingTier}
               >
-                <SelectTrigger className="w-72">
+                <SelectTrigger className="w-full sm:w-72">
                   <SelectValue placeholder="Select tier" />
                 </SelectTrigger>
                 <SelectContent>

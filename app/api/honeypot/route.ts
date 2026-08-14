@@ -7,13 +7,12 @@ export async function GET(request: NextRequest) {
              'unknown'
   const userAgent = request.headers.get('user-agent') || 'unknown'
   
-  // console.error('🍯 HONEYPOT TRIGGERED!', {
-//     ip,
-//     userAgent,
-//     timestamp: new Date().toISOString(),
-//     url: request.url,
-//     headers: Object.fromEntries(request.headers.entries()),
-//   })
+  console.error('🍯 HONEYPOT TRIGGERED!', {
+    ip,
+    userAgent,
+    timestamp: new Date().toISOString(),
+    url: request.url,
+  })
   
   return NextResponse.json({
     success: false,

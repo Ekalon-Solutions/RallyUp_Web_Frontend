@@ -20,30 +20,39 @@ function getActiveClubMembershipForUser(user: any, activeClubId: string | null) 
 
   const memberships: any[] = Array.isArray(user.memberships) ? user.memberships : []
 
-  const isRelevant = (m: any) => m && m.club_id && (m.status === 'active' || m.status === 'expired')
+  const isRelevant = (m: any) => m && (m.club_id || m.club) && m.status !== 'cancelled'
 
   if (activeClubId) {
-    // Prefer the membership for the explicitly selected club
-    const match = memberships.find(m => {
+    const clubMemberships = memberships.filter(m => {
       if (!isRelevant(m)) return false
-      const clubId = typeof m.club_id === 'string' ? m.club_id : m.club_id._id
-      return clubId === activeClubId
+      const clubId = typeof m.club_id === 'string' ? m.club_id : (m.club_id?._id || (typeof m.club === 'string' ? m.club : m.club?._id))
+      return String(clubId) === String(activeClubId)
     })
-    if (match) return match
+
+    if (clubMemberships.length > 0) {
+      const activeUnexpiredMatch = clubMemberships.find(m => {
+        const isExpiredDate = Boolean(m.end_date && new Date(m.end_date) <= new Date())
+        return !isExpiredDate
+      })
+      return activeUnexpiredMatch || clubMemberships[0]
+    }
   }
 
-  // Fallback: return the most recent membership (e.g. right after signup before
-  // activeClubId has been persisted to localStorage). Backend sorts by start_date desc.
-  return memberships.find(isRelevant) || null
+  const activeMatch = memberships.find(m => isRelevant(m) && (!m.end_date || new Date(m.end_date) > new Date()))
+  return activeMatch || memberships.find(isRelevant) || null
 }
 
 /** Trusts the actual end_date over the stored `status` field, which only updates on save/cron. */
 function isMembershipExpired(membership: any): boolean {
-  return Boolean(membership?.end_date && new Date(membership.end_date) < new Date())
+  if (!membership || membership.status === 'cancelled') return false
+  if (membership.start_date && new Date(membership.start_date) > new Date()) return false
+  if (membership.end_date && new Date(membership.end_date) > new Date()) return false
+  if (membership.status === 'active' && (!membership.end_date || new Date(membership.end_date) > new Date())) return false
+  return Boolean(membership.status === 'expired' || (membership.end_date && new Date(membership.end_date) <= new Date()))
 }
 
-export function MembershipStatus() {
-  const { user, activeClubId, checkAuth } = useAuth()
+export function MembershipStatus({ showMembershipCardButton = true }: { showMembershipCardButton?: boolean } = {}) {
+  const { user, activeClubId, setActiveClubId, checkAuth } = useAuth()
   const [leaving, setLeaving] = useState(false)
 
   // Efficiently re-select membership and club info when user or activeClubId changes
@@ -56,6 +65,7 @@ export function MembershipStatus() {
     }
   }, [user, activeClubId])
 
+  const isUpcoming = Boolean(activeMembership?.start_date && new Date(activeMembership.start_date) > new Date())
   const isExpired = isMembershipExpired(activeMembership)
 
   const handleLeaveClub = async () => {
@@ -63,15 +73,19 @@ export function MembershipStatus() {
 
     try {
       setLeaving(true)
-      const response = await apiClient.leaveClub()
+      const response = await apiClient.leaveClub(userClub._id, activeMembership?._id)
       if (response.success) {
-        toast.success('Successfully left the club')
+        toast.success(response.message || 'Successfully cancelled current membership plan')
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('activeClubId')
+        }
+        setActiveClubId(null)
         await checkAuth()
       } else {
-        toast.error(response.error || 'Failed to leave club')
+        toast.error(response.error || response.message || 'Failed to leave club')
       }
-    } catch (error) {
-      toast.error('An error occurred while leaving the club')
+    } catch (error: any) {
+      toast.error(error?.message || 'An error occurred while leaving the club')
     } finally {
       setLeaving(false)
     }
@@ -139,6 +153,14 @@ export function MembershipStatus() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Upcoming Plan Notice Banner */}
+        {isUpcoming && (
+          <div className="bg-blue-500/10 border border-blue-500/20 text-blue-900 dark:text-blue-100 rounded-xl p-3.5 text-sm font-medium flex items-center gap-2.5 shadow-sm">
+            <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span>Your membership plan will start on <strong>{formatDisplayDate(activeMembership.start_date)}</strong>.</span>
+          </div>
+        )}
+
         {/* Club Info Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -150,9 +172,15 @@ export function MembershipStatus() {
           <div className="flex flex-col items-end gap-2">
             <Badge
               variant="default"
-              className={isExpired ? "bg-red-100 text-red-800 hover:bg-red-200" : "bg-green-100 text-green-800 hover:bg-green-200"}
+              className={
+                isUpcoming
+                  ? "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                  : isExpired
+                  ? "bg-red-100 text-red-800 hover:bg-red-200"
+                  : "bg-green-100 text-green-800 hover:bg-green-200"
+              }
             >
-              {isExpired ? "Membership Expired" : "Active Member"}
+              {isUpcoming ? "Upcoming Membership" : isExpired ? "Membership Expired" : "Active Member"}
             </Badge>
             {activeMembership.membership_level_id && (
               <Badge variant={getPlanBadgeVariant(activeMembership.membership_level_id.name)} className="text-xs">
@@ -226,17 +254,32 @@ export function MembershipStatus() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-border/50">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 sm:flex-none"
-            asChild
-          >
-            <a href="/dashboard/user/membership-card">
-              <CreditCard className="w-4 h-4 mr-2" />
-              View Membership Card
-            </a>
-          </Button>
+          {isExpired && (
+            <Button
+              variant="default"
+              size="sm"
+              className="flex-1 sm:flex-none font-semibold shadow bg-primary text-primary-foreground hover:bg-primary/90"
+              asChild
+            >
+              <a href="/dashboard/user/browse-plans">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Buy Membership Plan
+              </a>
+            </Button>
+          )}
+          {!isExpired && showMembershipCardButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
+              asChild
+            >
+              <a href="/dashboard/user/membership-card">
+                <CreditCard className="w-4 h-4 mr-2" />
+                View Membership Card
+              </a>
+            </Button>
+          )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button

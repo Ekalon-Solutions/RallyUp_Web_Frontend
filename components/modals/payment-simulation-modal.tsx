@@ -10,9 +10,12 @@ import {
   CreditCard, 
   Loader2,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Tag,
+  X
 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { PLATFORM_FEE_PERCENT } from "@/lib/transactionFees"
 
@@ -25,7 +28,7 @@ declare global {
 interface PaymentSimulationModalProps {
   isOpen: boolean
   onClose: () => void
-  onPaymentSuccess: (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string) => void
+  onPaymentSuccess: (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string, couponCode?: string) => void
   onPaymentFailure: (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string, error: any) => void
   orderId: string
   orderNumber: string
@@ -40,6 +43,8 @@ interface PaymentSimulationModalProps {
   razorpayFeeTotal?: number
   couponDiscount?: number
   couponCode?: string
+  clubId?: string
+  showCouponInput?: boolean
   pointsDiscount?: number
   dialogTitle?: string
   dialogDescription?: string
@@ -47,7 +52,7 @@ interface PaymentSimulationModalProps {
   prefillPhone?: string
   prefillEmail?: string
   /** Optional purchase-specific persistence step that must finish before checkout opens. */
-  onRazorpayOrderCreated?: (razorpayOrderId: string) => Promise<boolean>
+  onRazorpayOrderCreated?: (razorpayOrderId: string, couponCode?: string) => Promise<boolean>
 }
 
 export function PaymentSimulationModal({ 
@@ -68,6 +73,8 @@ export function PaymentSimulationModal({
   razorpayFeeTotal,
   couponDiscount,
   couponCode,
+  clubId,
+  showCouponInput = false,
   dialogTitle,
   dialogDescription,
   payButtonLabel,
@@ -76,10 +83,84 @@ export function PaymentSimulationModal({
   prefillEmail,
   onRazorpayOrderCreated,
 }: PaymentSimulationModalProps) {
-  const { toast } = useToast()
   const [processing, setProcessing] = useState(false)
   const [scriptLoaded, setScriptLoaded] = useState(false)
   const [razorpayOpen, setRazorpayOpen] = useState(false)
+
+  const [inputCouponCode, setInputCouponCode] = useState("")
+  const [activeCouponCode, setActiveCouponCode] = useState<string | undefined>(couponCode)
+  const [activeCouponDiscount, setActiveCouponDiscount] = useState<number>(couponDiscount || 0)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [isAutoAppliedCoupon, setIsAutoAppliedCoupon] = useState(false)
+  const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
+
+  useEffect(() => {
+    if (couponCode) setActiveCouponCode(couponCode)
+    if (couponDiscount) setActiveCouponDiscount(couponDiscount)
+  }, [couponCode, couponDiscount])
+
+  useEffect(() => {
+    if (!isOpen || !showCouponInput || autoCouponRemoved || activeCouponCode) return
+    const targetClubId = clubId || (typeof window !== "undefined" ? localStorage.getItem("selectedClubId") || sessionStorage.getItem("selectedClubId") : undefined)
+    if (!targetClubId) return
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiClient.getHighestEligibleAutoCoupon({
+          clubId: targetClubId,
+          phone: prefillPhone || undefined,
+          email: prefillEmail || undefined,
+          cartSubtotal: subtotal || total,
+          purchaseType: 'membership',
+        })
+        if (res.success && res.data?.coupon) {
+          const c = res.data.coupon
+          setActiveCouponCode(c.code)
+          setActiveCouponDiscount(c.discount || 0)
+          setIsAutoAppliedCoupon(true)
+        }
+      } catch {
+        // Auto-apply is best effort
+      }
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [isOpen, showCouponInput, clubId, subtotal, total, prefillPhone, prefillEmail, autoCouponRemoved, activeCouponCode])
+
+  const handleApplyCoupon = async () => {
+    if (!inputCouponCode.trim()) return
+    try {
+      setValidatingCoupon(true)
+      const targetClubId = clubId || (typeof window !== "undefined" ? localStorage.getItem("selectedClubId") || sessionStorage.getItem("selectedClubId") : undefined)
+      if (!targetClubId) {
+        toast.error("Club context is missing. Please select a club first.")
+        return
+      }
+      const res = await apiClient.validateCoupon(inputCouponCode.trim().toUpperCase(), {
+        clubId: targetClubId,
+        purchaseType: 'membership',
+      })
+      if (res.success && res.data?.coupon) {
+        setActiveCouponCode(res.data.coupon.code)
+        setActiveCouponDiscount(res.data.coupon.discount || 0)
+        setIsAutoAppliedCoupon(false)
+        toast.success(`Coupon ${res.data.coupon.code} applied successfully!`)
+      } else {
+        toast.error(res.error || res.message || "Invalid coupon code")
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to validate coupon")
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setInputCouponCode("")
+    setActiveCouponCode(undefined)
+    setActiveCouponDiscount(0)
+    setAutoCouponRemoved(true)
+    setIsAutoAppliedCoupon(false)
+  }
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -87,11 +168,7 @@ export function PaymentSimulationModal({
     script.async = true
     script.onload = () => setScriptLoaded(true)
     script.onerror = () => {
-      toast({
-        title: "Error",
-        description: "Failed to load Razorpay. Please check your internet connection.",
-        variant: "destructive",
-      })
+      toast.error("Failed to load Razorpay. Please check your internet connection.")
     }
     document.body.appendChild(script)
 
@@ -121,23 +198,21 @@ export function PaymentSimulationModal({
   }
 
   const initiatePayment = async () => {
-    if (!scriptLoaded) {
-      toast({
-        title: "Error",
-        description: "Payment system is still loading. Please wait.",
-        variant: "destructive",
-      })
+    if (!scriptLoaded || typeof window === 'undefined' || !window.Razorpay) {
+      toast.error("Payment system is still loading. Please wait.")
       return
     }
 
     setProcessing(true)
 
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) authHeaders['Authorization'] = `Bearer ${token}`
+
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: authHeaders,
         body: JSON.stringify({
           amount: total,
           currency: currency,
@@ -147,7 +222,8 @@ export function PaymentSimulationModal({
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create payment order')
+        const errBody = await response.json().catch(() => null)
+        throw new Error(errBody?.error || errBody?.details || 'Failed to create payment order')
       }
 
       const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
@@ -189,9 +265,7 @@ export function PaymentSimulationModal({
           try {
             const verifyResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+              headers: authHeaders,
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -204,21 +278,13 @@ export function PaymentSimulationModal({
               throw new Error('Payment verification failed')
             }
 
-            toast({
-              title: "Payment Successful!",
-              description: `Order ${orderNumber} payment completed successfully.`,
-            })
+            toast.success(`Payment Successful! Order ${orderNumber} payment completed successfully.`)
 
             setRazorpayOpen(false)
-            onPaymentSuccess(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature)
+            onPaymentSuccess(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature, activeCouponCode)
             onClose()
           } catch (error) {
-            // console.error('Payment verification error:', error)
-            toast({
-              title: "Payment Verification Failed",
-              description: "Payment was received but verification failed. Please contact support.",
-              variant: "destructive",
-            })
+            toast.error("Payment was received but verification failed. Please contact support.")
             setRazorpayOpen(false)
             onPaymentFailure(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature, error)
           }
@@ -250,11 +316,7 @@ export function PaymentSimulationModal({
             } catch (error) {
               console.error("[Razorpay] Failed to persist payment cancellation:", error)
             }
-            toast({
-              title: "Payment Cancelled",
-              description: "You cancelled the payment process.",
-              variant: "destructive",
-            })
+            toast.error("You cancelled the payment process.")
           }
         }
       }
@@ -262,15 +324,8 @@ export function PaymentSimulationModal({
       const razorpay = new window.Razorpay(options)
 
       razorpay.on('payment.failed', function (response: any) {
-        // console.error('Payment failed:', response.error)
-        toast({
-          title: "Payment Failed",
-          description: response.error.description || "Payment processing failed. Please try again.",
-          variant: "destructive",
-        })
+        toast.error(response?.error?.description || "Payment processing failed. Please try again.")
         setRazorpayOpen(false)
-        // Razorpay may omit razorpay_order_id on failed payments. The local
-        // order id is authoritative and is needed to cancel the pending record.
         onPaymentFailure(
           orderId,
           response.razorpay_payment_id,
@@ -284,12 +339,7 @@ export function PaymentSimulationModal({
       setRazorpayOpen(true)
       razorpay.open()
     } catch (error) {
-      // console.error('Payment initiation error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to initiate payment. Please try again.",
-        variant: "destructive",
-      })
+      toast.error("Failed to initiate payment. Please try again.")
       setProcessing(false)
     }
   }
@@ -367,10 +417,12 @@ export function PaymentSimulationModal({
               <Separator />
               {/* Price Breakdown */}
               {(() => {
+                const currentDiscount = activeCouponDiscount > 0 ? activeCouponDiscount : (couponDiscount ?? 0)
+                const currentCoupon = activeCouponCode || couponCode
                 // Show a clear breakdown: items subtotal, shipping, tax
                 if (subtotal !== undefined) {
-                  const hasDiscount = (couponDiscount ?? 0) > 0 || (pointsDiscount ?? 0) > 0
-                  const netSubtotal = Math.max(subtotal - (couponDiscount ?? 0) - (pointsDiscount ?? 0), 0)
+                  const hasDiscount = currentDiscount > 0 || (pointsDiscount ?? 0) > 0
+                  const netSubtotal = Math.max(subtotal - currentDiscount - (pointsDiscount ?? 0), 0)
                   return (
                     <>
                       <div className="flex justify-between items-center text-sm">
@@ -386,10 +438,10 @@ export function PaymentSimulationModal({
                           )}
                         </span>
                       </div>
-                      {(couponDiscount ?? 0) > 0 && (
-                        <div className="flex justify-between items-center text-sm text-green-600">
-                          <span>Coupon {couponCode ? `(${couponCode})` : 'discount'}:</span>
-                          <span>-{formatCurrency(couponDiscount!, currency)}</span>
+                      {currentDiscount > 0 && (
+                        <div className="flex justify-between items-center text-sm text-green-600 font-medium">
+                          <span>Coupon {currentCoupon ? `(${currentCoupon})` : 'discount'}:</span>
+                          <span>-{formatCurrency(currentDiscount, currency)}</span>
                         </div>
                       )}
                       {(pointsDiscount ?? 0) > 0 && (
@@ -448,15 +500,67 @@ export function PaymentSimulationModal({
                   </>
                 )
               })()}
+
+              {/* Coupon Field inside Payment Summary (only visible when showCouponInput is true) */}
+              {showCouponInput && (
+                <div className="pt-2 border-t space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Tag className="w-3.5 h-3.5 text-primary" />
+                    <span>Coupon or Promo Code</span>
+                  </div>
+                  {activeCouponCode ? (
+                    <div className="flex items-center justify-between p-2 rounded-md bg-green-500/10 border border-green-500/30 text-xs">
+                      <div>
+                        <span className="font-bold text-green-700 dark:text-green-300">
+                          {activeCouponCode}
+                          {isAutoAppliedCoupon && <span className="ml-1 text-[10px] text-green-600 font-normal">· Auto-applied</span>}
+                        </span>
+                        {activeCouponDiscount > 0 && (
+                          <span className="ml-2 text-green-600 dark:text-green-400">(-{formatCurrency(activeCouponDiscount, currency)})</span>
+                        )}
+                      </div>
+                      <Button type="button" variant="ghost" size="sm" onClick={handleRemoveCoupon} className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-100">
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Enter coupon code (e.g. RENEWAL50)"
+                        value={inputCouponCode}
+                        onChange={(e) => setInputCouponCode(e.target.value.toUpperCase())}
+                        className="h-8 text-xs uppercase"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            void handleApplyCoupon()
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void handleApplyCoupon()}
+                        disabled={validatingCoupon || !inputCouponCode.trim()}
+                        className="h-8 text-xs px-3"
+                      >
+                        {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Apply"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
               {platformFeeTotal !== undefined && platformFeeTotal > 0 && (
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
-                  <span>Platform fee ({platformFeePercent}% + GST):</span>
+                  <span>Platform fee:</span>
                   <span>{formatCurrency(platformFeeTotal, currency)}</span>
                 </div>
               )}
               {razorpayFeeTotal !== undefined && razorpayFeeTotal > 0 && (
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
-                  <span>Payment gateway fee (2% + GST):</span>
+                  <span>Payment gateway fee:</span>
                   <span>{formatCurrency(razorpayFeeTotal, currency)}</span>
                 </div>
               )}

@@ -23,6 +23,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getApiUrl } from "@/lib/config"
 import { apiClient } from "@/lib/api"
+import { extractClubTeamId, isClubMemberIdMandatory } from "./join-membership-modal"
 
 interface MembershipPlan {
   _id: string
@@ -52,9 +53,10 @@ interface AddMemberModalProps {
   trigger?: React.ReactNode
   onMemberAdded?: (result?: { name: string; email: string; status: AddMemberResultStatus }) => void
   clubId?: string | null
+  clubName?: string | null
 }
 
-export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: AddMemberModalProps) {
+export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp, clubName: clubNameProp }: AddMemberModalProps) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<"user-info" | "membership-selection" | "success">("user-info")
   const [isLoading, setIsLoading] = useState(false)
@@ -78,13 +80,43 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
     country: "",
     id_proof_type: "Aadhar" as "Aadhar" | "Voter ID" | "Passport" | "Driver License" | "PAN",
     id_proof_number: "",
+    club_member_id: "",
   })
 
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true)
   const [lastAddStatus, setLastAddStatus] = useState<AddMemberResultStatus>('added')
+  const [fetchedClubName, setFetchedClubName] = useState<string>("")
+  const [clubTeamId, setClubTeamId] = useState<string>("")
+  const resolvedClubName = clubNameProp || (user as any)?.club?.name || fetchedClubName
 
   const resolvedClubId = clubIdProp ?? (user as any)?.club?._id ?? (user as any)?.clubs?.[0]?._id ?? (user as any)?.clubs?.[0]
+
+  useEffect(() => {
+    if (!resolvedClubId) {
+      setClubTeamId("")
+      return
+    }
+    let cancelled = false
+    apiClient.getClubById(resolvedClubId).then(async (res: any) => {
+      if (cancelled) return
+      const club = res?.data?.data || res?.data || res
+      const name = club?.name || res?.data?.name || res?.name
+      if (name) setFetchedClubName(name)
+      let teamId = extractClubTeamId(club)
+      if (!teamId) {
+        const settingsRes: any = await apiClient.getClubSettings(resolvedClubId)
+        if (cancelled) return
+        teamId = extractClubTeamId(settingsRes?.data?.data || settingsRes?.data || settingsRes)
+      }
+      setClubTeamId(teamId)
+    }).catch(() => {
+      if (!cancelled) setClubTeamId("")
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [resolvedClubId])
 
   useEffect(() => {
     if (open && resolvedClubId) {
@@ -132,6 +164,11 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         toast.error(`Please fill in ${field.replace('_', ' ')}`)
         return false
       }
+    }
+    const isMandatory = isClubMemberIdMandatory(clubTeamId)
+    if (isMandatory && !userData.club_member_id?.trim()) {
+      toast.error(`Club Member ID is required for ${resolvedClubName || "this club"}`)
+      return false
     }
     if (!/^[a-zA-Z0-9_.'-]+$/.test(userData.username)) {
       toast.error("Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens")
@@ -193,6 +230,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         countryCode: userData.countryCode,
         club_id: clubId,
         membership_plan_id: selectedPlan?._id,
+        club_member_id: userData.club_member_id.trim() || undefined,
         username: userData.username || undefined,
         first_name: userData.first_name || undefined,
         last_name: userData.last_name || undefined,
@@ -235,7 +273,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         setOpen(false)
       }, 2000)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create member')
+      toast.error('Failed to create member. Please check the details and try again.')
     } finally {
       setIsLoading(false)
     }
@@ -259,6 +297,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
       country: "",
       id_proof_type: "Aadhar",
       id_proof_number: "",
+      club_member_id: "",
     })
     setSelectedPlan(null)
     setSendWelcomeEmail(true)
@@ -274,6 +313,19 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
 
   const renderUserInfoStep = () => (
     <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+      <div className="grid gap-2">
+        <Label htmlFor="club_member_id">
+          Club Member ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>}
+        </Label>
+        <Input
+          id="club_member_id"
+          placeholder={isClubMemberIdMandatory(clubTeamId) ? "Required (e.g. AM-1001)" : "Enter Club Member ID (optional)"}
+          value={userData.club_member_id}
+          onChange={(e) => handleUserDataChange("club_member_id", e.target.value)}
+          required={isClubMemberIdMandatory(clubTeamId)}
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="username">Username *</Label>
@@ -402,7 +454,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="city">City *</Label>
           <Input

@@ -17,7 +17,7 @@ function ForceLogoutListener() {
     if (!socket) return;
     const handle = () => {
       logout();
-      window.location.replace('/login');
+      window.location.replace('/');
     };
     socket.on('force_logout', handle);
     return () => {

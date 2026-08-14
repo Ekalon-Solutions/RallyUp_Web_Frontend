@@ -46,11 +46,13 @@ import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
+import { JoinMembershipModal, extractClubTeamId, isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 import { apiClient } from "@/lib/api"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAuth } from "@/contexts/auth-context"
 
 interface Club {
   _id: string
@@ -71,6 +73,10 @@ interface Club {
   }
   status: 'active' | 'inactive' | 'suspended'
   platformFeePercent?: number
+  sports?: {
+    teamId?: string
+    teamName?: string
+  }
   membershipPlans: MembershipPlan[]
   memberInfo?: {
     currentCount: number
@@ -138,7 +144,8 @@ const EMPTY_REGISTRATION = {
   id_proof_number: "",
   name: "",
   tshirtSize: "",
-  tshirtColor: ""
+  tshirtColor: "",
+  club_member_id: "",
 }
 
 function ClubsPageContent() {
@@ -146,8 +153,10 @@ function ClubsPageContent() {
   const [filteredClubs, setFilteredClubs] = useState<Club[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedClub, setSelectedClub] = useState<Club | null>(null)
+  const [clubTeamId, setClubTeamId] = useState<string>("")
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false)
+  const [showMembershipDialog, setShowMembershipDialog] = useState(false)
   const [showClubDetails, setShowClubDetails] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -180,6 +189,7 @@ function ClubsPageContent() {
   const [userMemberships, setUserMemberships] = useState<Record<string, string>>({})
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user, isAuthenticated } = useAuth()
   const showTshirtFields = (selectedClub?.name ?? "").toLowerCase().includes(TSHIRT_FIELD_CLUB_NAME_MATCH)
 
   useEffect(() => {
@@ -228,9 +238,39 @@ function ClubsPageContent() {
     completePendingJoin()
   }, [router])
 
+  // If auth hydration completes after a join click, move the user out of the
+  // guest registration form and into the authenticated membership checkout.
+  useEffect(() => {
+    if (!isAuthenticated || !showRegistrationDialog || !selectedClub || !selectedPlan) return
+    setShowRegistrationDialog(false)
+    setShowMembershipDialog(true)
+  }, [isAuthenticated, showRegistrationDialog, selectedClub, selectedPlan])
+
   useEffect(() => {
     filterClubs()
   }, [clubs, searchTerm, statusFilter, priceFilter])
+
+  useEffect(() => {
+    if (!selectedClub?._id) {
+      setClubTeamId("")
+      return
+    }
+    const fromClub = extractClubTeamId(selectedClub)
+    if (fromClub) {
+      setClubTeamId(fromClub)
+      return
+    }
+    let cancelled = false
+    apiClient.getClubSettings(selectedClub._id, true).then((res: any) => {
+      if (cancelled) return
+      setClubTeamId(extractClubTeamId(res?.data?.data || res?.data || res))
+    }).catch(() => {
+      if (!cancelled) setClubTeamId("")
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedClub])
 
   useEffect(() => {
     const digits = referralPhone.replace(/\D/g, "")
@@ -284,13 +324,17 @@ function ClubsPageContent() {
       autoCouponRemoved
     ) return
 
-    const phone = `${registrationData.countryCode || "+91"}${registrationData.phoneNumber || ""}`
+    const phone = registrationData.phoneNumber
+      ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}`
+      : user?.phoneNumber || undefined
+    const email = registrationData.email || user?.email || undefined
+
     const timer = setTimeout(async () => {
       try {
         const response = await apiClient.getHighestEligibleAutoCoupon({
           clubId: selectedClub._id,
-          phone: phone || undefined,
-          email: registrationData.email || undefined,
+          phone,
+          email,
           cartSubtotal: selectedPlan.price,
           purchaseType: "membership",
         })
@@ -327,12 +371,21 @@ function ClubsPageContent() {
     }
     setValidatingCoupon(true)
     try {
+      const rawPhone = registrationData.phoneNumber
+        ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}`
+        : user?.phoneNumber || ""
+      const phone = rawPhone && rawPhone !== "+91" ? rawPhone : undefined
+      const email = registrationData.email || user?.email || undefined
+
       const response = await apiClient.validateCoupon(
         couponCode.trim().toUpperCase(),
-        undefined,
-        selectedPlan.price,
-        selectedClub._id,
-        "membership",
+        {
+          ticketPrice: selectedPlan.price,
+          clubId: selectedClub._id,
+          purchaseType: "membership",
+          email,
+          phone,
+        }
       )
       if (response.success && response.data?.coupon) {
         setAppliedCoupon({
@@ -493,7 +546,11 @@ function ClubsPageContent() {
     setSelectedPlan(plan)
     resetReferralState()
     resetCouponState()
-    setShowRegistrationDialog(true)
+    if (isAuthenticated) {
+      setShowMembershipDialog(true)
+    } else {
+      setShowRegistrationDialog(true)
+    }
   }
 
   const handleViewClubDetails = (club: Club) => {
@@ -513,6 +570,12 @@ function ClubsPageContent() {
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedClub || !selectedPlan) return
+    const isMandatory = isClubMemberIdMandatory(clubTeamId)
+    if (isMandatory && !registrationData.club_member_id?.trim()) {
+      toast.error(`Club Member ID is required for ${selectedClub?.name}`)
+      return
+    }
+
     const phoneError = validatePhoneNumber(registrationData.phoneNumber)
     setRegistrationErrors({ phoneNumber: phoneError })
     if (phoneError) {
@@ -543,7 +606,7 @@ function ClubsPageContent() {
               JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
             )
           } catch (_) { }
-          router.push("/login?redirect=/clubs")
+          router.push("/?redirect=/clubs")
           return
         }
 
@@ -582,6 +645,7 @@ function ClubsPageContent() {
             getValidReferralPhone(),
             { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
             appliedCoupon?.code,
+            registrationData.club_member_id?.trim() || undefined,
           )
           if (!subscribeRes.success) {
             toast.error(subscribeRes.error || "Failed to activate discounted membership")
@@ -617,6 +681,7 @@ function ClubsPageContent() {
               getValidReferralPhone(),
               undefined,
               appliedCoupon?.code,
+              registrationData.club_member_id?.trim() || undefined,
             )
 
             if (subscribeRes.success) {
@@ -656,7 +721,7 @@ function ClubsPageContent() {
                   JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
                 )
               } catch (_) { }
-              router.push("/login?redirect=/clubs")
+              router.push("/?redirect=/clubs")
             } else {
               toast.error(checkData.message || "This membership plan is no longer available for this club.")
             }
@@ -749,6 +814,7 @@ function ClubsPageContent() {
         pendingReferralPhone,
         undefined,
         pendingOrder?.couponCode,
+        pendingRegistrationData.club_member_id?.trim() || undefined,
       )
 
       if (subscribeRes.success) {
@@ -1227,7 +1293,7 @@ function ClubsPageContent() {
               </DialogHeader>
 
               <Tabs defaultValue="plans" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-auto">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto">
                   <TabsTrigger className="whitespace-normal" value="plans">Membership Plans</TabsTrigger>
                   <TabsTrigger value="info">Club Info</TabsTrigger>
                   <TabsTrigger value="features">Features</TabsTrigger>
@@ -1515,8 +1581,21 @@ function ClubsPageContent() {
         </DialogContent>
       </Dialog>
 
+      {selectedClub && selectedPlan && (
+        <JoinMembershipModal
+          open={showMembershipDialog}
+          onOpenChange={setShowMembershipDialog}
+          clubId={selectedClub._id}
+          clubName={selectedClub.name}
+          platformFeePercent={selectedClub.platformFeePercent}
+          plans={(selectedClub.membershipPlans || []).filter((plan) => plan.isActive)}
+          initialPlanId={selectedPlan._id}
+          returnPath="/clubs"
+        />
+      )}
+
       <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
-        <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:max-w-2xl">
+        <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:p-0 sm:max-w-2xl">
           <DialogHeader className="shrink-0 px-6 pt-6">
             <DialogTitle className="flex items-center gap-2">
               <div className="bg-primary rounded-lg p-2">
@@ -1741,6 +1820,20 @@ function ClubsPageContent() {
                     id="id_proof_number"
                     value={registrationData.id_proof_number}
                     onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="page_club_member_id">
+                    Club Member ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                  </Label>
+                  <Input
+                    id="page_club_member_id"
+                    value={registrationData.club_member_id}
+                    onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
+                    placeholder={isClubMemberIdMandatory(clubTeamId) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+                    required={isClubMemberIdMandatory(clubTeamId)}
                     className="h-12"
                   />
                 </div>
@@ -1971,6 +2064,7 @@ function ClubsPageContent() {
                 pendingReferralPhone,
                 { tshirtSize: pendingRegistrationData?.tshirtSize, tshirtColor: pendingRegistrationData?.tshirtColor },
                 pendingOrder.couponCode,
+                pendingRegistrationData?.club_member_id?.trim() || undefined,
               )
               if (!result.success) toast.error(result.error || 'Unable to prepare membership purchase')
               return result.success

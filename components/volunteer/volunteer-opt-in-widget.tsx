@@ -7,10 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Heart, UserCheck, UserX, Settings, Loader2, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { VolunteerSignUpModal } from './volunteer-signup-modal';
-import { VolunteerProfile } from '@/lib/api';
-import config from '@/lib/config';
+import { apiClient, VolunteerProfile } from '@/lib/api';
 
 interface VolunteerOptInWidgetProps {
   currentUser: any;
@@ -24,7 +23,6 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchVolunteerProfile();
@@ -33,21 +31,14 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
   const fetchVolunteerProfile = async () => {
     try {
       setInitialLoading(true);
-      const response = await fetch(`${config.apiBaseUrl}/volunteer/volunteer-profile`, {
-        headers: {
-          'Authorization': `Bearer ${currentUser?.token || localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await apiClient.getVolunteerProfile();
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.volunteer) {
-          setVolunteerProfile(data.volunteer);
-          setIsVolunteer(data.volunteer.isActive !== false);
+      if (response.success && response.data) {
+        const volunteer = (response.data as any)?.volunteer ?? response.data;
+        if (volunteer) {
+          setVolunteerProfile(volunteer);
+          setIsVolunteer(volunteer.isActive !== false);
         }
-      } else if (response.status !== 404) {
-        // console.error('Error fetching volunteer profile');
       }
     } catch (error) {
       // console.error('Error:', error);
@@ -64,40 +55,29 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
 
     try {
       setLoading(true);
-      const response = await fetch(`${config.apiBaseUrl}/volunteer/volunteer-profile`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${currentUser?.token || localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          isActive: checked,
-        }),
-      });
+      const response = await apiClient.updateVolunteerProfile({ isActive: checked } as any);
 
-      if (response.ok) {
-        const data = await response.json();
-        setVolunteerProfile(data.volunteer || data);
+      if (response.success && response.data) {
+        const volunteer = (response.data as any)?.volunteer ?? response.data;
+        setVolunteerProfile(volunteer);
         setIsVolunteer(checked);
-        onProfileUpdate?.(data.volunteer || data);
-        
-        toast({
-          title: checked ? "Opted In!" : "Opted Out",
-          description: checked 
-            ? "You're now available for volunteering opportunities!" 
-            : "You've been removed from the volunteer list.",
-          variant: checked ? "default" : "destructive",
-        });
+        onProfileUpdate?.(volunteer);
+
+        if (checked) {
+          toast.success("Opted In!", {
+            description: "You're now available for volunteering opportunities!",
+          });
+        } else {
+          toast.error("Opted Out", {
+            description: "You've been removed from the volunteer list.",
+          });
+        }
       } else {
         throw new Error('Failed to update volunteer status');
       }
     } catch (error) {
       // console.error('Error updating volunteer status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update volunteer status. Please try again.",
-        variant: "destructive",
-      });
+      toast.error('Failed to update volunteer status. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -106,32 +86,19 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
   const handleProfileSubmit = async (profile: VolunteerProfile) => {
     try {
       setLoading(true);
-      const endpoint = volunteerProfile 
-        ? `${config.apiBaseUrl}/volunteer/volunteer-profile`
-        : `${config.apiBaseUrl}/volunteer/volunteer-profile`;
-      
-      const response = await fetch(endpoint, {
-        method: volunteerProfile ? 'PUT' : 'POST',
-        headers: {
-          'Authorization': `Bearer ${currentUser?.token || localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...profile,
-          club: clubId,
-          isActive: true,
-        }),
-      });
+      const payload = { ...profile, clubId, isActive: true } as any;
+      const response = volunteerProfile
+        ? await apiClient.updateVolunteerProfile(payload)
+        : await apiClient.createVolunteerProfile(payload);
 
-      if (response.ok) {
-        const data = await response.json();
-        setVolunteerProfile(data.volunteer || data);
+      if (response.success && response.data) {
+        const volunteer = (response.data as any)?.volunteer ?? response.data;
+        setVolunteerProfile(volunteer);
         setIsVolunteer(true);
         setShowModal(false);
-        onProfileUpdate?.(data.volunteer || data);
-        
-        toast({
-          title: "Welcome, Volunteer!",
+        onProfileUpdate?.(volunteer);
+
+        toast.success("Welcome, Volunteer!", {
           description: "Your volunteer profile has been created successfully!",
         });
       } else {
@@ -139,11 +106,7 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
       }
     } catch (error) {
       // console.error('Error creating volunteer profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create volunteer profile. Please try again.",
-        variant: "destructive",
-      });
+      toast.error('Failed to create volunteer profile. Please try again.');
     } finally {
       setLoading(false);
     }

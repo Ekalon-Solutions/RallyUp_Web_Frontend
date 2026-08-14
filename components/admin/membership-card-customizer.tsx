@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { LOGO_SIZES as LOGO_SIZE_OPTIONS, hasScalableLogo } from '@/lib/membershipCardLogo';
 import { MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE } from '@/lib/membershipCardProfile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { apiClient } from '@/lib/api';
 import { getApiUrl, getBaseUrl } from '@/lib/config';
 import { MembershipCard } from '@/components/membership-card';
@@ -59,7 +59,6 @@ interface MembershipCardCustomizerProps {
 }
 
 export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipCardCustomizerProps) {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [cardData, setCardData] = useState<any>(null);
@@ -71,6 +70,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
   const [logoSize, setLogoSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [showLogo, setShowLogo] = useState(true);
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [idPrefix, setIdPrefix] = useState('UM');
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -118,6 +118,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
               if (custom.logoSize) setLogoSize(custom.logoSize);
               if (custom.showLogo !== undefined) setShowLogo(custom.showLogo);
               if (custom.showUserProfile !== undefined) setShowUserProfile(custom.showUserProfile);
+              if (custom.idPrefix) setIdPrefix(custom.idPrefix);
               if (custom.customLogo) {
                 const logoUrl = custom.customLogo.startsWith('http') ? custom.customLogo : `${getBaseUrl()}${custom.customLogo}`;
                 setCustomLogo(logoUrl);
@@ -239,7 +240,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     };
 
     fetchCardData();
-  }, [clubId, cardId, toast]);
+  }, [clubId, cardId]);
 
   const handleStyleChange = (style: string) => {
     setSelectedStyle(style);
@@ -255,19 +256,15 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file",
+      toast.error("Invalid file", {
         description: "Please upload an image file",
-        variant: "destructive",
       });
       return;
     }
 
     if (file.size > 25 * 1024 * 1024) {
-      toast({
-        title: "File too large",
+      toast.error("File too large", {
         description: "Please upload an image smaller than 25MB",
-        variant: "destructive",
       });
       return;
     }
@@ -293,15 +290,10 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       const logoUrl = data.url?.startsWith('http') ? data.url : `${getBaseUrl()}${data.url}`;
       setCustomLogo(logoUrl);
       
-      toast({
-        title: "Success",
-        description: "Logo uploaded successfully",
-      });
+      toast.success("Logo uploaded successfully");
     } catch (error) {
-      toast({
-        title: "Upload failed",
+      toast.error("Upload failed", {
         description: "Failed to upload logo",
-        variant: "destructive",
       });
     } finally {
       setUploadingLogo(false);
@@ -312,10 +304,8 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     if (!cardData) return;
 
     if (cardData.membershipPlan._id === 'preview-plan' || cardData.card._id === 'preview-card') {
-      toast({
-        title: "Cannot Save Preview Card",
+      toast.error("Cannot Save Preview Card", {
         description: "You're viewing a preview card. Please create a membership card first or ensure the backend server has your user account.",
-        variant: "destructive",
       });
       return;
     }
@@ -330,6 +320,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         logoSize,
         showLogo,
         showUserProfile,
+        idPrefix,
         customLogo: customLogo || undefined
       };
       const membershipPlanId = cardData.membershipPlan._id;
@@ -341,20 +332,13 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       );
 
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Card customization saved successfully",
-        });
+        toast.success("Card customization saved successfully");
         if (onSave) onSave();
       } else {
         throw new Error(response.error || 'Failed to save');
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save customization",
-        variant: "destructive",
-      });
+      toast.error("Failed to save customization");
     } finally {
       setSaving(false);
     }
@@ -387,6 +371,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         logoSize,
         showLogo,
         showUserProfile,
+        idPrefix,
         customLogo
       }
     }
@@ -435,6 +420,21 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                 </TabsList>
 
                 <TabsContent value="style" className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="customizerIdPrefix">Card ID Prefix</Label>
+                    <Input
+                      id="customizerIdPrefix"
+                      type="text"
+                      placeholder="UM"
+                      maxLength={10}
+                      value={idPrefix}
+                      onChange={(e) => setIdPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                      className="font-mono uppercase"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Prefix for member IDs (e.g. {idPrefix || 'UM'}-{new Date().getFullYear()}-XXXXXX)
+                    </p>
+                  </div>
                   <div className="space-y-3">
                     <Label>Card Style Preset</Label>
                     <Select value={selectedStyle} onValueChange={handleStyleChange}>
@@ -657,7 +657,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                       cardStyle={selectedStyle === 'custom' ? 'default' : selectedStyle as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald'}
                       showLogo={showLogo}
                       userName="John Doe"
-                      membershipId={previewData.card.membershipId}
+                      membershipId={previewData.card.membershipId ? previewData.card.membershipId.replace(/^[^-]+/, idPrefix || 'UM') : `${idPrefix || 'UM'}-2026-123456`}
                       profilePicture={showUserProfile ? MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE : undefined}
                     />
                   </div>

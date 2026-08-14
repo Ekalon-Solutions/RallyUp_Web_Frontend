@@ -300,7 +300,7 @@ export default function FeatureSelectorReportPage() {
                   value={filters.extras?.featureKey || "all"}
                   onValueChange={(val) => setFilters((prev) => ({ ...prev, extras: { ...prev.extras, featureKey: val } }))}
                 >
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-full sm:w-44">
                     <SelectValue placeholder="All Features" />
                   </SelectTrigger>
                   <SelectContent>

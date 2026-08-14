@@ -141,11 +141,11 @@ export default function UserLeaderboardPage() {
     return (
         <ProtectedRoute>
             <DashboardLayout>
-                <div className="p-6 space-y-6">
+                <div className="space-y-6">
                     {/* Page Header */}
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold">Event Attendance Leaderboard</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold">Event Attendance Leaderboard</h1>
                             <p className="text-muted-foreground mt-2">
                                 See how you rank among all members based on event attendance
                             </p>
@@ -281,14 +281,14 @@ export default function UserLeaderboardPage() {
                                                                     </AvatarFallback>
                                                                 </Avatar>
                                                                 <div>
-                                                                    <p className="font-medium">
+                                                                    <div className="font-medium flex items-center">
                                                                         {entry.name || 'Anonymous User'}
                                                                         {isUser && (
                                                                             <Badge variant="outline" className="ml-2 text-xs">
                                                                                 You
                                                                             </Badge>
                                                                         )}
-                                                                    </p>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </TableCell>

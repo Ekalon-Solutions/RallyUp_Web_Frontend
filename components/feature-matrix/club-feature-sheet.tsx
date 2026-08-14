@@ -102,6 +102,7 @@ type SheetState = {
   constraints: Record<string, number>
   experimental: Record<string, { enabled: boolean; state: string }>
   platformFeePercent: number
+  maxMembers: number
 }
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -137,13 +138,14 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
       constraints: { ...(club.feature_constraints ?? {}) },
       experimental: { ...(club.experimental_flags ?? {}) },
       platformFeePercent: club.platformFeePercent ?? 5,
+      maxMembers: club.maxMembers ?? 1000,
     })
   }, [club])
 
   // ── Dirty-state derived values ───────────────────────────────────────────
 
   const diff = useMemo(() => {
-    if (!club || !state) return { flagCount: 0, billing: false, constraints: false, any: false }
+    if (!club || !state) return { flagCount: 0, billing: false, constraints: false, expCount: 0, platformFee: false, maxMembers: false, any: false }
     let flagCount = 0
     for (const key of CLUB_FEATURE_KEYS) {
       const original = club.flags.find((f) => f.key === key)?.enabled ?? false
@@ -162,7 +164,8 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
       if ((state.experimental[key]?.enabled ?? false) !== (origExp[key]?.enabled ?? false)) expCount++
     }
     const platformFee = (state.platformFeePercent ?? 5) !== (club.platformFeePercent ?? 5)
-    return { flagCount, billing, constraints, expCount, platformFee, any: flagCount > 0 || billing || constraints || expCount > 0 || platformFee }
+    const maxMembers = (state.maxMembers ?? 1000) !== (club.maxMembers ?? 1000)
+    return { flagCount, billing, constraints, expCount, platformFee, maxMembers, any: flagCount > 0 || billing || constraints || expCount > 0 || platformFee || maxMembers }
   }, [club, state])
 
   // ── Handlers ────────────────────────────────────────────────────────────
@@ -211,7 +214,7 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
     )
   }
 
-  // Atomic save: flags + experimental flags + billing + constraints in one PATCH
+  // Atomic save: flags + experimental flags + billing + constraints + maxMembers in one PATCH
   const handleSave = async () => {
     if (!club || !state) return
     setSaving(true)
@@ -238,6 +241,7 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
         ...(state.billing_tier   !== club.billing_tier   && { billing_tier:   state.billing_tier }),
         ...(state.billing_status !== club.billing_status && { billing_status: state.billing_status }),
         ...((state.platformFeePercent ?? 5) !== (club.platformFeePercent ?? 5) && { platformFeePercent: state.platformFeePercent }),
+        ...((state.maxMembers ?? 1000) !== (club.maxMembers ?? 1000) && { maxMembers: state.maxMembers }),
         feature_constraints: state.constraints,
         reasonCode: "service_matrix_edit",
       })
@@ -249,7 +253,7 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
         toast.error((res as any).message || "Save failed")
       }
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Save failed")
+      toast.error("Failed to save club feature settings. Please try again.")
     } finally {
       setSaving(false)
     }
@@ -269,6 +273,7 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
     if (diff.billing)       parts.push("billing")
     if (diff.constraints)   parts.push("limits")
     if (diff.platformFee)   parts.push("platform fee")
+    if (diff.maxMembers)    parts.push("max members")
     return parts.length > 0 ? parts.join(" · ") + " changed" : null
   })()
 
@@ -367,31 +372,57 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
                       </Select>
                     </div>
                   </div>
-                    <div className="mt-3">
-                    <Label className="text-xs text-muted-foreground">Platform fee (%)</Label>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        className="h-8 text-xs w-24 font-mono"
-                        value={state.platformFeePercent}
-                        onChange={(e) => {
-                          const v = parseFloat(e.target.value)
-                          setState((s) => s ? { ...s, platformFeePercent: isNaN(v) ? 0 : Math.round(v * 100) / 100 } : s)
-                        }}
-                      />
-                      <span className="text-xs text-muted-foreground">%</span>
-                      {(state.platformFeePercent ?? 5) !== (club?.platformFeePercent ?? 5) && (
-                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
-                          Changed
-                        </span>
-                      )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Platform fee (%)</Label>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            className="h-8 text-xs font-mono"
+                            value={state.platformFeePercent}
+                            onChange={(e) => {
+                              const v = parseFloat(e.target.value)
+                              setState((s) => s ? { ...s, platformFeePercent: isNaN(v) ? 0 : Math.round(v * 100) / 100 } : s)
+                            }}
+                          />
+                          <span className="text-xs text-muted-foreground">%</span>
+                          {(state.platformFeePercent ?? 5) !== (club?.platformFeePercent ?? 5) && (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
+                              Changed
+                            </span>
+                          )}
+                        </div>
+                        {(state.platformFeePercent ?? 0) > 100 && (
+                          <p className="text-xs text-red-500 mt-1">Platform fee (%) cannot be greater than 100</p>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Max Members</Label>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Input
+                            type="number"
+                            min={1}
+                            step={1}
+                            className="h-8 text-xs font-mono"
+                            value={state.maxMembers}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value, 10)
+                              setState((s) => s ? { ...s, maxMembers: isNaN(v) ? 0 : Math.max(0, v) } : s)
+                            }}
+                          />
+                          {(state.maxMembers ?? 1000) !== (club?.maxMembers ?? 1000) && (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
+                              Changed
+                            </span>
+                          )}
+                        </div>
+                        {(state.maxMembers ?? 0) < 1 && (
+                          <p className="text-xs text-red-500 mt-1">Max members must be at least 1</p>
+                        )}
+                      </div>
                     </div>
-                    {(state.platformFeePercent ?? 0) > 100 && (
-                      <p className="text-xs text-red-500 mt-1">Platform fee (%) cannot be greater than 100</p>
-                    )}
-                  </div>
                 </section>
 
                 <div className="h-px bg-border" />
@@ -569,7 +600,12 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
               <Button variant="outline" size="sm" onClick={onClose} disabled={saving} className="flex-1 sm:flex-none">
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving || !diff.any} className="flex-1 sm:flex-none">
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saving || !diff.any || (state?.maxMembers ?? 0) < 1 || (state?.platformFeePercent ?? 0) > 100}
+                className="flex-1 sm:flex-none"
+              >
                 {saving && <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />}
                 Save changes
               </Button>

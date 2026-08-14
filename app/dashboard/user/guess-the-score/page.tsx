@@ -624,26 +624,17 @@ export default function GuessTheScorePage() {
   // Socket: join club GTS room and listen for live score pushes from the server
   useEffect(() => {
     if (!prefs?.hasAcceptedConsent || !clubId || !socket || !isConnected) {
-      console.log("[GTS] Socket not ready or consent missing — skipping room join", { isConnected, clubId, hasConsent: prefs?.hasAcceptedConsent })
       return
     }
 
-    console.log(`[GTS] Joining club GTS room: gts:${clubId}`)
     socket.emit("join-gts-club", clubId)
 
     const handleFixturesUpdated = (data: { fixtures: GTSFixture[] }) => {
-      const live = data.fixtures.filter(f =>
-        f.strStatus !== "Not Started" && f.strStatus !== "" &&
-        f.strStatus !== "Match Finished" && f.strStatus !== "FT" &&
-        f.strStatus !== "AET" && f.strStatus !== "PEN"
-      )
-      console.log(`[GTS] gts:fixtures-updated — ${data.fixtures.length} fixtures, ${live.length} live`, live.map(f => `${f.strHomeTeam} vs ${f.strAwayTeam} (${f.strStatus} ${f.intHomeScore ?? "?"}–${f.intAwayScore ?? "?"})`))
       setFixtures(data.fixtures)
     }
     socket.on("gts:fixtures-updated", handleFixturesUpdated)
 
     return () => {
-      console.log(`[GTS] Leaving club GTS room: gts:${clubId}`)
       socket.emit("leave-gts-club", clubId)
       socket.off("gts:fixtures-updated", handleFixturesUpdated)
     }
@@ -657,7 +648,6 @@ export default function GuessTheScorePage() {
       result: GTSPrediction["result"]
       pointsEarned: number
     }) => {
-      console.log(`[GTS] gts:prediction-result — fixtureId: ${data.fixtureId}, result: ${data.result}, points: ${data.pointsEarned}`)
       setPredictions((prev) =>
         prev.map((p) =>
           p.fixtureId === data.fixtureId
@@ -799,10 +789,10 @@ export default function GuessTheScorePage() {
           />
         )}
 
-        <div className="p-4 md:p-6 space-y-4 max-w-8xl mx-auto">
+        <div className="space-y-4 max-w-8xl mx-auto">
 
           {/* ── Page header ──────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-primary" />
@@ -841,7 +831,7 @@ export default function GuessTheScorePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="px-4 pb-4">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="rounded-lg bg-muted/50 p-3 text-center">
                         <p className="text-2xl font-bold">
                           {userRank != null ? `#${userRank}` : "—"}
@@ -857,7 +847,7 @@ export default function GuessTheScorePage() {
                     </div>
 
                     {/* Scoring legend — this season's point values */}
-                    <div className="grid grid-cols-4 gap-1.5 mt-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 mt-3">
                       {(() => {
                         const sc = prefs.scoring ?? DEFAULT_SCORING
                         return [

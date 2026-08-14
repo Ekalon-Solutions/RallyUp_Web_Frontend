@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { useToast } from '../hooks/use-toast';
+import { toast } from 'sonner';
 import { apiClient } from '../lib/api';
 import { formatLocalDate } from '../lib/timezone';
 
@@ -29,7 +29,6 @@ export function UserSessionManagement() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchSessions();
@@ -42,18 +41,10 @@ export function UserSessionManagement() {
       if (response.success) {
         setSessions(response.data);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to fetch sessions",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to fetch sessions");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch sessions",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch sessions");
     } finally {
       setLoading(false);
     }
@@ -69,25 +60,14 @@ export function UserSessionManagement() {
     try {
       const response = await apiClient.delete('/sessions/current');
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Successfully logged out from current session",
-        });
+        toast.success("Successfully logged out from current session");
         // Redirect to login or refresh the page
         window.location.href = '/';
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to logout from current session",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to logout from current session");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to logout from current session",
-        variant: "destructive",
-      });
+      toast.error("Failed to logout from current session");
     }
   };
 
@@ -95,25 +75,14 @@ export function UserSessionManagement() {
     try {
       const response = await apiClient.delete<{ invalidatedCount?: number }>('/sessions/all');
       if (response.success) {
-        toast({
-          title: "Success",
-          description: `Successfully logged out from ${response.data?.invalidatedCount ?? 0} sessions`,
-        });
+        toast.success(`Successfully logged out from ${response.data?.invalidatedCount ?? 0} sessions`);
         // Redirect to login or refresh the page
         window.location.href = '/';
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to logout from all sessions",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to logout from all sessions");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to logout from all sessions",
-        variant: "destructive",
-      });
+      toast.error("Failed to logout from all sessions");
     }
   };
 

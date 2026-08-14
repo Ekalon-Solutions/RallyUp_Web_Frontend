@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { formatLocalDate } from '@/lib/timezone'
 import { RefundButton } from '@/components/refund-button'
 import { PaymentSimulationModal } from '@/components/modals/payment-simulation-modal'
@@ -150,7 +150,6 @@ const paymentStatusConfig = {
 export default function UserOrdersPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
-  const { toast } = useToast()
   const { socket } = useSocket()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
@@ -204,14 +203,13 @@ export default function UserOrdersPage() {
       const res = await apiClient.updateUserProfile({ notificationPreferences: { orders: checked } })
       if (res.success) {
         setShippingAlertsEnabled(checked)
-        toast({
-          title: checked ? 'Shipping alerts enabled' : 'Shipping alerts disabled',
+        toast.success(checked ? 'Shipping alerts enabled' : 'Shipping alerts disabled', {
           description: checked
             ? "You'll be notified the moment your order ships or is out for delivery."
             : "You won't receive shipping update notifications.",
         })
       } else {
-        toast({ title: 'Error', description: res.error || 'Failed to update preference', variant: 'destructive' })
+        toast.error(res.error || 'Failed to update preference')
       }
     } finally {
       setSavingShippingAlerts(false)
@@ -310,20 +308,12 @@ export default function UserOrdersPage() {
         setOrders(response.data.data?.orders || [])
         setTotalPages(response.data.data?.pagination?.totalPages || 1)
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to fetch orders",
-          variant: "destructive",
-        })
+        toast.error(response.message || "Failed to fetch orders")
         setOrders([])
         setTotalPages(1)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch orders",
-        variant: "destructive",
-      })
+      toast.error("Failed to fetch orders")
       setOrders([])
       setTotalPages(1)
     } finally {
@@ -347,12 +337,12 @@ export default function UserOrdersPage() {
     try {
       const res = await apiClient.downloadMyOrdersReport(params);
       if (!res.success) {
-        toast({ title: 'Error', description: res.error || 'Failed to download report', variant: 'destructive' });
+        toast.error(res.error || 'Failed to download report');
       } else {
-        toast({ title: 'Report downloaded', description: 'Your orders report downloaded successfully.' });
+        toast.success('Report downloaded', { description: 'Your orders report downloaded successfully.' });
       }
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to download report', variant: 'destructive' });
+      toast.error('Failed to download report');
     }
   }
 
@@ -428,12 +418,12 @@ export default function UserOrdersPage() {
 
   const cpHandleValidateCoupon = async () => {
     if (!cpOrder || !cpCouponCode.trim()) {
-      toast({ title: 'Error', description: 'Please enter a coupon code', variant: 'destructive' })
+      toast.error('Please enter a coupon code')
       return
     }
     const orderClubId = cpOrder.club
     if (!orderClubId) {
-      toast({ title: 'Error', description: 'Unable to validate coupon for this order', variant: 'destructive' })
+      toast.error('Unable to validate coupon for this order')
       return
     }
     setCpValidatingCoupon(true)
@@ -446,14 +436,14 @@ export default function UserOrdersPage() {
       )
       if (response.success && response.data?.coupon) {
         setCpAppliedCoupon(response.data.coupon)
-        toast({ title: 'Success', description: 'Coupon applied!' })
+        toast.success('Coupon applied!')
       } else {
         setCpAppliedCoupon(null)
-        toast({ title: 'Error', description: response.error || 'Invalid coupon code', variant: 'destructive' })
+        toast.error(response.error || 'Invalid coupon code')
       }
     } catch {
       setCpAppliedCoupon(null)
-      toast({ title: 'Error', description: 'Failed to validate coupon', variant: 'destructive' })
+      toast.error('Failed to validate coupon')
     } finally {
       setCpValidatingCoupon(false)
     }
@@ -467,20 +457,20 @@ export default function UserOrdersPage() {
   const cpHandleReservePoints = async () => {
     if (!cpOrder || !user) return
     if (!cpRedeemPoints || cpRedeemPoints <= 0) {
-      toast({ title: 'Error', description: 'Enter points to redeem', variant: 'destructive' })
+      toast.error('Enter points to redeem')
       return
     }
     if ((cpOrder.subtotal - cpCouponDiscount) <= 0) {
-      toast({ title: 'Error', description: 'Subtotal is already zero — no need to redeem points', variant: 'destructive' })
+      toast.error('Subtotal is already zero — no need to redeem points')
       return
     }
     if (cpAvailablePoints !== null && cpRedeemPoints > cpAvailablePoints) {
-      toast({ title: 'Error', description: 'You do not have enough points', variant: 'destructive' })
+      toast.error('You do not have enough points')
       return
     }
     const orderClubId = cpOrder.club
     if (!orderClubId) {
-      toast({ title: 'Error', description: 'Club information missing', variant: 'destructive' })
+      toast.error('Club information missing')
       return
     }
     setCpReserving(true)
@@ -494,12 +484,12 @@ export default function UserOrdersPage() {
       if (resp && resp.success) {
         setCpReservationToken(resp.data?.reservationToken || null)
         setCpReservedDiscount(resp.data?.discountAmount || 0)
-        toast({ title: 'Success', description: 'Points reserved!' })
+        toast.success('Points reserved!')
       } else {
-        toast({ title: 'Error', description: resp?.message || 'Failed to reserve points', variant: 'destructive' })
+        toast.error(resp?.message || 'Failed to reserve points')
       }
     } catch (err: any) {
-      toast({ title: 'Error', description: err?.message || 'Failed to reserve points', variant: 'destructive' })
+      toast.error(err?.message || 'Failed to reserve points')
     } finally {
       setCpReserving(false)
     }
@@ -571,13 +561,13 @@ export default function UserOrdersPage() {
 
       const resp = await apiClient.updatePendingOrderPayment(cpOrder._id, updatePayload)
       if (!resp.success) {
-        toast({ title: 'Error', description: resp.message || 'Failed to update order', variant: 'destructive' })
+        toast.error(resp.message || 'Failed to update order')
         return
       }
       setCpUpdatedOrder(resp.data?.data ?? cpOrder)
       setShowCpPayment(true)
     } catch {
-      toast({ title: 'Error', description: 'Failed to update order', variant: 'destructive' })
+      toast.error('Failed to update order')
     } finally {
       setCpLoading(false)
     }
@@ -594,12 +584,12 @@ export default function UserOrdersPage() {
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
         paymentStatus: 'paid', paymentId, razorpayOrderId, razorpaySignature
       })
-      toast({ title: 'Success', description: 'Payment successful! Order confirmed.' })
+      toast.success('Payment successful! Order confirmed.')
       setShowCpPayment(false)
       closeContinuePayment()
       loadOrders()
     } catch {
-      toast({ title: 'Error', description: 'Payment successful but failed to update order status.', variant: 'destructive' })
+      toast.error('Payment successful but failed to update order status.')
     }
   }
 
@@ -616,10 +606,10 @@ export default function UserOrdersPage() {
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
         paymentStatus: 'failed', paymentId, razorpayOrderId, razorpaySignature
       })
-      toast({ title: 'Error', description: 'Payment failed. Please try again.', variant: 'destructive' })
+      toast.error('Payment failed. Please try again.')
       setShowCpPayment(false)
     } catch {
-      toast({ title: 'Error', description: 'Failed to update payment status.', variant: 'destructive' })
+      toast.error('Failed to update payment status.')
     }
   }
   // ────────────────────────────────────────────────────────────────────────────
@@ -641,9 +631,9 @@ export default function UserOrdersPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">My Orders</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">My Orders</h1>
             <p className="text-muted-foreground">Track your purchase history and order status</p>
           </div>
           <div className="flex items-center space-x-2">

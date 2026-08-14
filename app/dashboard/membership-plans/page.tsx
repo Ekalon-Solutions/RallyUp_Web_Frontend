@@ -272,6 +272,12 @@ export default function MembershipPlansPage() {
         setIsCreating(false)
         return
       }
+      if (bookingEnd > end) {
+        toast.error('Booking end date cannot be after plan end date')
+        setShowCreateDialog(false)
+        setIsCreating(false)
+        return
+      }
 
       const payload: any = { ...formData, clubId: activeClubId }
       if (formData.planStartDate) payload.planStartDate = formData.planStartDate
@@ -506,6 +512,13 @@ export default function MembershipPlansPage() {
         setIsUpdating(false)
         return
       }
+      if (bookingEnd > end) {
+        toast.error('Booking end date cannot be after plan end date')
+        setShowEditDialog(false)
+        setEditingPlan(null)
+        setIsUpdating(false)
+        return
+      }
 
       const updatePayload: any = { ...formData, clubId: activeClubId }
       if (formData.planStartDate) updatePayload.planStartDate = formData.planStartDate
@@ -575,10 +588,10 @@ export default function MembershipPlansPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="p-6 space-y-6">
-            <div className="flex justify-between items-center">
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Membership Plans</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Membership Plans</h1>
                 <p className="text-muted-foreground">Create and manage membership plans for your club</p>
               </div>
             </div>
@@ -597,7 +610,7 @@ export default function MembershipPlansPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Membership Plans</h1>
@@ -614,7 +627,7 @@ export default function MembershipPlansPage() {
                     Create Plan
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 gap-0 overflow-hidden">
+                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 sm:p-0 gap-0 overflow-hidden">
                   <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
                     <DialogTitle>Create New Membership Plan</DialogTitle>
                     <DialogDescription>
@@ -780,7 +793,7 @@ export default function MembershipPlansPage() {
                 </DialogContent>
               </Dialog>
               <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 gap-0 overflow-hidden">
+                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 sm:p-0 gap-0 overflow-hidden">
                   <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
                     <DialogTitle>Edit Membership Plan</DialogTitle>
                     <DialogDescription>

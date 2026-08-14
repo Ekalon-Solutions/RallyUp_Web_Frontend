@@ -78,6 +78,8 @@ interface Member {
   createdAt: string
   updatedAt: string
   // Read-only details from user table (for member details modal)
+  user_membership_id?: string
+  club_member_id?: string
   username?: string
   date_of_birth?: string
   gender?: string
@@ -151,6 +153,16 @@ export default function MembersPage() {
     status: AddResultStatus
   }
   const [addResultEntries, setAddResultEntries] = useState<AddResultEntry[]>([])
+  const [currentClubName, setCurrentClubName] = useState<string>((user as any)?.club?.name || "")
+
+  useEffect(() => {
+    if (clubId) {
+      apiClient.getClubById(clubId).then((res: any) => {
+        const name = res?.data?.name || res?.name
+        if (name) setCurrentClubName(name)
+      }).catch(() => {})
+    }
+  }, [clubId])
 
   useEffect(() => {
     fetchMembers()
@@ -615,6 +627,7 @@ export default function MembersPage() {
         'Last Name', 
         'Phone Number', 
         'Country Code', 
+        'Club Member ID',
         'Username', 
         'Date of Birth', 
         'Gender', 
@@ -639,6 +652,7 @@ export default function MembersPage() {
           escapeCSV(lastName),
           escapeCSV(member.phoneNumber),
           escapeCSV(member.countryCode),
+          escapeCSV(member.club_member_id),
           escapeCSV(member.username),
           escapeCSV(member.date_of_birth),
           escapeCSV(member.gender),
@@ -701,6 +715,7 @@ export default function MembersPage() {
               {canEditMembers && (
               <AddMemberModal
                 clubId={clubId}
+                clubName={currentClubName || members[0]?.club?.name}
                 trigger={
                   <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
@@ -718,6 +733,7 @@ export default function MembersPage() {
               {/* Bulk import modal */}
               {canEditMembers && (<ImportMembersModal
                 clubId={clubId}
+                clubName={currentClubName || members[0]?.club?.name}
                 trigger={
                   <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
@@ -963,8 +979,13 @@ export default function MembersPage() {
                               </div>
                             )}
                           </div>
+                          {member.club_member_id && (
+                            <div className="text-xs font-mono font-medium text-primary mt-1">
+                              ID: {member.club_member_id}
+                            </div>
+                          )}
                           {member.membershipPlan && (
-                            <div className="text-xs text-muted-foreground mt-1 break-words">
+                            <div className="text-xs text-muted-foreground mt-0.5 break-words">
                               Plan: {member.membershipPlan.name} ({member.membershipPlan.price} {member.membershipPlan.currency})
                             </div>
                           )}
@@ -1340,6 +1361,12 @@ export default function MembersPage() {
                   <div className="rounded-lg border p-4 space-y-3">
                     <h4 className="font-semibold text-sm text-muted-foreground">Account & details (read-only)</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      {selectedMember.club_member_id != null && selectedMember.club_member_id !== '' && (
+                        <div>
+                          <Label className="text-muted-foreground text-xs">Club Member ID</Label>
+                          <p className="font-medium font-mono text-primary">{selectedMember.club_member_id}</p>
+                        </div>
+                      )}
                       {selectedMember.username != null && selectedMember.username !== '' && (
                         <div>
                           <Label className="text-muted-foreground text-xs">Username</Label>

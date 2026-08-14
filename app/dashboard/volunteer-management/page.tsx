@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import { activeSignups, signupUserId } from '@/lib/volunteerSignup';
 import { formatDisplayDate } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
 import { DashboardLayout } from '@/components/dashboard-layout';
+import { ProtectedRoute } from '@/components/protected-route';
 import { Badge } from '@/components/ui/badge';
 import { Users, Eye, XCircle } from 'lucide-react';
 import { VolunteerDetailsModal } from '@/components/modals/volunteer-details-modal';
@@ -48,7 +49,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         title: initialData.title || '',
         description: initialData.description || '',
         requiredSkills: initialData.requiredSkills.join(', ') || '',
-        date: new Date().toISOString().split('T')[0],
+        date: initialData.date ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0],
         startTime: timeSlot.startTime || '',
         endTime: timeSlot.endTime || '',
         volunteersNeeded: timeSlot.volunteersNeeded || 1,
@@ -77,16 +78,25 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
       return;
     }
     
+    // Only the first slot is editable in this form — preserve its identity/assignments
+    // and any additional slots as-is instead of rebuilding the array from scratch,
+    // which silently dropped both on every edit.
+    const firstSlot = initialData?.timeSlots[0];
+    const remainingSlots = initialData?.timeSlots.slice(1) || [];
     const opportunity = {
       ...formData,
       club: clubId,
       requiredSkills: formData.requiredSkills.split(',').map(skill => skill.trim()).filter(Boolean),
-      timeSlots: [{
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        volunteersNeeded: formData.volunteersNeeded,
-        volunteersAssigned: []
-      }]
+      timeSlots: [
+        {
+          ...(firstSlot?._id ? { _id: firstSlot._id } : {}),
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          volunteersNeeded: formData.volunteersNeeded,
+          volunteersAssigned: firstSlot?.volunteersAssigned || []
+        },
+        ...remainingSlots
+      ]
     };
     onSubmit(opportunity);
   };
@@ -102,7 +112,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         </div>
       )}
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="title">Title *</Label>
           <Input
@@ -137,7 +147,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="startTime">Start Time *</Label>
           <Input
@@ -160,7 +170,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="volunteersNeeded">Volunteers Needed *</Label>
           <Input
@@ -249,7 +259,6 @@ export default function VolunteerManagementPage() {
   const [showAssignModal, setShowAssignModal] = React.useState(false);
   const [showUnassignModal, setShowUnassignModal] = React.useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = React.useState<string | null>(null);
-  const { toast } = useToast();
 
   const clubId = useRequiredClubId();
   const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null);
@@ -373,27 +382,16 @@ export default function VolunteerManagementPage() {
     try {
       const response = await apiClient.createVolunteerOpportunity(opportunity);
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Volunteer opportunity created successfully',
-        });
+        toast.success('Volunteer opportunity created successfully');
         setIsCreateModalOpen(false);
         fetchOpportunities();
       } else {
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to create volunteer opportunity',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to create volunteer opportunity');
       }
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create volunteer opportunity',
-        variant: 'destructive',
-      });
+      toast.error('Failed to create volunteer opportunity');
     }
-  }, [clubId, toast, fetchOpportunities]);
+  }, [clubId, fetchOpportunities]);
 
   const handleEditOpportunity = React.useCallback(async (opportunity: any) => {
     if (!editingOpportunity) return;
@@ -401,28 +399,17 @@ export default function VolunteerManagementPage() {
     try {
       const response = await apiClient.updateVolunteerOpportunity(editingOpportunity._id, opportunity);
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Volunteer opportunity updated successfully',
-        });
+        toast.success('Volunteer opportunity updated successfully');
         setIsEditModalOpen(false);
         setEditingOpportunity(null);
         fetchOpportunities();
       } else {
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to update volunteer opportunity',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to update volunteer opportunity');
       }
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update volunteer opportunity',
-        variant: 'destructive',
-      });
+      toast.error('Failed to update volunteer opportunity');
     }
-  }, [editingOpportunity, toast, fetchOpportunities]);
+  }, [editingOpportunity, fetchOpportunities]);
 
   const handleDeleteOpportunity = React.useCallback(async (opportunityId: string) => {
     if (!confirm('Are you sure you want to delete this opportunity?')) return;
@@ -430,26 +417,15 @@ export default function VolunteerManagementPage() {
     try {
       const response = await apiClient.deleteVolunteerOpportunity(opportunityId);
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Volunteer opportunity deleted successfully',
-        });
+        toast.success('Volunteer opportunity deleted successfully');
         fetchOpportunities();
       } else {
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to delete volunteer opportunity',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to delete volunteer opportunity');
       }
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete volunteer opportunity',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete volunteer opportunity');
     }
-  }, [toast, fetchOpportunities]);
+  }, [fetchOpportunities]);
 
   const filteredOpportunities = React.useMemo(() => opportunities.filter((opportunity) => {
     const matchesSearch = opportunity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -480,20 +456,23 @@ export default function VolunteerManagementPage() {
 
   if (!isFeatureEnabled(clubFeatureConfig, 'volunteer')) {
     return (
-      <DashboardLayout>
-        <LockedFeaturePage
-          featureKey="volunteer"
-          featureLabel="Volunteer Management"
-          clubId={clubId ?? ""}
-          currentTier={clubFeatureConfig?.billing_tier}
-        />
-      </DashboardLayout>
+      <ProtectedRoute requireAdmin>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="volunteer"
+            featureLabel="Volunteer Management"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
     )
   }
 
   const maxVolunteers = getFeatureConstraint(clubFeatureConfig, 'max_volunteers')
 
   return (
+    <ProtectedRoute requireAdmin>
     <DashboardLayout>
       <div className="relative space-y-6">
         {clubId && (
@@ -510,7 +489,7 @@ export default function VolunteerManagementPage() {
             className="max-w-sm"
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -757,21 +736,6 @@ export default function VolunteerManagementPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium">Volunteer Directory</h3>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          const response = await apiClient.debugVolunteers();
-                          if (response.success) {
-                          }
-                        } catch (error) {
-                        }
-                      }}
-                    >
-                      Debug Volunteers
-                    </Button>
-
                     <div className="text-sm text-muted-foreground">
                       Showing {filteredVolunteers.length} of {volunteers.length} volunteers
                     </div>
@@ -1205,5 +1169,6 @@ export default function VolunteerManagementPage() {
         />
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   );
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getApiUrl } from '@/lib/config'
 
 /** Convert major currency units to the smallest unit using round-half-to-even. */
 function bankRoundToSmallestUnit(amount: number): number {
@@ -17,9 +18,15 @@ const getRazorpay = async () => {
   return Razorpay
 }
 
+// A merchandise order id is a real Mongo ObjectId; event/membership purchases
+// pass a synthetic string instead (no persisted record exists yet at this
+// point in their flow). Only merchandise orders can be cross-checked here.
+const isMongoObjectId = (value: unknown): value is string =>
+  typeof value === 'string' && /^[a-f0-9]{24}$/i.test(value)
+
 export async function POST(request: NextRequest) {
   try {
-    const { amount, currency, orderId, orderNumber } = await request.json()
+    let { amount, currency, orderId, orderNumber } = await request.json()
 
     // console.log('Create order request:', { amount, currency, orderId, orderNumber })
 
@@ -40,6 +47,25 @@ export async function POST(request: NextRequest) {
         { error: 'Amount must be greater than 0 to create a payment order' },
         { status: 400 }
       )
+    }
+
+    // For a real merchandise order, don't trust the client-computed amount —
+    // look up what the order actually costs and charge that instead. This is
+    // what stops a tampered-low amount from getting a validly-signed payment.
+    // The lookup works for guest checkout too (no Authorization header) since
+    // the backend only exposes the amount, not the rest of the order, for an
+    // order with no logged-in owner on file.
+    if (isMongoObjectId(orderId)) {
+      const authHeader = request.headers.get('authorization')
+      const orderRes = await fetch(getApiUrl(`/orders/${orderId}/payable-amount`), {
+        headers: authHeader ? { Authorization: authHeader } : undefined,
+      })
+      const orderBody = await orderRes.json().catch(() => null)
+      if (!orderRes.ok || !orderBody?.success || typeof orderBody?.data?.finalAmount !== 'number') {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+      }
+      amount = orderBody.data.finalAmount
+      currency = orderBody.data.currency || currency
     }
 
     const keyId = process.env.RAZORPAY_KEY_ID

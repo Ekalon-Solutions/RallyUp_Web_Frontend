@@ -114,12 +114,15 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
         <meta name="theme-color" content="#0ea5e9" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
+      </head>
+
+      <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`} suppressHydrationWarning>
         <Script
-          async
+          strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=G-SDPCKFH4E2"
         />
-        <Script id="google-analytics">
+        <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
@@ -127,9 +130,6 @@ export default function RootLayout({
             gtag('config', 'G-SDPCKFH4E2');
           `}
         </Script>
-      </head>
-
-      <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`}>
         <AppUpdateWatcher />
         <Analytics />
         <AntiScrapingProtection />

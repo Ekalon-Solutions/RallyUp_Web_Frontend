@@ -10,6 +10,7 @@ import { ArrowLeft, Users, Calendar, TrendingUp, Award, MapPin, Phone, Mail, Glo
 import { apiClient } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
 import { formatDisplayDate } from '@/lib/utils'
+import { ProtectedRoute } from '@/components/protected-route'
 
 interface ClubDetails {
   _id: string
@@ -28,7 +29,7 @@ interface ClubDetails {
   updatedAt: string
 }
 
-export default function ClubDetailsPage() {
+function ClubDetailsPageInner() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
@@ -106,7 +107,7 @@ export default function ClubDetailsPage() {
   // Show loading during SSR or while waiting for clubId
   if (!isClient || loading || !clubId) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading club details...</p>
@@ -117,7 +118,7 @@ export default function ClubDetailsPage() {
 
   if (error || !club) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6">
         <Button
           variant="ghost"
           onClick={() => router.back()}
@@ -136,7 +137,7 @@ export default function ClubDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="space-y-6 max-w-7xl">
       {/* Back Button */}
       <Button
         variant="ghost"
@@ -169,9 +170,9 @@ export default function ClubDetailsPage() {
 
               {/* Club Info */}
               <div className="flex-1">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div>
-                    <h1 className="text-3xl font-bold mb-2">{club.name}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">{club.name}</h1>
                     <Badge variant={club.status === 'active' ? 'default' : 'secondary'}>
                       {club.status}
                     </Badge>
@@ -347,5 +348,13 @@ export default function ClubDetailsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+export default function ClubDetailsPage() {
+  return (
+    <ProtectedRoute requireAdmin>
+      <ClubDetailsPageInner />
+    </ProtectedRoute>
   )
 }

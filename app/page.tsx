@@ -104,7 +104,7 @@ function Hero() {
             </span>
           </div>
 
-          <h1 className="text-4xl font-bold text-background leading-[1.1] tracking-tight">
+          <h1 className="text-2xl sm:text-4xl font-bold text-background leading-[1.1] tracking-tight">
             Don&apos;t Just Run Your Club.<br />
             <span className="text-primary">Revolutionize.</span>
           </h1>

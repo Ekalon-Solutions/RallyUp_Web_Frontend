@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
 import { Heart } from 'lucide-react'
@@ -26,7 +26,6 @@ export function NewsLikeButton({
   const [likeCount, setLikeCount] = useState(initialLikeCount)
   const [isLoading, setIsLoading] = useState(false)
   const { user } = useAuth()
-  const { toast } = useToast()
 
   // console.log('🎯 Current like state:', { isLiked, likeCount, user: !!user })
 
@@ -35,43 +34,35 @@ export function NewsLikeButton({
       // console.log('🔍 Checking like status for news:', newsId)
       const response = await apiClient.checkNewsLike(newsId)
       // console.log('🔍 Like status response:', response)
-      if (response.success) {
-        // console.log('🔍 Setting initial like status:', response.data.isLiked)
-        setIsLiked(response.data.isLiked)
+      if (response.success && response.data) {
+        setIsLiked(Boolean(response.data.isLiked ?? response.data.liked))
       }
     } catch (error) {
-      // console.error('❌ Failed to check like status:', error)
     }
   }, [newsId])
 
   useEffect(() => {
     if (user) {
-      // console.log('👤 User authenticated, checking like status for news:', newsId)
       checkLikeStatus()
     }
   }, [user, newsId, checkLikeStatus])
 
   const handleLikeToggle = async () => {
     if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to like news articles",
-        variant: "destructive",
-      })
+      toast.error("Please log in to like news articles")
       return
     }
 
     setIsLoading(true)
     try {
-      // console.log('❤️ Toggling like for news:', newsId, 'current state:', isLiked)
       const response = await apiClient.toggleNewsLike(newsId)
       
-      // console.log('✅ Like toggle response:', response)
-      
-      if (response.success) {
-        // Update local state immediately
-        const newIsLiked = response.data.isLiked
-        const newLikeCount = response.data.likeCount
+      if (response.success && response.data) {
+        const newIsLiked = Boolean(response.data.isLiked ?? response.data.liked)
+        const newLikeCount = response.data.likeCount ?? response.data.likesCount ?? 0
+        
+        setIsLiked(newIsLiked)
+        setLikeCount(newLikeCount)
         
         // console.log('🔄 Updating like state:', { newIsLiked, newLikeCount })
         
@@ -81,26 +72,17 @@ export function NewsLikeButton({
         // Notify parent of the update
         onLikeUpdate?.(newLikeCount)
         
-        toast({
-          title: newIsLiked ? "Liked!" : "Unliked",
-          description: newIsLiked 
-            ? "You liked this news article" 
-            : "You unliked this news article",
-        })
+        if (newIsLiked) {
+          toast.success("Liked! You liked this news article")
+        } else {
+          toast.success("Unliked")
+        }
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to update like",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to update like")
       }
     } catch (error) {
       // console.error('❌ Error toggling like:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update like",
-        variant: "destructive",
-      })
+      toast.error("Failed to update like")
     } finally {
       setIsLoading(false)
     }
@@ -113,11 +95,7 @@ export function NewsLikeButton({
         size="sm"
         className={`flex items-center gap-2 ${className}`}
         onClick={() => {
-          toast({
-            title: "Authentication Required",
-            description: "Please log in to like news articles",
-            variant: "destructive",
-          })
+          toast.error("Please log in to like news articles")
         }}
       >
         <Heart className="h-4 w-4" />

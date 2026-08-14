@@ -81,7 +81,7 @@ export default function AddProductPage() {
               Back to Store
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">Add Product</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Add Product</h1>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

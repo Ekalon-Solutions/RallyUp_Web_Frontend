@@ -310,7 +310,7 @@ export default function MembershipRenewalReportPage() {
                   value={filters.extras?.membershipPlanId || "all"}
                   onValueChange={(val) => setFilters((prev) => ({ ...prev, extras: { ...prev.extras, membershipPlanId: val } }))}
                 >
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-full sm:w-44">
                     <SelectValue placeholder="All Plans" />
                   </SelectTrigger>
                   <SelectContent>

@@ -616,14 +616,22 @@ function UserEventsPageInner() {
         toast.success('Ticket cancelled. Refund will be processed in 5-7 working days.');
         await fetchEvents();
       } else {
-        setRefundModalError((res as any).error || 'Failed to request refund');
+        const msg = (res as any).message || (res as any).error || 'Failed to request refund';
+        setRefundCancelEventId(null);
+        setRefundCancelAttendeeId(null);
+        setRefundEstimate(null);
+        toast.error(msg);
       }
     } catch {
-      setRefundModalError('Failed to request refund');
+      setRefundCancelEventId(null);
+      setRefundCancelAttendeeId(null);
+      setRefundEstimate(null);
+      toast.error('Failed to request refund');
     } finally {
       setRefundModalLoading(false);
     }
   };
+
 
   const filteredEvents = events.filter((event) => {
     const searchMatch =
@@ -648,7 +656,7 @@ function UserEventsPageInner() {
       <DashboardLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold">Events</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Events</h1>
             <p className="text-muted-foreground">
               Discover and register for upcoming events
             </p>
