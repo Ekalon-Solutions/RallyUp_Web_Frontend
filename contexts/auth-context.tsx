@@ -597,7 +597,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             state_province: raw.state_province ?? prev.state_province,
             zip_code: raw.zip_code ?? prev.zip_code,
             country: raw.country ?? prev.country,
-            addresses: raw.addresses ?? prev.addresses,
           } as any;
         });
 
