@@ -1129,7 +1129,7 @@ export default function UserOrdersPage() {
                     {!cpAppliedCoupon ? (
                       <div className="flex gap-2">
                         <Input
-                          placeholder="Enter coupon code"
+                          placeholder="Enter Coupon Code"
                           value={cpCouponCode}
                           onChange={(e) => setCpCouponCode(e.target.value.toUpperCase())}
                           disabled={cpValidatingCoupon}
@@ -1180,7 +1180,7 @@ export default function UserOrdersPage() {
                         value={cpRedeemPoints}
                         onChange={(e) => setCpRedeemPoints(Number(e.target.value || 0))}
                         className="border rounded px-2 py-1 w-32"
-                        placeholder="Points"
+                        placeholder="Enter Points"
                         disabled={!!cpReservationToken}
                       />
                       {!cpReservationToken ? (

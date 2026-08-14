@@ -374,9 +374,8 @@ export default function OrdersPage() {
       if (response.success && response.data) {
         const apiStats = response.data.data?.overview || null
         if (apiStats) {
-          // Revenue card shows completed + paid orders only. The stats
-          // aggregation now returns this directly, avoiding a second
-          // fetch of up to 1000 full order documents.
+          // Revenue is collected payments (paymentStatus=paid), independent of
+          // fulfillment status. Paid orders stay status=pending until fulfilled.
           setStats({
             ...apiStats,
             totalRevenue: apiStats.completedPaidRevenue ?? apiStats.totalRevenue ?? 0,

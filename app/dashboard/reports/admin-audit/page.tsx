@@ -332,6 +332,7 @@ export default function AdminAuditLogReportPage() {
 
   const actorTypeOptions = [
     { value: "admin", label: "Admin" },
+    { value: "super_admin", label: "Super Admin" },
     { value: "system_owner", label: "System Owner" },
     { value: "user", label: "User" },
   ]

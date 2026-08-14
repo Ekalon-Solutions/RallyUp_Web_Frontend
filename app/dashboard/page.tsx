@@ -108,7 +108,8 @@ export default function DashboardPage() {
         ).length
 
         const orderStatsResponse = await apiClient.getOrderStats()
-        const orderStatsData = orderStatsResponse.success ? orderStatsResponse.data : { totalRevenue: 0 }
+        const orderStatsBody = orderStatsResponse.success ? (orderStatsResponse.data as any) : null
+        const orderStatsOverview = orderStatsBody?.data?.overview ?? orderStatsBody?.overview ?? orderStatsBody
 
         // Fetch event revenue from club events
         let eventsRevenue = 0
@@ -135,7 +136,7 @@ export default function DashboardPage() {
           totalMembers: clubStatsResponse.data?.totalMembers || 0,
           activeMembers: clubStatsResponse.data?.activeMembers || 0,
           upcomingEvents,
-          storeRevenue: orderStatsData?.totalRevenue || 0,
+          storeRevenue: orderStatsOverview?.totalRevenue || orderStatsOverview?.completedPaidRevenue || 0,
           eventsRevenue,
         })
       } catch (error) {

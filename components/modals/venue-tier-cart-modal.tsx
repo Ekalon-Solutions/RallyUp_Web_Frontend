@@ -2427,7 +2427,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                           value={redeemPoints}
                           onChange={(e) => setRedeemPoints(e.target.value === "" ? "" : Number(e.target.value))}
                           className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-                          placeholder="Points"
+                          placeholder="Enter Points"
                           disabled={!!reservationToken || reserving}
                         />
                         <div className="flex gap-2">
@@ -2475,7 +2475,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                             triggerAutoCouponApply(subtotal)
                           }
                         }}
-                        placeholder="Enter coupon code"
+                        placeholder="Enter Coupon Code"
                         className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                         disabled={validatingCoupon}
                         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); validateCoupon() } }}

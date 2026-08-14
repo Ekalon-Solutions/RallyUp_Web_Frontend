@@ -103,10 +103,10 @@ type AdminActionEntry = {
   _id: string
   club: { _id: string; name: string; slug: string } | string
   actorId: string
-  actorType: "admin" | "system_owner" | "user"
+  actorType: "admin" | "super_admin" | "system_owner" | "user"
   actorName?: string
   targetId?: string
-  targetType?: "admin" | "user" | "refund" | "order"
+  targetType?: "admin" | "user" | "refund" | "order" | "event" | "merchandise"
   action: string
   oldState: string
   newState: string
@@ -239,6 +239,18 @@ const ACTION_LABELS: Record<string, string> = {
   REFUND_POLICY_CHANGED:             "Refund Policy Changed",
   EVENT_CREATED:                     "Event Created",
   EVENT_UPDATED:                     "Event Updated",
+  EVENT_DELETED:                     "Event Deleted",
+  EVENT_STATUS_TOGGLED:              "Event Status Changed",
+  EVENT_IMAGE_UPDATED:               "Event Image Updated",
+  EVENT_IMAGE_DELETED:               "Event Image Removed",
+  EVENT_REGISTRATION_CANCELLED:      "Event Ticket Cancelled",
+  MERCHANDISE_CREATED:               "Merchandise Created",
+  MERCHANDISE_UPDATED:               "Merchandise Updated",
+  MERCHANDISE_DELETED:               "Merchandise Deleted",
+  MERCHANDISE_AVAILABILITY_TOGGLED:  "Merchandise Availability Changed",
+  MERCHANDISE_SETTINGS_UPDATED:      "Store Settings Updated",
+  FULFILLMENT_TRIGGERED:             "Fulfillment Triggered",
+  SHIPMENT_CANCELLED:                "Shipment Cancelled",
   NOTIFICATION_TEMPLATE_UPDATED:    "Template Updated",
   NOTIFICATION_TEMPLATE_RESET:      "Template Reset",
   NOTIFICATION_TEMPLATE_GLOBAL_RESET: "Global Template Reset",
@@ -312,13 +324,20 @@ function ActorAvatar({ name, role }: { name: string; role: string }) {
 }
 
 function RoleBadge({ role }: { role: string }) {
-  return (
-    <Badge variant="outline" className={
-      role === "system_owner"
-        ? "border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 text-[10px] bg-violet-50/50 dark:bg-violet-950/20"
+  const label =
+    role === "system_owner" ? "System Owner" :
+    role === "super_admin" ? "Super Admin" :
+    role === "user" ? "User" :
+    "Admin"
+  const cls =
+    role === "system_owner"
+      ? "border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 text-[10px] bg-violet-50/50 dark:bg-violet-950/20"
+      : role === "super_admin"
+        ? "border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-[10px] bg-amber-50/50 dark:bg-amber-950/20"
         : "border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 text-[10px] bg-blue-50/50 dark:bg-blue-950/20"
-    }>
-      {role === "system_owner" ? "System Owner" : "Admin"}
+  return (
+    <Badge variant="outline" className={cls}>
+      {label}
     </Badge>
   )
 }
@@ -1198,8 +1217,13 @@ function UpgradeInquiriesTab() {
 const ACTION_TYPES = [
   "PROMOTE_TO_ADMIN", "DEMOTE_ADMIN", "PERMISSION_CHANGE", "ADMIN_ACTIVATED",
   "ADMIN_DEACTIVATED", "REFUND_PROCESSED", "REFUND_RECALCULATED",
-  "REFUND_POLICY_CHANGED", "EVENT_CREATED", "EVENT_UPDATED", "NOTIFICATION_TEMPLATE_UPDATED",
-  "NOTIFICATION_TEMPLATE_RESET", "NOTIFICATION_TEMPLATE_GLOBAL_RESET", "HIGH_RISK_ACTION",
+  "REFUND_POLICY_CHANGED", "EVENT_CREATED", "EVENT_UPDATED", "EVENT_DELETED",
+  "EVENT_STATUS_TOGGLED", "EVENT_IMAGE_UPDATED", "EVENT_IMAGE_DELETED",
+  "EVENT_REGISTRATION_CANCELLED", "MERCHANDISE_CREATED", "MERCHANDISE_UPDATED",
+  "MERCHANDISE_DELETED", "MERCHANDISE_AVAILABILITY_TOGGLED", "MERCHANDISE_SETTINGS_UPDATED",
+  "FULFILLMENT_TRIGGERED", "SHIPMENT_CANCELLED",
+  "NOTIFICATION_TEMPLATE_UPDATED", "NOTIFICATION_TEMPLATE_RESET",
+  "NOTIFICATION_TEMPLATE_GLOBAL_RESET", "HIGH_RISK_ACTION",
 ]
 
 function AdminActionsTab() {

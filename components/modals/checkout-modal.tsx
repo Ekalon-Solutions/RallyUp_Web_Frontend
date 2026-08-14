@@ -1324,7 +1324,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {!appliedCoupon ? (
                       <div className="flex gap-2">
                         <Input
-                          placeholder="Enter coupon code"
+                          placeholder="Enter Coupon Code"
                           value={couponCode}
                           onChange={(e) => {
                             const val = e.target.value.toUpperCase()
@@ -1411,7 +1411,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                           value={redeemPoints}
                           onChange={(e) => setRedeemPoints(Number(e.target.value || 0))}
                           className="border rounded px-2 py-1 w-32"
-                          placeholder="Points"
+                          placeholder="Enter Points"
                         />
                         <Button
                           type="button"

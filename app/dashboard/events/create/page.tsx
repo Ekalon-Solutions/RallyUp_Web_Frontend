@@ -653,7 +653,7 @@ function CreateEventForm() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 w-full max-w-7xl pb-10 -mx-2 md:-mx-4 lg:-mx-6">
+      <div className="space-y-6 w-full max-w-7xl -mx-2 md:-mx-4 lg:-mx-6">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/events">
             <Button variant="ghost" size="sm">
@@ -761,7 +761,7 @@ function CreateEventForm() {
                 <div className="grid gap-2">
                   <Label>Category</Label>
                   <Select value={form.category} onValueChange={(v) => set("category", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="border-border bg-background text-foreground"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {CATEGORIES.map((c) => (
                         <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
@@ -772,7 +772,7 @@ function CreateEventForm() {
                 <div className="grid gap-2">
                   <Label>Currency</Label>
                   <Select value={form.currency} onValueChange={(v) => set("currency", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="border-border bg-background text-foreground"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {CURRENCIES.map((c) => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>

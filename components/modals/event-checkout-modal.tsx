@@ -987,7 +987,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                       value={redeemPoints}
                       onChange={(e) => setRedeemPoints(e.target.value === "" ? "" : Number(e.target.value))}
                       className="w-full sm:w-32 flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                      placeholder="Points"
+                      placeholder="Enter Points"
                       disabled={!!reservationToken || reserving}
                     />
                     <div className="flex gap-2">
@@ -1051,7 +1051,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                             triggerAutoCouponApply()
                           }
                         }}
-                        placeholder="Enter coupon code"
+                        placeholder="Enter Coupon Code"
                         className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                         disabled={validatingCoupon}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleValidateCoupon() } }}
