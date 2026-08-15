@@ -70,6 +70,7 @@ export const ADMIN_NAV_FEATURE_MAP: Record<string, ClubFeatureKey | null> = {
   '/dashboard/polls': 'polls',
   '/dashboard/orders': 'merchandise',
   '/dashboard/leaderboard': 'leaderboard',
+  '/dashboard/reports': 'reporting',
   '/dashboard/coupons': 'coupons',
   '/dashboard/website': 'website',
   '/dashboard/admin/refunds': 'refunds',
