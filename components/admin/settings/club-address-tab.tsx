@@ -6,16 +6,25 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Plus, Trash2, Star } from "lucide-react"
+import { MapPin, Plus, Trash2, Star, Save } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { apiClient, type ClubPickupAddress } from "@/lib/api"
+
+interface ClubAddress {
+  street?: string
+  city?: string
+  state?: string
+  country?: string
+  zipCode?: string
+}
 
 interface PickupForm {
   label: string
   name: string
   email: string
   phone: string
+  houseNo: string
   street: string
   address2: string
   city: string
@@ -24,11 +33,12 @@ interface PickupForm {
   zipCode: string
 }
 
-const emptyForm: PickupForm = {
+const emptyPickupForm: PickupForm = {
   label: "",
   name: "",
   email: "",
   phone: "",
+  houseNo: "",
   street: "",
   address2: "",
   city: "",
@@ -37,37 +47,78 @@ const emptyForm: PickupForm = {
   zipCode: "",
 }
 
+function readableError(message?: string, fallback = "Something went wrong") {
+  if (!message) return fallback
+  try {
+    const parsed = JSON.parse(message)
+    if (parsed && typeof parsed === "object") {
+      const parts = Object.values(parsed).flatMap((value) =>
+        Array.isArray(value) ? value.map(String) : [String(value)]
+      )
+      if (parts.length) return parts.join(", ")
+    }
+  } catch {
+    // already a human-readable string
+  }
+  return message
+}
+
 export function ClubAddressTab() {
   const clubId = useRequiredClubId()
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [savingClub, setSavingClub] = useState(false)
+  const [savingPickup, setSavingPickup] = useState(false)
+  const [clubAddress, setClubAddress] = useState<ClubAddress>({
+    street: "",
+    city: "",
+    state: "",
+    country: "India",
+    zipCode: "",
+  })
   const [addresses, setAddresses] = useState<ClubPickupAddress[]>([])
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState<PickupForm>(emptyForm)
+  const [form, setForm] = useState<PickupForm>(emptyPickupForm)
 
   useEffect(() => {
     if (clubId) {
-      loadAddresses()
+      loadAll()
     }
   }, [clubId])
 
   const unwrap = <T,>(response: { data?: any }): T =>
     (response.data as any)?.data ?? response.data
 
-  const loadAddresses = async () => {
+  const loadAll = async () => {
     if (!clubId) return
     try {
       setLoading(true)
-      const response = await apiClient.getClubPickupAddresses(clubId)
-      if (!response.success) {
-        toast.error(response.message || "Failed to load pickup addresses")
+      const [clubRes, pickupRes] = await Promise.all([
+        apiClient.getClubAddress(clubId),
+        apiClient.getClubPickupAddresses(clubId),
+      ])
+
+      if (clubRes.success) {
+        const addr = unwrap<ClubAddress>(clubRes)
+        if (addr && typeof addr === "object") {
+          setClubAddress({
+            street: addr.street || "",
+            city: addr.city || "",
+            state: addr.state || "",
+            country: addr.country || "India",
+            zipCode: addr.zipCode || "",
+          })
+        }
+      }
+
+      if (!pickupRes.success) {
+        toast.error(pickupRes.message || "Failed to load pickup addresses")
         return
       }
+
       const payload = unwrap<{
         pickupAddresses?: ClubPickupAddress[]
-        defaultAddress?: PickupForm
         contactDefaults?: { name?: string; email?: string; phone?: string }
-      }>(response)
+      }>(pickupRes)
       const list = Array.isArray(payload?.pickupAddresses) ? payload.pickupAddresses : []
       setAddresses(list)
       setForm((prev) => ({
@@ -75,21 +126,43 @@ export function ClubAddressTab() {
         name: payload?.contactDefaults?.name || prev.name,
         email: payload?.contactDefaults?.email || prev.email,
         phone: payload?.contactDefaults?.phone || prev.phone,
-        street: list.length === 0 ? payload?.defaultAddress?.street || prev.street : prev.street,
-        city: list.length === 0 ? payload?.defaultAddress?.city || prev.city : prev.city,
-        state: list.length === 0 ? payload?.defaultAddress?.state || prev.state : prev.state,
-        country: list.length === 0 ? payload?.defaultAddress?.country || prev.country || "India" : prev.country,
-        zipCode: list.length === 0 ? payload?.defaultAddress?.zipCode || prev.zipCode : prev.zipCode,
       }))
       setShowForm(list.length === 0)
     } catch {
-      toast.error("Failed to load pickup addresses")
+      toast.error("Failed to load addresses")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleAdd = async () => {
+  const handleSaveClubAddress = async () => {
+    if (!clubId) return
+    try {
+      setSavingClub(true)
+      const response = await apiClient.updateClubAddress(clubId, clubAddress)
+      if (response.success) {
+        toast.success("Club address saved")
+        const addr = unwrap<ClubAddress>(response)
+        if (addr && typeof addr === "object") {
+          setClubAddress({
+            street: addr.street || "",
+            city: addr.city || "",
+            state: addr.state || "",
+            country: addr.country || "India",
+            zipCode: addr.zipCode || "",
+          })
+        }
+      } else {
+        toast.error(response.message || "Failed to save club address")
+      }
+    } catch {
+      toast.error("Failed to save club address")
+    } finally {
+      setSavingClub(false)
+    }
+  }
+
+  const handleAddPickup = async () => {
     if (!clubId) return
     if (!form.label.trim()) {
       toast.error("Location name is required")
@@ -97,6 +170,10 @@ export function ClubAddressTab() {
     }
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
       toast.error("Contact name, email, and phone are required")
+      return
+    }
+    if (!form.houseNo.trim()) {
+      toast.error("House / Flat / Road number is required")
       return
     }
     if (!form.street.trim() || !form.city.trim() || !form.state.trim()) {
@@ -108,12 +185,13 @@ export function ClubAddressTab() {
       return
     }
     try {
-      setSaving(true)
+      setSavingPickup(true)
       const response = await apiClient.addClubPickupAddress(clubId, {
         label: form.label.trim(),
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
+        houseNo: form.houseNo.trim(),
         street: form.street.trim(),
         address2: form.address2.trim() || undefined,
         city: form.city.trim(),
@@ -122,23 +200,27 @@ export function ClubAddressTab() {
         zipCode: form.zipCode.trim(),
       })
       if (!response.success) {
-        toast.error(response.message || response.error || "Failed to add pickup address")
+        toast.error(readableError(response.message || response.error, "Failed to add pickup address"))
         return
       }
       toast.success("Pickup address added and registered with Shiprocket")
       setForm((prev) => ({
-        ...emptyForm,
+        ...emptyPickupForm,
         name: prev.name,
         email: prev.email,
         phone: prev.phone,
         country: prev.country || "India",
       }))
       setShowForm(false)
-      await loadAddresses()
+      const pickupRes = await apiClient.getClubPickupAddresses(clubId)
+      if (pickupRes.success) {
+        const payload = unwrap<{ pickupAddresses?: ClubPickupAddress[] }>(pickupRes)
+        setAddresses(Array.isArray(payload?.pickupAddresses) ? payload.pickupAddresses : [])
+      }
     } catch {
       toast.error("Failed to add pickup address")
     } finally {
-      setSaving(false)
+      setSavingPickup(false)
     }
   }
 
@@ -151,7 +233,10 @@ export function ClubAddressTab() {
         return
       }
       toast.success("Pickup address removed")
-      await loadAddresses()
+      const payload = unwrap<{ pickupAddresses?: ClubPickupAddress[] }>(response)
+      if (Array.isArray(payload?.pickupAddresses)) {
+        setAddresses(payload.pickupAddresses)
+      }
     } catch {
       toast.error("Failed to remove pickup address")
     }
@@ -162,13 +247,16 @@ export function ClubAddressTab() {
     try {
       const response = await apiClient.setDefaultClubPickupAddress(clubId, addressId)
       if (!response.success) {
-        toast.error(response.message || "Failed to set default address")
+        toast.error(response.message || "Failed to set default pickup address")
         return
       }
       toast.success("Default pickup address updated")
-      await loadAddresses()
+      const payload = unwrap<{ pickupAddresses?: ClubPickupAddress[] }>(response)
+      if (Array.isArray(payload?.pickupAddresses)) {
+        setAddresses(payload.pickupAddresses)
+      }
     } catch {
-      toast.error("Failed to set default address")
+      toast.error("Failed to set default pickup address")
     }
   }
 
@@ -182,16 +270,95 @@ export function ClubAddressTab() {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Club Address
+          </CardTitle>
+          <CardDescription>
+            Public club location. This is not sent to Shiprocket.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="club-street">Street / Address Line</Label>
+            <Input
+              id="club-street"
+              value={clubAddress.street}
+              onChange={(e) => setClubAddress({ ...clubAddress, street: e.target.value })}
+              placeholder="Building, street, area"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="club-city">City</Label>
+              <Input
+                id="club-city"
+                value={clubAddress.city}
+                onChange={(e) => setClubAddress({ ...clubAddress, city: e.target.value })}
+                placeholder="City"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="club-state">State</Label>
+              <Input
+                id="club-state"
+                value={clubAddress.state}
+                onChange={(e) => setClubAddress({ ...clubAddress, state: e.target.value })}
+                placeholder="State"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="club-country">Country</Label>
+              <Input
+                id="club-country"
+                value={clubAddress.country}
+                onChange={(e) => setClubAddress({ ...clubAddress, country: e.target.value })}
+                placeholder="Country"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="club-zipCode">Pincode / Zip Code</Label>
+              <Input
+                id="club-zipCode"
+                value={clubAddress.zipCode}
+                onChange={(e) => setClubAddress({ ...clubAddress, zipCode: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                placeholder="Pincode"
+                maxLength={10}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={handleSaveClubAddress} disabled={savingClub}>
+              {savingClub ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save club address
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
         <CardContent className="pt-6">
           <div className="flex gap-3">
             <MapPin className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                Shipping Pickup Address
+                Shipping Pickup Addresses
               </p>
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                These addresses are used as pickup locations for Shiprocket shipping. Add as many warehouses as you need. The pincode determines shipping cost calculation for merchandise orders, and the merchandise form dropdown lists these locations.
+                These warehouse addresses are registered with Shiprocket and appear in the merchandise pickup dropdown. Shiprocket requires a house / flat / road number on address line 1.
               </p>
             </div>
           </div>
@@ -206,7 +373,7 @@ export function ClubAddressTab() {
               Pickup Addresses
             </CardTitle>
             <CardDescription>
-              Each address is registered with Shiprocket and can be selected on a merchandise product
+              Separate from the club address. Used only for shipping pickup.
             </CardDescription>
           </div>
           <Button
@@ -215,13 +382,13 @@ export function ClubAddressTab() {
             onClick={() => setShowForm((open) => !open)}
           >
             <Plus className="h-4 w-4 mr-2" />
-            {showForm ? "Close" : "Add address"}
+            {showForm ? "Close" : "Add pickup address"}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {addresses.length === 0 && !showForm ? (
             <p className="text-sm text-muted-foreground">
-              No pickup addresses yet. Add one so merchandise can ship from this club.
+              No pickup addresses yet. Add a warehouse address to ship merchandise.
             </p>
           ) : null}
 
@@ -233,7 +400,7 @@ export function ClubAddressTab() {
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{addr.label}</p>
-                  {addr.isDefault ? <Badge variant="secondary">Default</Badge> : null}
+                  {addr.isDefault ? <Badge variant="secondary">Default pickup</Badge> : null}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {[addr.street, addr.address2, addr.city, addr.state, addr.zipCode, addr.country]
@@ -267,7 +434,7 @@ export function ClubAddressTab() {
           <CardHeader>
             <CardTitle>Add pickup address</CardTitle>
             <CardDescription>
-              This is sent to Shiprocket as a new pickup location
+              Registered with Shiprocket. Include house / flat / road number.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -313,14 +480,25 @@ export function ClubAddressTab() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="street">Street / Address line</Label>
-              <Input
-                id="street"
-                value={form.street}
-                onChange={(e) => setForm({ ...form, street: e.target.value })}
-                placeholder="Building, street, area"
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="houseNo">House / Flat / Road no.</Label>
+                <Input
+                  id="houseNo"
+                  value={form.houseNo}
+                  onChange={(e) => setForm({ ...form, houseNo: e.target.value })}
+                  placeholder="12A or Plot 7"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="street">Street / Area</Label>
+                <Input
+                  id="street"
+                  value={form.street}
+                  onChange={(e) => setForm({ ...form, street: e.target.value })}
+                  placeholder="MG Road, Andheri East"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="address2">Address line 2 (optional)</Label>
@@ -373,8 +551,8 @@ export function ClubAddressTab() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleAdd} disabled={saving} size="lg">
-                {saving ? (
+              <Button onClick={handleAddPickup} disabled={savingPickup} size="lg">
+                {savingPickup ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
                     Registering...

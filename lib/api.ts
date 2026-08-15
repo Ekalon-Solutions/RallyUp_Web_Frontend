@@ -6095,6 +6095,7 @@ class ApiClient {
     name: string;
     email: string;
     phone: string;
+    houseNo: string;
     street: string;
     address2?: string;
     city: string;
