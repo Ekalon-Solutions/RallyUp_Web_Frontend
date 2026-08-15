@@ -1143,7 +1143,7 @@ export function GuestRegistrationForm({
                     id="guest_club_member_id"
                     value={registrationData.club_member_id}
                     onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
-                    placeholder={isClubMemberIdMandatory(clubTeamId) ? "As registered on official site" : "Optional — as registered on official site"}
+                    placeholder={isClubMemberIdMandatory(clubTeamId) ? "Arsenal Membership No. (Digital or Red)" : "Optional — as registered on official site"}
                     required={isClubMemberIdMandatory(clubTeamId)}
                     className="h-12 w-full rounded-md border border-input bg-background px-3"
                   />

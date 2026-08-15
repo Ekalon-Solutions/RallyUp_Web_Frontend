@@ -319,7 +319,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp, clu
         </Label>
         <Input
           id="club_member_id"
-          placeholder={isClubMemberIdMandatory(clubTeamId) ? "As registered on official site" : "Optional — as registered on official site"}
+          placeholder={isClubMemberIdMandatory(clubTeamId) ? "Arsenal Membership No. (Digital or Red)" : "Optional — as registered on official site"}
           value={userData.club_member_id}
           onChange={(e) => handleUserDataChange("club_member_id", e.target.value)}
           required={isClubMemberIdMandatory(clubTeamId)}

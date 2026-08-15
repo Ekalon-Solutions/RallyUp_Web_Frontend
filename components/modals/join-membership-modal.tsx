@@ -1113,7 +1113,7 @@ export function JoinMembershipModal({
           value={registrationData.club_member_id}
           onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
           required={isMandatory}
-          placeholder={isMandatory ? "As registered on official site" : "Optional — as registered on official site"}
+          placeholder={isMandatory ? "Arsenal Membership No. (Digital or Red)" : "Optional — as registered on official site"}
           className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")}
         />
       </div>
