@@ -31,14 +31,22 @@ export async function POST(request: NextRequest) {
     const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret })
     const order = await razorpay.orders.fetch(razorpay_order_id)
 
-    const payments: any = await razorpay.payments.all({ order_id: razorpay_order_id } as any)
-    const paymentItems = Array.isArray(payments?.items)
-      ? payments.items
-      : Array.isArray(payments)
-        ? payments
-        : []
+    let paymentItems: any[] = []
+    try {
+      const byOrder: any = await (razorpay.orders as any).fetchPayments(razorpay_order_id)
+      paymentItems = Array.isArray(byOrder?.items) ? byOrder.items : []
+    } catch {
+      const all: any = await razorpay.payments.all({ count: 20 } as any)
+      const raw = Array.isArray(all?.items) ? all.items : []
+      paymentItems = raw.filter((payment: any) => payment.order_id === razorpay_order_id)
+    }
+    paymentItems = paymentItems.filter((payment: any) => payment.order_id === razorpay_order_id)
+
     const usable = paymentItems.find(
-      (payment: any) => payment.status === 'captured' || payment.status === 'authorized'
+      (payment: any) =>
+        (payment.status === 'captured' || payment.status === 'authorized') &&
+        typeof payment.id === 'string' &&
+        payment.id.startsWith('pay_')
     )
 
     if (usable) {

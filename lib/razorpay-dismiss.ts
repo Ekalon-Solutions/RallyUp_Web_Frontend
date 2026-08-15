@@ -13,7 +13,7 @@ export type RazorpayDismissOutcome =
 
 const HANDOFF_GRACE_MS = 3000
 const POLL_INTERVAL_MS = 2000
-const EMPTY_STATUS_ATTEMPTS = 4
+const EMPTY_STATUS_ATTEMPTS = 2
 const POST_IN_FLIGHT_EMPTY_ATTEMPTS = 3
 const MAX_POLL_ATTEMPTS = 30
 
@@ -82,24 +82,26 @@ export async function resolveRazorpayDismiss(orderId?: string): Promise<Razorpay
       lastError = false
       const body = res.data
 
-      if (body?.success && body.razorpay_payment_id && body.razorpay_signature) {
-        return {
-          outcome: 'paid',
-          payment: {
-            razorpay_payment_id: body.razorpay_payment_id,
-            razorpay_order_id: body.razorpay_order_id || orderId,
-            razorpay_signature: body.razorpay_signature,
-          },
-        }
+      const payment = {
+        razorpay_payment_id: body.razorpay_payment_id || '',
+        razorpay_order_id: body.razorpay_order_id || orderId,
+        razorpay_signature: body.razorpay_signature || '',
+      }
+      if (
+        body?.success &&
+        payment.razorpay_payment_id.startsWith('pay_') &&
+        payment.razorpay_signature.length >= 32
+      ) {
+        return { outcome: 'paid', payment }
       }
 
       const status = body?.status
       const paymentStatus = body?.paymentStatus
       const inFlight =
-        status === 'attempted' ||
-        status === 'paid' ||
         paymentStatus === 'created' ||
-        paymentStatus === 'authorized'
+        paymentStatus === 'authorized' ||
+        status === 'attempted' ||
+        status === 'paid'
 
       if (inFlight && paymentStatus !== 'failed') {
         sawInFlight = true
