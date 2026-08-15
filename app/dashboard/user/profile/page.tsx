@@ -97,6 +97,8 @@ export default function UserProfilePage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const showSystemAdminProfile = user ? isSystemAdmin(user.role) : false
+  const isVendorUser = !!(user && (user.role === "vendor" || (user as any).isVendor))
+  const showClubAndVolunteerCards = !showSystemAdminProfile && !isVendorUser
 
   // Derive current club for membership renewal (when applicable)
   const currentClub = useMemo(() => {
@@ -171,7 +173,7 @@ export default function UserProfilePage() {
   }, [user, activeClubId])
 
   useEffect(() => {
-    if (!user || isSystemAdmin(user.role)) return
+    if (!user || isSystemAdmin(user.role) || user.role === "vendor" || (user as any).isVendor) return
     const fetchVolunteerProfile = async () => {
       try {
         const profileResponse = await apiClient.getVolunteerProfile()
@@ -471,8 +473,8 @@ export default function UserProfilePage() {
             </Button>
           </div>
 
-          <div className={`grid gap-6 ${showSystemAdminProfile ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
-            <div className={showSystemAdminProfile ? "space-y-6" : "md:col-span-2 space-y-6"}>
+          <div className={`grid gap-6 ${showClubAndVolunteerCards ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+            <div className={showClubAndVolunteerCards ? "md:col-span-2 space-y-6" : "space-y-6"}>
               <Card className="overflow-hidden rounded-xl border shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -783,7 +785,7 @@ export default function UserProfilePage() {
               </Card>
 
 
-              {!showSystemAdminProfile && (
+              {showClubAndVolunteerCards && (
               <Card className="overflow-hidden rounded-xl border shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -844,7 +846,7 @@ export default function UserProfilePage() {
               )}
             </div>
 
-            {!showSystemAdminProfile && (
+            {showClubAndVolunteerCards && (
             <Card className="overflow-hidden rounded-xl border shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1084,7 +1086,7 @@ export default function UserProfilePage() {
           )}
         </div>
       </DashboardLayout>
-      {!showSystemAdminProfile && (
+      {showClubAndVolunteerCards && (
         <VolunteerSignUpModal
           open={isVolunteerModalOpen}
           onClose={() => setIsVolunteerModalOpen(false)}
