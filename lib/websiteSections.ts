@@ -117,6 +117,21 @@ export const MEMBER_DASHBOARD_SECTION_OPTIONS: readonly WebsiteSectionOption[] =
   },
 ] as const
 
+/** Club feature that must also be enabled for a member-facing section to appear. */
+export const MEMBER_SECTION_TO_FEATURE: Partial<Record<WebsiteSectionKey, string>> = {
+  news: "news",
+  events: "events",
+  polls: "polls",
+  chants: "chants",
+  store: "merchandise",
+  merchandise: "merchandise",
+  gallery: "gallery",
+  leaderboard: "leaderboard",
+  externalTicketing: "external_ticketing",
+  volunteer: "volunteer",
+  guessTheScore: "predictions",
+}
+
 export const DEFAULT_WEBSITE_SECTIONS: Record<WebsiteSectionKey, boolean> = {
   news: true,
   events: true,

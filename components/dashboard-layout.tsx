@@ -64,13 +64,13 @@ import { BASE_STORAGE_GB } from "@/lib/storageConstants"
 import type { WebsiteSectionKey } from "@/lib/websiteSections"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
-import { ADMIN_NAV_FEATURE_MAP, CLUB_FEATURE_DISABLED_EVENT, clubFeatureFlags, type ClubFeatureKey } from "@/lib/clubFeatures"
-import { NAV_HREF_TO_PERMISSION_MODULE } from "@/lib/permissionMatrix"
+import { ADMIN_NAV_FEATURE_MAP, featureKeyForPath, type ClubFeatureKey } from "@/lib/clubFeatures"
+import { NAV_HREF_TO_PERMISSION_MODULE, permissionModuleForPath } from "@/lib/permissionMatrix"
+import { MEMBER_SECTION_TO_FEATURE } from "@/lib/websiteSections"
 import { isVendorAllowedPath } from "@/lib/vendorScanTypes"
 import type { AdminClubContext } from "@/lib/api"
 import { clearFeatureCache } from "@/lib/featureCacheStore"
-import { UpgradeFeatureModal } from "@/components/modals/upgrade-feature-modal"
-import { LockedFeaturePage } from "@/components/feature-gate/locked-feature-page"
+import { getModuleAccess } from "@/lib/adminPermissions"
 import { ClubFeaturesProvider } from "@/contexts/club-features-context"
 import { useFcmRegistration } from "@/hooks/useFcmRegistration"
 import { ChevronDown, ChevronRight } from "lucide-react"
@@ -247,7 +247,6 @@ interface DashboardSidebarProps {
   onClubSwitch: (clubId: string) => void
   user: any
   onLogout: () => void
-  onLockedNavClick?: (href: string) => void
   availableRoles: { accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string; clubIds?: string[] }[]
   onRoleSwitch: (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => void
 }
@@ -264,7 +263,6 @@ function DashboardSidebar({
   onClubSwitch,
   user,
   onLogout,
-  onLockedNavClick,
   availableRoles,
   onRoleSwitch,
 }: DashboardSidebarProps) {
@@ -347,7 +345,6 @@ function DashboardSidebar({
                     type="button"
                     className="flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-sm font-bold w-full text-left text-muted-foreground/60 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 group"
                     onClick={() => {
-                      onLockedNavClick?.(item.href)
                       mobile && onCloseMobile?.()
                     }}
                   >
@@ -695,6 +692,18 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   // state after the persistent dashboard layout stopped remounting.
   useDesignSettings(clubId, settings)
   const isRegularUser = !user?.role || user.role === "member"
+  const isAdminRole = user?.role === 'admin' || user?.role === 'super_admin'
+  const isVendorRole = isVendor || user?.role === 'vendor'
+  const isAuthenticated = Boolean(user)
+
+  // Members also need the resolved feature flags so feature-gated nav items
+  // (e.g. Guess the Score / predictions) are hidden when disabled for the club.
+  // Uses the member-accessible endpoint; defaults to optimistically allowed while loading.
+  const { isEnabled: isMemberFeatureEnabled } = useClubFeatures(
+    isRegularUser ? clubId ?? null : null,
+    { asMember: true }
+  )
+
   useEffect(() => {
     if (!isRegularUser || !clubId || settingsLoading || !pathname) return
     const section = USER_PATH_TO_SECTION[pathname]
@@ -703,14 +712,12 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       section === "merchandise"
         ? isSectionVisible("merchandise") || isSectionVisible("store")
         : isSectionVisible(section)
-    if (!visible) {
+    const featureKey = MEMBER_SECTION_TO_FEATURE[section]
+    const featureOk = !featureKey || isMemberFeatureEnabled(featureKey as ClubFeatureKey)
+    if (!visible || !featureOk) {
       router.replace(FEED_PATH)
     }
-  }, [isRegularUser, clubId, settingsLoading, pathname, settings])
-
-  const isAdminRole = user?.role === 'admin' || user?.role === 'super_admin'
-  const isVendorRole = isVendor || user?.role === 'vendor'
-  const isAuthenticated = Boolean(user)
+  }, [isRegularUser, clubId, settingsLoading, pathname, settings, isMemberFeatureEnabled])
 
   // Shared dashboard shell has no auth check of its own — enforcement was
   // 100% delegated to each page opting into <ProtectedRoute>. Pages that
@@ -730,22 +737,8 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
 
   // Register FCM device token for CONFIG_SYNC push notifications
   useFcmRegistration({ isAdmin: isAdminRole, isAuthenticated })
-  const [upgradeModal, setUpgradeModal] = useState<{
-    open: boolean
-    featureKey: ClubFeatureKey
-    label: string
-  } | null>(null)
   const { config: clubFeatures, loading: clubFeaturesLoading, isEnabled: isClubFeatureEnabled } = useClubFeatures(
     isAdminRole ? clubId ?? null : null
-  )
-
-  // Members also need the resolved feature flags so feature-gated nav items
-  // (e.g. Guess the Score / predictions) are hidden when disabled for the club.
-  // Uses the member-accessible endpoint; defaults to optimistically allowed while loading.
-  const isRegularUserRole = !user?.role || user.role === 'member'
-  const { isEnabled: isMemberFeatureEnabled } = useClubFeatures(
-    isRegularUserRole ? clubId ?? null : null,
-    { asMember: true }
   )
 
   const isExpiredMemberForActiveClub = useMemo(() => {
@@ -792,14 +785,6 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     return !isClubFeatureEnabled(key)
   }
 
-  const onLockedNavClick = (href: string) => {
-    const key = ADMIN_NAV_FEATURE_MAP[href]
-    if (!key || !clubId) return
-    const label =
-      clubFeatureFlags(clubFeatures).find((f) => f.key === key)?.label || key
-    setUpgradeModal({ open: true, featureKey: key, label })
-  }
-
   // SERVICE WORKER: listen for CONFIG_SYNC messages from the background push handler.
   // When received, bust the local cache so the next useClubFeatures fetch gets fresh data.
   useEffect(() => {
@@ -815,32 +800,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     return () => navigator.serviceWorker.removeEventListener('message', onSwMessage)
   }, [isAdminRole, clubId])
 
-  // Locked page feature key — replaces children with LockedFeaturePage (no redirect).
-  // Never lock from another club's flags or while the new club's config is in flight.
-  const currentPageFeatureKey: ClubFeatureKey | null = (() => {
-    if (!isAdminRole || !clubId || clubFeaturesLoading || !pathname) return null
-    if (clubFeatures && String(clubFeatures.clubId) !== String(clubId)) return null
-    const key = ADMIN_NAV_FEATURE_MAP[pathname] ?? null
-    if (!key) return null
-    return !isClubFeatureEnabled(key) ? key : null
-  })()
-
   useEffect(() => {
-    if (!isAdminRole) return
-    const onFeatureDisabled = (event: Event) => {
-      const detail = (event as CustomEvent<{ feature?: ClubFeatureKey; message?: string }>).detail
-      const featureKey = detail?.feature
-      if (!featureKey) return
-      const label =
-        clubFeatureFlags(clubFeatures).find((f) => f.key === featureKey)?.label || featureKey
-      setUpgradeModal({ open: true, featureKey, label })
-    }
-    window.addEventListener(CLUB_FEATURE_DISABLED_EVENT, onFeatureDisabled)
-    return () => window.removeEventListener(CLUB_FEATURE_DISABLED_EVENT, onFeatureDisabled)
-  }, [isAdminRole, clubFeatures])
-
-  useEffect(() => {
-    setUpgradeModal(null)
     setStorageBannerDismissed(false)
     setStorageAlertStatus(null)
     setShowSubscriptionModal(false)
@@ -910,7 +870,10 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     if (isRegularUser && clubId) {
       const canShowSection = (section: Parameters<typeof isSectionVisible>[0]) => {
         if (settingsLoading && !settings) return false
-        return isSectionVisible(section)
+        if (!isSectionVisible(section)) return false
+        const featureKey = MEMBER_SECTION_TO_FEATURE[section]
+        if (!featureKey) return true
+        return isMemberFeatureEnabled(featureKey as ClubFeatureKey)
       }
 
       const filtered = nav.filter(item => {
@@ -945,9 +908,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
           return canShowSection('volunteer')
         }
         if (item.name === 'Guess The Score') {
-          // Require both the website-section toggle AND the predictions feature
-          // flag — otherwise the page 403s with FEATURE_DISABLED_BY_SYSTEM.
-          return canShowSection('guessTheScore') && isMemberFeatureEnabled('predictions')
+          return canShowSection('guessTheScore')
         }
         return true
       })
@@ -963,11 +924,29 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     : isAdminRole
       ? allNav.filter((item) => !isNavLocked(item.href))
       : allNav
-  const addOnNav = isVendorRole ? [] : isAdminRole ? allNav.filter((item) => isNavLocked(item.href)) : []
 
-  const lockedPageLabel = currentPageFeatureKey
-    ? (clubFeatureFlags(clubFeatures).find((f) => f.key === currentPageFeatureKey)?.label ?? currentPageFeatureKey)
-    : null
+  useEffect(() => {
+    if (!isAdminRole || !pathname || clubFeaturesLoading) return
+    const featureKey = featureKeyForPath(pathname)
+    const featureBlocked = Boolean(featureKey && clubFeatures && !isClubFeatureEnabled(featureKey))
+    const moduleId = permissionModuleForPath(pathname)
+    const permissionBlocked = Boolean(
+      moduleId && !getModuleAccess(user, clubId ?? null, moduleId).canView
+    )
+    if (!featureBlocked && !permissionBlocked) return
+    const fallback = activeNav.find((item) => item.href !== pathname)?.href || '/dashboard'
+    if (fallback !== pathname) router.replace(fallback)
+  }, [
+    isAdminRole,
+    pathname,
+    clubFeaturesLoading,
+    clubFeatures,
+    isClubFeatureEnabled,
+    user,
+    clubId,
+    activeNav,
+    router,
+  ])
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -992,7 +971,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       <div className="hidden lg:flex lg:flex-col lg:w-72 lg:shrink-0 lg:border-r bg-muted/5 min-h-0">
         <DashboardSidebar
           navigation={activeNav}
-          addOnNavigation={addOnNav}
+          addOnNavigation={[]}
           pathname={pathname}
           sidebarClubs={sidebarClubs}
           activeClubId={activeClubId ?? undefined}
@@ -1000,7 +979,6 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
           onClubSwitch={handleClubSwitch}
           user={user}
           onLogout={logout}
-          onLockedNavClick={onLockedNavClick}
           availableRoles={availableRoles}
           onRoleSwitch={handleRoleSwitch}
         />
@@ -1016,7 +994,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
           <DashboardSidebar
             mobile
             navigation={activeNav}
-            addOnNavigation={addOnNav}
+            addOnNavigation={[]}
             pathname={pathname}
             onCloseMobile={() => setSidebarOpen(false)}
             sidebarClubs={sidebarClubs}
@@ -1025,7 +1003,6 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
             onClubSwitch={(id) => { handleClubSwitch(id); setSidebarOpen(false) }}
             user={user}
             onLogout={logout}
-            onLockedNavClick={onLockedNavClick}
             availableRoles={availableRoles}
             onRoleSwitch={(accountType, accountId) => { handleRoleSwitch(accountType, accountId); setSidebarOpen(false) }}
           />
@@ -1088,17 +1065,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
                   onDismiss={storageAlertStatus.alertLevel !== 'exceeded' ? () => setStorageBannerDismissed(true) : undefined}
                 />
               )}
-              {/* Replace page content with locked state instead of redirecting */}
-              {currentPageFeatureKey && clubId && lockedPageLabel ? (
-                <LockedFeaturePage
-                  featureKey={currentPageFeatureKey}
-                  featureLabel={lockedPageLabel}
-                  clubId={clubId}
-                  currentTier={clubFeatures?.billing_tier ?? undefined}
-                />
-              ) : (
-                <Fragment key={clubId ?? "no-club"}>{children}</Fragment>
-              )}
+              <Fragment key={clubId ?? "no-club"}>{children}</Fragment>
             </div>
             {isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && (
               <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-background/50 backdrop-blur-md">
@@ -1141,15 +1108,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
           baseAllocationGb={BASE_STORAGE_GB}
         />
       )}
-      {upgradeModal && clubId && (
-        <UpgradeFeatureModal
-          open={upgradeModal.open}
-          onOpenChange={(open) => setUpgradeModal((m) => (m ? { ...m, open } : null))}
-          clubId={clubId}
-          featureKey={upgradeModal.featureKey}
-          featureLabel={upgradeModal.label}
-        />
-      )}
+
     </div>
     </DashboardChromeContext.Provider>
   )

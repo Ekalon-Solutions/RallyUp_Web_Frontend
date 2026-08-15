@@ -16,6 +16,8 @@ import { RefundPolicySettingsTab } from "@/components/admin/settings/refund-poli
 import { WhatsAppMarketingTab } from "@/components/admin/settings/whatsapp-marketing-tab"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { useAdminModulePermission } from "@/hooks/useAdminModulePermission"
 
 export default function AdminSettingsClient() {
   const clubId = useRequiredClubId()
@@ -23,6 +25,10 @@ export default function AdminSettingsClient() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { isEnabled: isClubFeatureEnabled } = useClubFeatures(clubId ?? null)
+  const refundsAccess = useAdminModulePermission("refunds")
+  const showRefundTab = isClubFeatureEnabled("refunds") && refundsAccess.canView
+  const showMarketingTab = isClubFeatureEnabled("wa_marketing")
 
   const normalizeTab = (raw: string | null) => {
     if (!raw) return null
@@ -31,7 +37,10 @@ export default function AdminSettingsClient() {
     if (raw === "get-started") return "guide"
 
     const allowedTabs = new Set(["website", "design", "app", "address", "limits", "help", "guide", "refund", "marketing"])
-    return allowedTabs.has(raw) ? raw : null
+    if (!allowedTabs.has(raw)) return null
+    if (raw === "refund" && !showRefundTab) return null
+    if (raw === "marketing" && !showMarketingTab) return null
+    return raw
   }
 
   useEffect(() => {
@@ -39,7 +48,12 @@ export default function AdminSettingsClient() {
     if (nextTab && nextTab !== activeTab) {
       setActiveTab(nextTab)
     }
-  }, [activeTab, searchParams])
+  }, [activeTab, searchParams, showRefundTab, showMarketingTab])
+
+  useEffect(() => {
+    if (activeTab === "refund" && !showRefundTab) setActiveTab("website")
+    if (activeTab === "marketing" && !showMarketingTab) setActiveTab("website")
+  }, [activeTab, showRefundTab, showMarketingTab])
 
   return (
     <ProtectedRoute requireAdmin>
@@ -95,14 +109,18 @@ export default function AdminSettingsClient() {
                 <BookOpen className="h-4 w-4" />
                 Get Started
               </TabsTrigger>
-              <TabsTrigger value="refund" className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" />
-                Refund Policy
-              </TabsTrigger>
-              <TabsTrigger value="marketing" className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                WhatsApp Marketing
-              </TabsTrigger>
+              {showRefundTab && (
+                <TabsTrigger value="refund" className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  Refund Policy
+                </TabsTrigger>
+              )}
+              {showMarketingTab && (
+                <TabsTrigger value="marketing" className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  WhatsApp Marketing
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="website" className="space-y-4">
@@ -133,13 +151,17 @@ export default function AdminSettingsClient() {
               <GetStartedTab />
             </TabsContent>
 
-            <TabsContent value="refund" className="space-y-4">
-              <RefundPolicySettingsTab key={clubId ?? "no-club"} />
-            </TabsContent>
+            {showRefundTab && (
+              <TabsContent value="refund" className="space-y-4">
+                <RefundPolicySettingsTab key={clubId ?? "no-club"} />
+              </TabsContent>
+            )}
 
-            <TabsContent value="marketing" className="space-y-4">
-              <WhatsAppMarketingTab key={clubId ?? "no-club"} />
-            </TabsContent>
+            {showMarketingTab && (
+              <TabsContent value="marketing" className="space-y-4">
+                <WhatsAppMarketingTab key={clubId ?? "no-club"} />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </DashboardLayout>

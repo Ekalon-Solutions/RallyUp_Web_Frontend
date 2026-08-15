@@ -49,6 +49,15 @@ export type FeatureMatrixClubRow = ResolvedClubFeatures & {
   status: string;
 };
 
+export function featureKeyForPath(pathname: string | null | undefined): ClubFeatureKey | null {
+  if (!pathname) return null
+  if (pathname in ADMIN_NAV_FEATURE_MAP) return ADMIN_NAV_FEATURE_MAP[pathname] ?? null
+  const match = Object.keys(ADMIN_NAV_FEATURE_MAP)
+    .filter((href) => href !== '/dashboard' && pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0]
+  return match ? (ADMIN_NAV_FEATURE_MAP[match] ?? null) : null
+}
+
 export const ADMIN_NAV_FEATURE_MAP: Record<string, ClubFeatureKey | null> = {
   '/dashboard': null,
   '/dashboard/members': null,

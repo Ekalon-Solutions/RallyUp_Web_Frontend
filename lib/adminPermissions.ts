@@ -18,6 +18,11 @@ type AdminLike = {
   }>
 }
 
+export type ModuleAccess = {
+  canView: boolean
+  canEdit: boolean
+}
+
 function resolveMatrix(context: NonNullable<AdminLike['clubAdminContexts']>[number]) {
   return context.permissionsMatrix || (context.permissions as any)?._matrix
 }
@@ -28,6 +33,40 @@ function findAdminContext(user: AdminLike, clubId: string | null) {
   return user.clubAdminContexts.find(
     (ctx) => ctx?.clubId && String(ctx.clubId) === String(clubId)
   )
+}
+
+/**
+ * View/edit access for a permission-matrix module.
+ * super_admin / system_owner always get full access.
+ * Legacy admins with no clubAdminContexts get full access.
+ */
+export function getModuleAccess(
+  user: AdminLike | null | undefined,
+  clubId: string | null | undefined,
+  moduleId: string
+): ModuleAccess {
+  if (!user) return { canView: false, canEdit: false }
+
+  const effectiveRole = getEffectiveAdminRole(user, clubId)
+  if (effectiveRole === 'super_admin' || effectiveRole === 'system_owner') {
+    return { canView: true, canEdit: true }
+  }
+  if (effectiveRole !== 'admin') {
+    return { canView: false, canEdit: false }
+  }
+  if (!user.clubAdminContexts || user.clubAdminContexts.length === 0) {
+    return { canView: true, canEdit: true }
+  }
+
+  const ctx = findAdminContext(user, clubId ?? null)
+  if (!ctx) return { canView: false, canEdit: false }
+
+  const matrix = resolveMatrix(ctx)
+  const cell = matrix?.[moduleId] ?? { view: false, edit: false }
+  return {
+    canView: Boolean(cell.view),
+    canEdit: Boolean(cell.edit),
+  }
 }
 
 export function getEffectiveAdminRole(

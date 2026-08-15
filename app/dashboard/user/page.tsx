@@ -95,6 +95,9 @@ import { MembershipStatus } from "@/components/membership-status"
 import { PollsWidget } from "@/components/polls-widget"
 import LeagueTableWidget from "@/components/league-table-widget"
 import { useClubSettings } from "@/hooks/useClubSettings"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { MEMBER_SECTION_TO_FEATURE, type WebsiteSectionKey } from "@/lib/websiteSections"
+import type { ClubFeatureKey } from "@/lib/clubFeatures"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 function FixturesCards({ clubId }: { clubId?: string | undefined }) {
@@ -282,7 +285,14 @@ export default function UserDashboardPage() {
 
   const userClub = (activeMembership as any)?.club_id || (activeMembership as any)?.club || null
 
-  const { settings: clubSettings, isSectionVisible } = useClubSettings(clubId || undefined)
+  const { settings: clubSettings, isSectionVisible: isSettingsSectionVisible } = useClubSettings(clubId || undefined)
+  const { isEnabled: isMemberFeatureEnabled } = useClubFeatures(clubId || null, { asMember: true })
+  const isSectionVisible = (section: WebsiteSectionKey) => {
+    if (!isSettingsSectionVisible(section)) return false
+    const featureKey = MEMBER_SECTION_TO_FEATURE[section]
+    if (!featureKey) return true
+    return isMemberFeatureEnabled(featureKey as ClubFeatureKey)
+  }
 
   const getUserDisplayName = () => {
     if (!user) return 'Member';

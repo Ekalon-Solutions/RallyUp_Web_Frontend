@@ -53,6 +53,17 @@ export const NAV_HREF_TO_PERMISSION_MODULE: Record<string, string> = {
   '/dashboard/vendor-reports': 'vendorReports',
 };
 
+/** Longest matching nav href for nested admin routes (e.g. /dashboard/events/123). */
+export function permissionModuleForPath(pathname: string | null | undefined): string | undefined {
+  if (!pathname) return undefined
+  const exact = NAV_HREF_TO_PERMISSION_MODULE[pathname]
+  if (exact) return exact
+  const match = Object.keys(NAV_HREF_TO_PERMISSION_MODULE)
+    .filter((href) => href !== '/dashboard' && pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0]
+  return match ? NAV_HREF_TO_PERMISSION_MODULE[match] : undefined
+}
+
 /**
  * Maps each permission module ID to the club feature key that must be enabled
  * for that module to appear in the permission matrix editor.
