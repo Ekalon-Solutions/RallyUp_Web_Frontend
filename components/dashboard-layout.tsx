@@ -64,7 +64,8 @@ import { BASE_STORAGE_GB } from "@/lib/storageConstants"
 import type { WebsiteSectionKey } from "@/lib/websiteSections"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
-import { ADMIN_NAV_FEATURE_MAP, featureKeyForPath, type ClubFeatureKey } from "@/lib/clubFeatures"
+import { ADMIN_NAV_FEATURE_MAP, FEATURE_LABELS, featureKeyForPath, isFeatureEnabled, type ClubFeatureKey } from "@/lib/clubFeatures"
+import { LockedFeaturePage } from "@/components/feature-gate/locked-feature-page"
 import { NAV_HREF_TO_PERMISSION_MODULE, permissionModuleForPath } from "@/lib/permissionMatrix"
 import { MEMBER_SECTION_TO_FEATURE } from "@/lib/websiteSections"
 import { isVendorAllowedPath } from "@/lib/vendorScanTypes"
@@ -704,20 +705,22 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     { asMember: true }
   )
 
-  useEffect(() => {
-    if (!isRegularUser || !clubId || settingsLoading || !pathname) return
-    const section = USER_PATH_TO_SECTION[pathname]
-    if (!section) return
-    const visible =
-      section === "merchandise"
-        ? isSectionVisible("merchandise") || isSectionVisible("store")
-        : isSectionVisible(section)
-    const featureKey = MEMBER_SECTION_TO_FEATURE[section]
-    const featureOk = !featureKey || isMemberFeatureEnabled(featureKey as ClubFeatureKey)
-    if (!visible || !featureOk) {
-      router.replace(FEED_PATH)
-    }
-  }, [isRegularUser, clubId, settingsLoading, pathname, settings, isMemberFeatureEnabled])
+  const memberPageSection = isRegularUser ? USER_PATH_TO_SECTION[pathname] : undefined
+  const memberPageFeatureKey = memberPageSection
+    ? (MEMBER_SECTION_TO_FEATURE[memberPageSection] as ClubFeatureKey | undefined)
+    : undefined
+  const memberSectionVisible = memberPageSection
+    ? memberPageSection === "merchandise"
+      ? isSectionVisible("merchandise") || isSectionVisible("store")
+      : isSectionVisible(memberPageSection)
+    : true
+  const memberPageUnavailable = Boolean(
+    isRegularUser &&
+      clubId &&
+      !settingsLoading &&
+      memberPageSection &&
+      (!memberSectionVisible || (memberPageFeatureKey && !isMemberFeatureEnabled(memberPageFeatureKey)))
+  )
 
   // Shared dashboard shell has no auth check of its own — enforcement was
   // 100% delegated to each page opting into <ProtectedRoute>. Pages that
@@ -779,10 +782,13 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   }
 
   const isNavLocked = (href: string) => {
-    if (!isAdminRole || !clubFeatures) return false
+    if (!isAdminRole) return false
     const key = ADMIN_NAV_FEATURE_MAP[href]
     if (!key) return false
-    return !isClubFeatureEnabled(key)
+    // Use the loaded flag map, not the optimistic hook (that one returns true
+    // when config has not arrived yet). Missing config → leave visible.
+    if (!clubFeatures) return false
+    return !isFeatureEnabled(clubFeatures, key)
   }
 
   // SERVICE WORKER: listen for CONFIG_SYNC messages from the background push handler.
@@ -867,6 +873,14 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     
     const isRegularUser = !user.role || user.role === 'member'
     
+    if (clubFeatures && (effectiveRole === 'admin' || effectiveRole === 'super_admin')) {
+      nav = nav.filter((item) => {
+        const key = ADMIN_NAV_FEATURE_MAP[item.href]
+        if (!key) return true
+        return isFeatureEnabled(clubFeatures, key)
+      })
+    }
+
     if (isRegularUser && clubId) {
       const canShowSection = (section: Parameters<typeof isSectionVisible>[0]) => {
         if (settingsLoading && !settings) return false
@@ -925,28 +939,18 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       ? allNav.filter((item) => !isNavLocked(item.href))
       : allNav
 
-  useEffect(() => {
-    if (!isAdminRole || !pathname || clubFeaturesLoading) return
-    const featureKey = featureKeyForPath(pathname)
-    const featureBlocked = Boolean(featureKey && clubFeatures && !isClubFeatureEnabled(featureKey))
-    const moduleId = permissionModuleForPath(pathname)
-    const permissionBlocked = Boolean(
-      moduleId && !getModuleAccess(user, clubId ?? null, moduleId).canView
-    )
-    if (!featureBlocked && !permissionBlocked) return
-    const fallback = activeNav.find((item) => item.href !== pathname)?.href || '/dashboard'
-    if (fallback !== pathname) router.replace(fallback)
-  }, [
-    isAdminRole,
-    pathname,
-    clubFeaturesLoading,
-    clubFeatures,
-    isClubFeatureEnabled,
-    user,
-    clubId,
-    activeNav,
-    router,
-  ])
+  const currentPageFeatureKey = isAdminRole && !clubFeaturesLoading
+    ? featureKeyForPath(pathname)
+    : null
+  const currentPageFeatureBlocked = Boolean(
+    currentPageFeatureKey && clubFeatures && !isFeatureEnabled(clubFeatures, currentPageFeatureKey)
+  )
+  const currentPageModuleId = isAdminRole ? permissionModuleForPath(pathname) : undefined
+  const currentPagePermissionBlocked = Boolean(
+    currentPageModuleId && !getModuleAccess(user, clubId ?? null, currentPageModuleId).canView
+  )
+  const currentPageUnavailable =
+    currentPageFeatureBlocked || currentPagePermissionBlocked || memberPageUnavailable
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -1065,7 +1069,27 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
                   onDismiss={storageAlertStatus.alertLevel !== 'exceeded' ? () => setStorageBannerDismissed(true) : undefined}
                 />
               )}
-              <Fragment key={clubId ?? "no-club"}>{children}</Fragment>
+              {currentPageUnavailable ? (
+                <LockedFeaturePage
+                  featureKey={currentPageFeatureKey ?? memberPageFeatureKey ?? undefined}
+                  featureLabel={
+                    currentPageFeatureKey
+                      ? FEATURE_LABELS[currentPageFeatureKey]
+                      : memberPageFeatureKey
+                        ? FEATURE_LABELS[memberPageFeatureKey]
+                        : undefined
+                  }
+                  clubId={clubId}
+                  currentTier={clubFeatures?.billing_tier}
+                  reason={
+                    currentPagePermissionBlocked && !currentPageFeatureBlocked
+                      ? "permission"
+                      : "feature"
+                  }
+                />
+              ) : (
+                <Fragment key={clubId ?? "no-club"}>{children}</Fragment>
+              )}
             </div>
             {isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && (
               <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-background/50 backdrop-blur-md">

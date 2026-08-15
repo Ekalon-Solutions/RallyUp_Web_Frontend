@@ -200,12 +200,15 @@ export function useClubFeatures(
 
   const isEnabled = useCallback(
     (key: ClubFeatureKey): boolean => {
-      // Wrong-club / in-flight / missing config must not lock the page.
-      if (loading || !scopedConfig) return true;
-      if (loadFailed && !scopedConfig) return true;
-      return clubFeatureFlags(scopedConfig).find((f) => f.key === key)?.enabled ?? false;
+      // Trust a loaded config even during a background refresh. Treating
+      // `loading` as "everything enabled" kept disabled sidebar items visible.
+      if (scopedConfig) {
+        return clubFeatureFlags(scopedConfig).find((f) => f.key === key)?.enabled ?? false;
+      }
+      // No config yet — stay unlocked so a failed first fetch cannot freeze nav.
+      return true;
     },
-    [scopedConfig, loading, loadFailed]
+    [scopedConfig]
   );
 
   return { config: scopedConfig, loading, loadFailed, isEnabled, reload: load };
