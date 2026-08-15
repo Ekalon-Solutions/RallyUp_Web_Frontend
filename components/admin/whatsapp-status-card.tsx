@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { useClubFeaturesCtxSafe } from "@/contexts/club-features-context"
 import { apiClient, WhatsAppStatusCard as CardData } from "@/lib/api"
@@ -20,7 +19,6 @@ import {
   AlertTriangle,
   CircleAlert,
   HelpCircle,
-  ExternalLink,
   Wifi,
   WifiOff,
 } from "lucide-react"
@@ -202,13 +200,9 @@ export function WhatsAppStatusCard({ clubId }: Props) {
 
           {/* Templates approved + Recent activity sparkline */}
           <div className="flex items-center justify-between">
-            <Link
-              href={card.messagingUrl}
-              className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
-            >
-              Templates approved: <strong>{card.approvedTemplates ?? "—"}</strong>
-              <ExternalLink className="h-3 w-3" />
-            </Link>
+            <span className="text-xs text-muted-foreground">
+              Templates approved: <strong className="text-foreground">{card.approvedTemplates ?? "—"}</strong>
+            </span>
             <div className="text-right">
               <Sparkline data={card.sparkline} />
               <div className="text-[10px] text-muted-foreground">Last 7 days</div>

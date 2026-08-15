@@ -50,6 +50,23 @@ export interface CommentResponse {
   pagination?: { pages?: number; total?: number; limit?: number; page?: number };
 }
 
+export interface ClubPickupAddress {
+  _id: string;
+  label: string;
+  pickupLocation: string;
+  name: string;
+  email?: string;
+  phone: string;
+  street: string;
+  address2?: string;
+  city: string;
+  state: string;
+  country: string;
+  zipCode: string;
+  shiprocketId?: number;
+  isDefault?: boolean;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -101,6 +118,7 @@ export interface WhatsAppMarketingTemplate {
   name: string;
   status: string;
   category: string;
+  type?: string;
   bodyPreview?: string;
   variableIndexes: number[];
 }
@@ -1196,6 +1214,7 @@ class ApiClient {
 
     const config: RequestInit = {
       credentials: 'include',
+      cache: 'no-store',
       ...options,
       headers,
     };
@@ -6063,6 +6082,37 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/address`, address);
   }
 
+  async getClubPickupAddresses(clubId: string): Promise<ApiResponse<{
+    pickupAddresses: ClubPickupAddress[];
+    defaultAddress?: { street?: string; city?: string; state?: string; country?: string; zipCode?: string };
+    contactDefaults?: { name?: string; email?: string; phone?: string };
+  }>> {
+    return this.get(`/club-settings/${clubId}/pickup-addresses`);
+  }
+
+  async addClubPickupAddress(clubId: string, address: {
+    label: string;
+    name: string;
+    email: string;
+    phone: string;
+    street: string;
+    address2?: string;
+    city: string;
+    state: string;
+    country?: string;
+    zipCode: string;
+  }): Promise<ApiResponse<ClubPickupAddress>> {
+    return this.post(`/club-settings/${clubId}/pickup-addresses`, address);
+  }
+
+  async deleteClubPickupAddress(clubId: string, addressId: string): Promise<ApiResponse<{ pickupAddresses: ClubPickupAddress[] }>> {
+    return this.delete(`/club-settings/${clubId}/pickup-addresses/${addressId}`);
+  }
+
+  async setDefaultClubPickupAddress(clubId: string, addressId: string): Promise<ApiResponse<{ pickupAddresses: ClubPickupAddress[] }>> {
+    return this.patch(`/club-settings/${clubId}/pickup-addresses/${addressId}/default`, {});
+  }
+
   async updateClubRefundPolicy(clubId: string, data: { grandfatherPurchasedRefunds: boolean }): Promise<ApiResponse<{ grandfatherPurchasedRefunds: boolean }>> {
     return this.put(`/club-settings/${clubId}/refund-policy`, data);
   }
@@ -6973,14 +7023,14 @@ class ApiClient {
 
   async previewBulkMarketing(
     clubId: string,
-    data: { templateName: string; variables: Record<string, string>; audience?: any }
+    data: { templateName: string; variables: Record<string, string>; headerImageUrl?: string; audience?: any }
   ): Promise<ApiResponse<{ preview: WhatsAppBulkPreview }>> {
     return this.post(`/clubs/${clubId}/whatsapp-marketing/bulk/preview`, data);
   }
 
   async sendBulkMarketing(
     clubId: string,
-    data: { templateName: string; variables: Record<string, string>; audience?: any }
+    data: { templateName: string; variables: Record<string, string>; headerImageUrl?: string; audience?: any }
   ): Promise<ApiResponse<{ result: WhatsAppBulkSendResult }>> {
     return this.post(`/clubs/${clubId}/whatsapp-marketing/bulk/send`, data);
   }

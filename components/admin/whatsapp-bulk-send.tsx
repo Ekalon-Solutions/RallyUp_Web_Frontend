@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -49,6 +50,7 @@ export function WhatsAppBulkSend({ clubId }: Props) {
   const [templatesLoading, setTemplatesLoading] = useState(true)
   const [templatesError, setTemplatesError] = useState("")
   const [variables, setVariables] = useState<Record<string, string>>({})
+  const [headerImageUrl, setHeaderImageUrl] = useState("")
   const [previewing, setPreviewing] = useState(false)
   const [sending, setSending] = useState(false)
   const [preview, setPreview] = useState<WhatsAppBulkPreview | null>(null)
@@ -76,7 +78,7 @@ export function WhatsAppBulkSend({ clubId }: Props) {
       if (cancelled) return
 
       if (res.success && res.data) {
-        const availableTemplates = res.data.templates
+        const availableTemplates = res.data.templates || []
         setTemplates(availableTemplates)
         setTemplateName((current) =>
           availableTemplates.some((template) => template.name === current)
@@ -100,8 +102,12 @@ export function WhatsAppBulkSend({ clubId }: Props) {
   const handleTemplateChange = (name: string) => {
     setTemplateName(name)
     setVariables({})
+    setHeaderImageUrl("")
     setPreview(null)
   }
+
+  const needsHeaderImage = selectedTemplate?.type === "IMAGE"
+  const missingHeaderImage = needsHeaderImage && !headerImageUrl.trim()
 
   const buildVariables = () => {
     const v: Record<string, string> = {}
@@ -133,10 +139,15 @@ export function WhatsAppBulkSend({ clubId }: Props) {
       toast.error(`Fill variable {{${missingVariableIndexes[0]}}} before previewing`)
       return
     }
+    if (missingHeaderImage) {
+      toast.error("This template needs a public header image URL")
+      return
+    }
     setPreviewing(true)
     const res = await apiClient.previewBulkMarketing(clubId, {
       templateName: templateName.trim(),
       variables: buildVariables(),
+      headerImageUrl: headerImageUrl.trim() || undefined,
       audience: { type: "all_active_members" },
     })
     if (res.success && res.data) {
@@ -153,10 +164,15 @@ export function WhatsAppBulkSend({ clubId }: Props) {
       toast.error(`Fill variable {{${missingVariableIndexes[0]}}} before sending`)
       return
     }
+    if (missingHeaderImage) {
+      toast.error("This template needs a public header image URL")
+      return
+    }
     setSending(true)
     const res = await apiClient.sendBulkMarketing(clubId, {
       templateName: templateName.trim(),
       variables: buildVariables(),
+      headerImageUrl: headerImageUrl.trim() || undefined,
       audience: { type: "all_active_members" },
     })
     if (res.success && res.data) {
@@ -234,6 +250,16 @@ export function WhatsAppBulkSend({ clubId }: Props) {
               </div>
             )}
           </div>
+          {needsHeaderImage && (
+            <div className="space-y-1">
+              <Label className="text-xs">Header image URL</Label>
+              <Input
+                value={headerImageUrl}
+                onChange={(e) => setHeaderImageUrl(e.target.value)}
+                placeholder="https://… (public image required by this template)"
+              />
+            </div>
+          )}
           {selectedVariableIndexes.length > 0 ? (
             <div className="grid sm:grid-cols-2 gap-3">
               {selectedVariableIndexes.map((index) => (
@@ -267,7 +293,8 @@ export function WhatsAppBulkSend({ clubId }: Props) {
                 previewing ||
                 templatesLoading ||
                 !templateName.trim() ||
-                missingVariableIndexes.length > 0
+                missingVariableIndexes.length > 0 ||
+                missingHeaderImage
               }
             >
               {previewing ? "Calculating…" : "Preview & Cost"}

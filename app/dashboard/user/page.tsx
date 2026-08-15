@@ -127,7 +127,9 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         const rawArr = Array.isArray(data) ? data : []
         const seen = new Map<string, any>()
         rawArr.forEach((f) => seen.set(String(f._id), f))
-        const fixturesArr = Array.from(seen.values())
+        const fixturesArr = Array.from(seen.values()).sort(
+          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        )
         const now = new Date()
         const past = fixturesArr.filter((f) => new Date(f.startTime) < now)
         const future = fixturesArr.filter((f) => new Date(f.startTime) >= now)

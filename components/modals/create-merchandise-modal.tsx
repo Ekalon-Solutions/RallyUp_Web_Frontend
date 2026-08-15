@@ -532,7 +532,9 @@ export function CreateMerchandiseModal({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Shiprocket pickup address used to ship this product
+                  {pickupLocations.length > 0
+                    ? "Pickup address added in Admin Settings. Used to ship this product."
+                    : "Add pickup addresses in Admin Settings → Address to populate this list."}
                 </p>
               </div>
             </CardContent>
