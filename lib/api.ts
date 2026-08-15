@@ -4408,7 +4408,13 @@ class ApiClient {
       guestWalkIns: number;
       turnoutPercent: number | null;
       gates: Array<{ gateZone: string; count: number }>;
-      vendors: Array<{ vendorId: string; count: number }>;
+      vendors: Array<{
+        vendorId: string;
+        name?: string;
+        role?: 'admin' | 'vendor' | 'unknown';
+        gateZone?: string;
+        count: number;
+      }>;
     }>;
     syncedAt: string;
   }>> {

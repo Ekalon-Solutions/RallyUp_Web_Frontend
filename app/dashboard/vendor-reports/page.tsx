@@ -40,6 +40,13 @@ export default function VendorReportsPage() {
       turnoutPercent: number | null
       maxCapacity: number | null
       gates: Array<{ gateZone: string; count: number }>
+      vendors: Array<{
+        vendorId: string
+        name?: string
+        role?: "admin" | "vendor" | "unknown"
+        gateZone?: string
+        count: number
+      }>
     }>
     syncedAt: string
   } | null>(null)
@@ -220,6 +227,37 @@ export default function VendorReportsPage() {
                               {g.gateZone}: {g.count}
                             </span>
                           ))}
+                        </div>
+                      )}
+                      {(event.vendors?.length ?? 0) > 0 && (
+                        <div className="space-y-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Scan sources
+                          </p>
+                          {event.vendors.map((v) => {
+                            const share =
+                              event.totalCheckIns > 0
+                                ? Math.round((v.count / event.totalCheckIns) * 100)
+                                : 0
+                            const who = v.name || (v.role === "vendor" ? "Vendor" : v.role === "admin" ? "Admin" : "Unattributed")
+                            const label = v.gateZone ? `${who} - ${v.gateZone}` : who
+                            return (
+                              <div key={`${v.vendorId}-${v.gateZone || "none"}`} className="space-y-1">
+                                <div className="flex items-center justify-between gap-2 text-xs">
+                                  <span className="truncate text-muted-foreground">{label}</span>
+                                  <span className="shrink-0 tabular-nums">
+                                    {v.count.toLocaleString()} {v.count === 1 ? "scan" : "scans"}
+                                  </span>
+                                </div>
+                                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                  <div
+                                    className="h-full rounded-full bg-primary"
+                                    style={{ width: `${Math.max(share, share > 0 ? 2 : 0)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
                     </CardContent>

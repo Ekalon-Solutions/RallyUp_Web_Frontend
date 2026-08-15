@@ -27,6 +27,7 @@ import {
   Star,
   Loader2,
   Warehouse,
+  Calendar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -56,6 +57,9 @@ export interface TrackableOrder {
   customerConfirmedDeliveryAt?: string
   rating?: number
   ratingFeedback?: string
+  deliveryMethod?: 'standard' | 'pickup'
+  pickupEventTitle?: string
+  pickupEventDate?: string
 }
 
 interface OrderTrackingProgressProps {
@@ -106,7 +110,10 @@ export function OrderTrackingProgress({ order, onOrderUpdate }: OrderTrackingPro
   const [submitting, setSubmitting] = useState(false)
   const [confirming, setConfirming] = useState(false)
 
+  const isEventPickup = order.deliveryMethod === 'pickup'
+
   const isPreDispatch =
+    !isEventPickup &&
     order.paymentStatus === 'paid' &&
     order.status !== 'cancelled' &&
     !order.awbCode &&
@@ -194,6 +201,64 @@ export function OrderTrackingProgress({ order, onOrderUpdate }: OrderTrackingPro
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // ── 0. Event-venue pickup — never shipped, so skip courier tracking ────────
+  if (isEventPickup) {
+    const eventDate = formatDate(order.pickupEventDate)
+    const isCollected = order.status === 'completed'
+    const eventLabel = order.pickupEventTitle?.trim()
+
+    return (
+      <div
+        className={cn(
+          'rounded-lg border p-4',
+          isCollected ? 'border-green-200 bg-green-50' : 'border-blue-200 bg-blue-50'
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className={cn(
+              'relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full',
+              isCollected ? 'bg-green-100' : 'bg-blue-100'
+            )}
+          >
+            <MapPin className={cn('h-6 w-6', isCollected ? 'text-green-600' : 'text-blue-600')} />
+          </div>
+          <div className="min-w-0">
+            <p className={cn('font-semibold', isCollected ? 'text-green-800' : 'text-blue-800')}>
+              {isCollected ? 'Collected at the event' : 'Collect at the event'}
+            </p>
+            <p className={cn('text-sm', isCollected ? 'text-green-700' : 'text-blue-700')}>
+              {isCollected
+                ? 'This order was collected at the venue and will not be shipped.'
+                : 'Your order is reserved for venue pickup. It will not be shipped — collect it at the event.'}
+            </p>
+            {(eventLabel || eventDate) && (
+              <p
+                className={cn(
+                  'mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm',
+                  isCollected ? 'text-green-800/80' : 'text-blue-800/80'
+                )}
+              >
+                {eventLabel && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 shrink-0" />
+                    {eventLabel}
+                  </span>
+                )}
+                {eventDate && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 shrink-0" />
+                    {eventDate}
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // ── 1. RTO / Damaged / Lost — red banner ──────────────────────────────────

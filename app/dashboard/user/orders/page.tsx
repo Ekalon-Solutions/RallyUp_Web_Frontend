@@ -122,6 +122,10 @@ interface Order {
   rating?: number
   ratingFeedback?: string
   ratedAt?: string
+  deliveryMethod?: 'standard' | 'pickup'
+  pickupEventId?: string
+  pickupEventTitle?: string
+  pickupEventDate?: string
 }
 
 interface AppliedCoupon {
@@ -903,9 +907,25 @@ export default function UserOrdersPage() {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold mb-3 text-foreground">Shipping Address</h3>
+                    <h3 className="font-semibold mb-3 text-foreground">
+                      {selectedOrder.deliveryMethod === 'pickup' ? 'Pickup' : 'Shipping Address'}
+                    </h3>
                     <div className="bg-muted p-4 rounded-lg">
-                      <OrderAddressDisplay address={selectedOrder.shippingAddress} />
+                      {selectedOrder.deliveryMethod === 'pickup' ? (
+                        <div className="text-sm space-y-1">
+                          <div className="font-medium text-foreground">
+                            {selectedOrder.pickupEventTitle || 'Event venue pickup'}
+                          </div>
+                          {selectedOrder.pickupEventDate && (
+                            <div className="text-muted-foreground">{formatDate(selectedOrder.pickupEventDate)}</div>
+                          )}
+                          <p className="text-muted-foreground">
+                            Collect this order at the event. Shipping is not required.
+                          </p>
+                        </div>
+                      ) : (
+                        <OrderAddressDisplay address={selectedOrder.shippingAddress} />
+                      )}
                     </div>
                   </div>
 
@@ -993,7 +1013,11 @@ export default function UserOrdersPage() {
                     })()}
                     <div className="flex justify-between">
                       <span className="text-foreground">Shipping:</span>
-                      <span className="text-foreground">{formatCurrency(selectedOrder.shippingCost, selectedOrder.currency)}</span>
+                      <span className={selectedOrder.deliveryMethod === 'pickup' ? 'text-green-600' : 'text-foreground'}>
+                        {selectedOrder.deliveryMethod === 'pickup'
+                          ? 'FREE (Pickup)'
+                          : formatCurrency(selectedOrder.shippingCost, selectedOrder.currency)}
+                      </span>
                     </div>
                     {(() => {
                       const hasFees = ((selectedOrder.platformFee ?? 0) + (selectedOrder.platformFeeGst ?? 0) + (selectedOrder.razorpayFee ?? 0) + (selectedOrder.razorpayFeeGst ?? 0)) > 0;

@@ -41,7 +41,7 @@ function passFromPreview(data: Record<string, unknown>): VendorScanPass {
     assignedTierName:
       String(data.assignedTierName || '') ||
       (Array.isArray(data.venueItems) && (data.venueItems[0] as any)?.tierName) ||
-      'General Admission',
+      undefined,
     assignedVenueName: data.assignedVenueName ? String(data.assignedVenueName) : undefined,
     assignedVenueId: data.assignedVenueId ? String(data.assignedVenueId) : undefined,
     eventTitle: String(data.eventTitle || 'Event'),
@@ -574,9 +574,11 @@ export function QuickScannerView({
                 </div>
               )}
               <p className="text-2xl font-bold text-white">{overlay.pass.attendeeName}</p>
-              <p className="text-lg font-semibold uppercase tracking-widest text-emerald-100">
-                {overlay.pass.assignedTierName || 'General Admission'}
-              </p>
+              {overlay.pass.assignedTierName ? (
+                <p className="text-lg font-semibold uppercase tracking-widest text-emerald-100">
+                  {overlay.pass.assignedTierName}
+                </p>
+              ) : null}
             </div>
           </div>
         )}
