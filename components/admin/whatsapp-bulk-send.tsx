@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Send, ShieldCheck, AlertTriangle, Lock } from "lucide-react"
+import { WhatsAppMessagePreview } from "@/components/admin/whatsapp-message-preview"
 import {
   MEMBER_TOKENS,
   ROLE_LABELS,
@@ -312,119 +313,117 @@ export function WhatsAppBulkSend({ clubId }: Props) {
                 {templatesError || "No approved marketing templates were found in AiSensy."}
               </p>
             )}
-            {selectedTemplate && (
-              <div className="rounded-md border bg-muted/30 p-3 text-sm">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Message preview</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {selectedTemplate.category} - {selectedTemplate.status}
-                  </span>
+          </div>
+
+          {selectedTemplate && (
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">Event (for mapped event fields)</Label>
+                  <Select
+                    value={eventId}
+                    onValueChange={setEventId}
+                    disabled={events.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={events.length === 0 ? "No club events found" : "Select an event"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {events.map((event) => (
+                        <SelectItem key={event._id} value={event._id}>
+                          {event.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                {templatePreview ? (
-                  <p className="whitespace-pre-wrap text-foreground">
-                    {templatePreview}
-                    {"\n"}
-                    {OPT_OUT_SUFFIX}
-                  </p>
+                {needsHeaderImage && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Header image URL</Label>
+                    <Input
+                      value={headerImageUrl}
+                      onChange={(e) => setHeaderImageUrl(e.target.value)}
+                      placeholder="https://… (public image required by this template)"
+                    />
+                  </div>
+                )}
+                {slots.length > 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Map each placeholder. The WhatsApp preview on the right updates as you type.
+                    </p>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {slots.map((slot) => {
+                        const autoMember = isMemberRole(slot.role)
+                        return (
+                          <div key={slot.index} className="space-y-1 rounded-md border p-2">
+                            <Label className="text-xs">
+                              {`{{${slot.index}}}`} mapping
+                            </Label>
+                            <Select
+                              value={slot.role}
+                              onValueChange={(role) => handleRoleChange(slot.index, role as TemplateSlotRole)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {SLOT_ROLES.map((role) => (
+                                  <SelectItem key={role} value={role}>
+                                    {ROLE_LABELS[role]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Textarea
+                              value={
+                                autoMember
+                                  ? `${ROLE_LABELS[slot.role]} · filled per member at send`
+                                  : variables[String(slot.index)] || ""
+                              }
+                              onChange={(e) =>
+                                setVariables((current) => ({
+                                  ...current,
+                                  [String(slot.index)]: e.target.value,
+                                }))
+                              }
+                              rows={1}
+                              disabled={autoMember}
+                              placeholder={autoMember ? "Personalized per member" : `Value for {{${slot.index}}}`}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 ) : (
-                  <p className="text-muted-foreground">
-                    AiSensy did not return preview text for this template. Variables and the opt-out
-                    line will still be applied during send.
+                  <p className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground">
+                    This template does not expose body variables from AiSensy.
                   </p>
                 )}
+              </div>
+
+              <div className="space-y-2 lg:sticky lg:top-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Live WhatsApp preview</Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    {selectedTemplate.category} · {selectedTemplate.status}
+                  </span>
+                </div>
+                <WhatsAppMessagePreview
+                  body={templatePreview || selectedTemplate.bodyPreview}
+                  headerImageUrl={headerImageUrl.trim() || undefined}
+                  clubName={clubName}
+                  optOut={OPT_OUT_SUFFIX}
+                />
                 {slots.some((slot) => isMemberRole(slot.role)) && (
-                  <p className="mt-2 text-[11px] text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground">
                     Preview uses sample member “{SAMPLE_MEMBER.member_name}”. Each recipient gets their own details.
                   </p>
                 )}
               </div>
-            )}
-          </div>
-          {selectedTemplate && (
-            <div className="space-y-1">
-              <Label className="text-xs">Event (for mapped event fields)</Label>
-              <Select
-                value={eventId}
-                onValueChange={setEventId}
-                disabled={events.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={events.length === 0 ? "No club events found" : "Select an event"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {events.map((event) => (
-                    <SelectItem key={event._id} value={event._id}>
-                      {event.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           )}
-          {needsHeaderImage && (
-            <div className="space-y-1">
-              <Label className="text-xs">Header image URL</Label>
-              <Input
-                value={headerImageUrl}
-                onChange={(e) => setHeaderImageUrl(e.target.value)}
-                placeholder="https://… (public image required by this template)"
-              />
-            </div>
-          )}
-          {slots.length > 0 ? (
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Map each placeholder yourself. Choose a field or enter custom text.
-              </p>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {slots.map((slot) => {
-                  const autoMember = isMemberRole(slot.role)
-                  return (
-                    <div key={slot.index} className="space-y-1 rounded-md border p-2">
-                      <Label className="text-xs">
-                        {`{{${slot.index}}}`} mapping
-                      </Label>
-                      <Select
-                        value={slot.role}
-                        onValueChange={(role) => handleRoleChange(slot.index, role as TemplateSlotRole)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SLOT_ROLES.map((role) => (
-                            <SelectItem key={role} value={role}>
-                              {ROLE_LABELS[role]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Textarea
-                        value={
-                          autoMember
-                            ? `${ROLE_LABELS[slot.role]} · filled per member at send`
-                            : variables[String(slot.index)] || ""
-                        }
-                        onChange={(e) =>
-                          setVariables((current) => ({
-                            ...current,
-                            [String(slot.index)]: e.target.value,
-                          }))
-                        }
-                        rows={1}
-                        disabled={autoMember}
-                        placeholder={autoMember ? "Personalized per member" : `Value for {{${slot.index}}}`}
-                      />
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          ) : selectedTemplate ? (
-            <p className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground">
-              This template does not expose body variables from AiSensy.
-            </p>
-          ) : null}
 
           <div className="flex items-center gap-2">
             <Button
@@ -469,13 +468,12 @@ export function WhatsAppBulkSend({ clubId }: Props) {
           </DialogHeader>
           {preview && (
             <div className="space-y-3 text-sm">
-              {templatePreview ? (
-                <div className="rounded-md border bg-muted/30 p-3 whitespace-pre-wrap">
-                  {templatePreview}
-                  {"\n"}
-                  {OPT_OUT_SUFFIX}
-                </div>
-              ) : null}
+              <WhatsAppMessagePreview
+                body={templatePreview || selectedTemplate?.bodyPreview}
+                headerImageUrl={headerImageUrl.trim() || undefined}
+                clubName={clubName}
+                optOut={OPT_OUT_SUFFIX}
+              />
               <p className="text-base">
                 Are you sure you want to send this to{" "}
                 <strong>{preview.eligible.toLocaleString("en-IN")} members</strong> for a cost of{" "}
