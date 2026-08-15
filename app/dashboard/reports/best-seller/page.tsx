@@ -54,10 +54,14 @@ export default function BestSellerReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     setLoading(true)
     try {
-      const queryParams: Record<string, any> = { clubId, page, limit: 20, sortBy: sort.field, sortDir: sort.direction }
-      if (filters.search) queryParams.search = filters.search
-      if (filters.startDate) queryParams.startDate = filters.startDate
-      if (filters.endDate) queryParams.endDate = filters.endDate
+      const queryParams = buildReportQueryParams({
+        clubId,
+        selectedClubId,
+        isSystemOwner,
+        page,
+        sort,
+        filters,
+      })
 
       const res = await apiClient.getBestSellerReport(queryParams)
       if (res.success && res.data) {

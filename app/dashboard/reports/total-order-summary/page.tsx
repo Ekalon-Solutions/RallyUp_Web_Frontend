@@ -104,9 +104,11 @@ export default function TotalOrderSummaryPage() {
   const [pagination, setPagination] = useState<ReportPaginationMeta | undefined>()
   const [summaryData, setSummaryData] = useState({
     totalOrders: 0,
+    paidOrders: 0,
     grossRevenue: 0,
     averageOrderValue: 0,
     cancelledOrders: 0,
+    netRevenue: 0,
   })
 
   const [filters, setFilters] = useState<ReportFiltersState>({
@@ -151,9 +153,11 @@ export default function TotalOrderSummaryPage() {
         if (res.data.summary) {
           setSummaryData({
             totalOrders: Number(res.data.summary.totalOrders) || 0,
+            paidOrders: Number(res.data.summary.paidOrders) || 0,
             grossRevenue: Number(res.data.summary.grossRevenue) || 0,
             averageOrderValue: Number(res.data.summary.averageOrderValue) || 0,
             cancelledOrders: Number(res.data.summary.cancelledOrders) || 0,
+            netRevenue: Number(res.data.summary.netRevenue) || 0,
           })
         }
       } else {
@@ -372,8 +376,16 @@ export default function TotalOrderSummaryPage() {
       value: summaryData.totalOrders.toLocaleString(),
     },
     {
+      label: "Paid Orders",
+      value: summaryData.paidOrders.toLocaleString(),
+    },
+    {
       label: "Gross Revenue",
       value: formatCurrency(summaryData.grossRevenue),
+    },
+    {
+      label: "Net Revenue",
+      value: formatCurrency(summaryData.netRevenue),
     },
     {
       label: "Average Order Value",

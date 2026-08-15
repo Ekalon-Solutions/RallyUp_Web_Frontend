@@ -53,6 +53,9 @@ function renderActionBadge(action: string) {
   if (a.includes("PROMOTE")) {
     return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Promoted</Badge>
   }
+  if (a === "VENDOR_CREATED") {
+    return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Elevated to Vendor</Badge>
+  }
   if (a.includes("DEMOTE") || a.includes("DOWNGRADED")) {
     return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Demoted</Badge>
   }
@@ -277,6 +280,7 @@ export default function ElevateDemoteReportPage() {
 
   const actionOptions = [
     { value: "PROMOTE_TO_ADMIN", label: "Promote to Admin" },
+    { value: "VENDOR_CREATED", label: "Elevate to Vendor" },
     { value: "DEMOTE_ADMIN", label: "Demote Admin" },
     { value: "PERMISSION_CHANGE", label: "Permission Change" },
     { value: "ADMIN_ACTIVATED", label: "Admin Activated" },

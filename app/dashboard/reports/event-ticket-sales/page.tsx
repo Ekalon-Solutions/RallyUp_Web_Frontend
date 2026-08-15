@@ -333,9 +333,11 @@ export default function EventTicketSalesReportPage() {
     },
     {
       key: "rewardPointsUsed",
-      header: "Reward Points Used",
-      accessor: "rewardPointsUsed",
-      align: "center",
+      header: "Points Discount",
+      accessor: (row) => (
+        <span className="font-mono text-xs">{formatCurrency(row.rewardPointsUsed, row.currency)}</span>
+      ),
+      align: "right",
       width: "w-28",
     },
     {
@@ -372,6 +374,7 @@ const summaryCards: SummaryCard[] = [
     { value: "confirmed", label: "Confirmed" },
     { value: "pending", label: "Pending" },
     { value: "cancelled", label: "Cancelled" },
+    { value: "refunded", label: "Refunded" },
   ]
 
   return (

@@ -186,11 +186,11 @@ export default function SuperAdminAuditLogReportPage() {
     },
     {
       key: "actorName",
-      header: "System Owner",
+      header: "Actor",
       accessor: (row) => (
         <div>
           <div className="font-medium text-xs">{row.actorName}</div>
-          <div className="text-[10px] text-muted-foreground font-mono">{row.actorId.slice(0, 12)}...</div>
+          <div className="text-[10px] text-muted-foreground">{(row.actorType || "").replace(/_/g, " ")}</div>
         </div>
       ),
       sortable: true,
@@ -266,7 +266,7 @@ export default function SuperAdminAuditLogReportPage() {
       value: summaryData.criticalActions.toLocaleString(),
     },
     {
-      label: "Unique System Owners",
+      label: "Unique Actors",
       value: summaryData.uniqueActors.toLocaleString(),
     },
     {
@@ -276,7 +276,6 @@ export default function SuperAdminAuditLogReportPage() {
   ]
 
   const riskLevelOptions = [
-    { value: "critical", label: "Critical" },
     { value: "high", label: "High" },
     { value: "medium", label: "Medium" },
     { value: "low", label: "Low" },
@@ -286,7 +285,7 @@ export default function SuperAdminAuditLogReportPage() {
     <DashboardLayout>
       <ReportShell
         title="Super Admin Audit Log"
-        description="Cross-tenant audit trail for system owner actions, critical operations, and club-level governance activities."
+        description="Cross-tenant audit trail of super admin and system owner actions across clubs."
         category="Governance"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={

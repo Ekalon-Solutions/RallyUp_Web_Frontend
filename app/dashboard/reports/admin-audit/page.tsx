@@ -325,7 +325,7 @@ export default function AdminAuditLogReportPage() {
       value: summaryData.criticalActions.toLocaleString(),
     },
     {
-      label: "Active Admins",
+      label: "Unique Actors",
       value: summaryData.uniqueAdmins.toLocaleString(),
     },
   ]

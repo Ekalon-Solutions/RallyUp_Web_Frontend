@@ -65,11 +65,17 @@ export default function InventoryReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     setLoading(true)
     try {
-      const queryParams: Record<string, any> = { clubId, page, limit: 20, sortBy: sort.field, sortDir: sort.direction }
-      if (filters.extras?.stockStatus && filters.extras.stockStatus !== "all") queryParams.stockStatus = filters.extras.stockStatus
-      if (filters.startDate) queryParams.startDate = filters.startDate
-      if (filters.endDate) queryParams.endDate = filters.endDate
-      if (filters.search) queryParams.search = filters.search
+      const queryParams = buildReportQueryParams({
+        clubId,
+        selectedClubId,
+        isSystemOwner,
+        page,
+        sort,
+        filters,
+        extra: {
+          stockStatus: filters.extras?.stockStatus,
+        },
+      })
 
       const res = await apiClient.getInventoryReport(queryParams)
       if (res.success && res.data) {
@@ -134,8 +140,8 @@ export default function InventoryReportPage() {
   }
 
   const columns: ReportColumn<InventoryRow>[] = [
-    { key: "product", header: "Product", accessor: (row) => <div><div className="font-medium text-xs">{row.product}</div><div className="text-[11px] text-muted-foreground font-mono">SKU: {row.sku}</div></div>, sortable: true, width: "w-56" },
-    { key: "variant", header: "Variant", accessor: "variant", width: "w-28" },
+    { key: "product", header: "Product", accessor: (row) => <div><div className="font-medium text-xs">{row.product}</div>{row.sku && row.sku !== "N/A" ? <div className="text-[11px] text-muted-foreground font-mono">SKU: {row.sku}</div> : null}</div>, sortable: true, width: "w-56" },
+    { key: "variant", header: "Variant", accessor: (row) => row.variant && row.variant !== "N/A" ? row.variant : "—", width: "w-28" },
     { key: "category", header: "Category", accessor: "category", width: "w-28" },
     { key: "stockQuantity", header: "Current Stock", accessor: "currentStock", sortable: true, align: "center", width: "w-32" },
     { key: "reservedStock", header: "Reserved Stock", accessor: "reservedStock", sortable: true, align: "center", width: "w-32" },

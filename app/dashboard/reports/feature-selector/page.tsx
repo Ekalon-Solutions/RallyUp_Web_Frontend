@@ -164,6 +164,9 @@ export default function FeatureSelectorReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
       if (filters.status && filters.status !== "all") queryParams.actorType = filters.status
       if (filters.extras?.featureKey && filters.extras.featureKey !== "all") {
         queryParams.featureKey = filters.extras.featureKey

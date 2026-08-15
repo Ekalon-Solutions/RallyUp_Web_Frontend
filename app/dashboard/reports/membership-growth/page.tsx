@@ -36,6 +36,10 @@ function renderLifecycleStatusBadge(status: string) {
       return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Renewed</Badge>
     case "expired":
       return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Expired</Badge>
+    case "pending":
+      return <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Pending</Badge>
+    case "cancelled":
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Cancelled</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }

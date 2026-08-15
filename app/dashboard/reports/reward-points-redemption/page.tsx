@@ -223,6 +223,24 @@ export default function RewardPointsRedemptionReportPage() {
       width: "w-28",
     },
     {
+      key: "status",
+      header: "Status",
+      accessor: (row) => {
+        const s = (row.status || "").toLowerCase()
+        if (s === "consumed") {
+          return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Redeemed</Badge>
+        }
+        if (s === "reserved") {
+          return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">Reserved</Badge>
+        }
+        if (s === "cancelled") {
+          return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Cancelled</Badge>
+        }
+        return <Badge variant="outline">{row.status || "—"}</Badge>
+      },
+      width: "w-28",
+    },
+    {
       key: "pointsExpireAt",
       header: "Expires",
       accessor: (row) => (
@@ -255,26 +273,26 @@ export default function RewardPointsRedemptionReportPage() {
       value: formatCurrency(summaryData.totalDiscountValue),
     },
     {
-      label: "Active Reservations",
+      label: "Reserved",
       value: summaryData.activeReservations.toLocaleString(),
     },
     {
-      label: "Released",
+      label: "Cancelled",
       value: summaryData.releasedReservations.toLocaleString(),
     },
   ]
 
   const statusOptions = [
-    { value: "active", label: "Active" },
-    { value: "released", label: "Released" },
-    { value: "expired", label: "Expired" },
+    { value: "reserved", label: "Reserved" },
+    { value: "consumed", label: "Redeemed" },
+    { value: "cancelled", label: "Cancelled" },
   ]
 
   return (
     <DashboardLayout>
       <ReportShell
         title="Reward Points Redemption Report"
-        description="Redemption history tracking points reserved, discount amounts, status changes, and balance impact."
+        description="Redemption history: reserved holds, consumed redemptions, and cancelled reservations."
         category="Platform"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
