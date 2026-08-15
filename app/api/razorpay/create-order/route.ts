@@ -109,7 +109,20 @@ export async function POST(request: NextRequest) {
 
     const razorpayOrder = await razorpay.orders.create(options)
 
-    // console.log('Razorpay order created successfully:', razorpayOrder.id)
+    // Persist before checkout so a closed tab still lets the webhook find
+    // this merchandise order. Event/membership checkouts use non-ObjectId
+    // orderIds and skip the payable-amount lookup above.
+    if (isMongoObjectId(orderId)) {
+      const authHeader = request.headers.get('authorization')
+      await fetch(getApiUrl(`/orders/admin/${orderId}/razorpay-order-id`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authHeader ? { Authorization: authHeader } : {}),
+        },
+        body: JSON.stringify({ razorpayOrderId: razorpayOrder.id }),
+      }).catch(() => null)
+    }
 
     return NextResponse.json({
       razorpayOrderId: razorpayOrder.id,

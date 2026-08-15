@@ -23,6 +23,7 @@ import { useCheckoutRefundPolicy } from "@/hooks/useCheckoutRefundPolicy"
 import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/points-redemption"
 import { useRouter } from "next/navigation"
+import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
 
 declare global {
   interface Window {
@@ -590,6 +591,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         return
       }
       const pendingRegistrationId = pendingResponse.data?.registrationId
+      let checkoutSettled = false
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -609,6 +611,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           bank_transfer: true,
         },
         handler: async function (response: any) {
+          if (checkoutSettled) return
+          checkoutSettled = true
           const paymentId: string = response.razorpay_payment_id
           const orderId: string = response.razorpay_order_id
           const signature: string = response.razorpay_signature
@@ -722,6 +726,20 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         },
         modal: {
           ondismiss: async function() {
+            if (checkoutSettled) return
+            const result = await resolveRazorpayDismiss(razorpayOrderId)
+            if (checkoutSettled) return
+            if (result.outcome === 'paid') {
+              await options.handler(result.payment)
+              return
+            }
+            if (result.outcome === 'unconfirmed') {
+              setRazorpayOpen(false)
+              setLoading(false)
+              toast.info("We're confirming your payment. If money was deducted, your tickets will appear shortly.")
+              return
+            }
+            checkoutSettled = true
             setRazorpayOpen(false)
             setLoading(false)
             try {

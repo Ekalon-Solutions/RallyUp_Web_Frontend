@@ -2642,6 +2642,20 @@ class ApiClient {
     });
   }
 
+  async checkRazorpayOrder(razorpayOrderId: string): Promise<ApiResponse<{
+    success?: boolean;
+    razorpay_payment_id?: string;
+    razorpay_order_id?: string;
+    razorpay_signature?: string;
+    status?: string;
+    paymentStatus?: string;
+  }>> {
+    return this.request('/razorpay/check-order', {
+      method: 'POST',
+      body: JSON.stringify({ razorpay_order_id: razorpayOrderId }),
+    });
+  }
+
   async cancelPendingRegistration(
     eventId: string,
     razorpayOrderId: string,

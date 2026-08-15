@@ -29,6 +29,7 @@ import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { toast } from "sonner"
 import { FolderPlus, HardDrive, Image as ImageIcon, Upload, ShoppingCart, RefreshCw, Trash2, Play, X, Megaphone } from "lucide-react"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
+import { waitForRazorpayRedirectReturn } from "@/lib/razorpay-dismiss"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled, getFeatureConstraint } from "@/lib/clubFeatures"
 import { LockedFeaturePage, FeatureUnavailableOverlay, UsageMeter } from "@/components/feature-gate"
@@ -651,6 +652,7 @@ export default function GalleryManagementPage() {
         return
       }
 
+      let checkoutSettled = false
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         subscription_id: subData.subscriptionId,
@@ -658,6 +660,8 @@ export default function GalleryManagementPage() {
         description: `${storageGb} GB Gallery Storage — ${BILLING_LABELS[plan]}`,
         theme: { color: "#3b82f6" },
         handler: async (response: any) => {
+          if (checkoutSettled) return
+          checkoutSettled = true
           try {
             const verifyRes = await fetch("/api/razorpay/verify-subscription", {
               method: "POST",
@@ -684,7 +688,11 @@ export default function GalleryManagementPage() {
           }
         },
         modal: {
-          ondismiss: () => {
+          ondismiss: async () => {
+            if (checkoutSettled) return
+            await waitForRazorpayRedirectReturn()
+            if (checkoutSettled) return
+            checkoutSettled = true
             setCheckoutBusy(false)
             toast.error("Payment cancelled.")
           },

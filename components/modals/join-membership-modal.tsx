@@ -32,6 +32,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { formatDisplayDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 import { LoginModal } from "@/components/login-modal"
+import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
 
 export interface JoinablePlan {
   _id: string
@@ -715,6 +716,7 @@ export function JoinMembershipModal({
         return
       }
 
+      let checkoutSettled = false
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: amount,
@@ -731,6 +733,8 @@ export function JoinMembershipModal({
           netbanking: true, card: true, wallet: true, upi: true, paylater: true, cardless_emi: true, emi: true, bank_transfer: true,
         },
         handler: async function (paymentResponse: any) {
+          if (checkoutSettled) return
+          checkoutSettled = true
           try {
             const verifyResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
@@ -776,7 +780,21 @@ export function JoinMembershipModal({
           }
         },
         modal: {
-          ondismiss: function () {
+          ondismiss: async function () {
+            if (checkoutSettled) return
+            const result = await resolveRazorpayDismiss(razorpayOrderId)
+            if (checkoutSettled) return
+            if (result.outcome === 'paid') {
+              await options.handler(result.payment)
+              return
+            }
+            if (result.outcome === 'unconfirmed') {
+              setRazorpayOpen(false)
+              setIsProcessing(false)
+              toast.info("We're confirming your payment. If money was deducted, your membership will activate shortly.")
+              return
+            }
+            checkoutSettled = true
             toast.info("Payment cancelled.")
             setRazorpayOpen(false)
             setIsProcessing(false)

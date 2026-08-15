@@ -37,6 +37,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import type { CheckoutClub, CheckoutPlan } from "./CheckoutLanding"
+import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -497,6 +498,7 @@ export function GuestRegistrationForm({
           return
         }
 
+        let checkoutSettled = false
         const options = {
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
           amount: amount,
@@ -513,6 +515,8 @@ export function GuestRegistrationForm({
             netbanking: true, card: true, wallet: true, upi: true, paylater: true, cardless_emi: true, emi: true, bank_transfer: true,
           },
           handler: async function (paymentResponse: any) {
+            if (checkoutSettled) return
+            checkoutSettled = true
             try {
               const verifyResponse = await fetch('/api/razorpay/verify-payment', {
                 method: 'POST',
@@ -557,7 +561,20 @@ export function GuestRegistrationForm({
             }
           },
           modal: {
-            ondismiss: function () {
+            ondismiss: async function () {
+              if (checkoutSettled) return
+              const result = await resolveRazorpayDismiss(razorpayOrderId)
+              if (checkoutSettled) return
+              if (result.outcome === 'paid') {
+                await options.handler(result.payment)
+                return
+              }
+              if (result.outcome === 'unconfirmed') {
+                setIsRegistering(false)
+                toast.info("We're confirming your payment. If money was deducted, your membership will activate shortly.")
+                return
+              }
+              checkoutSettled = true
               toast.info("Payment cancelled.")
               setIsRegistering(false)
             },

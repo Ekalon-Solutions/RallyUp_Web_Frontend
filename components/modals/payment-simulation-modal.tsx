@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { PLATFORM_FEE_PERCENT } from "@/lib/transactionFees"
+import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
 
 declare global {
   interface Window {
@@ -244,6 +245,7 @@ export function PaymentSimulationModal({
         )
       }
 
+      let checkoutSettled = false
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: amount,
@@ -262,6 +264,8 @@ export function PaymentSimulationModal({
           bank_transfer: true,
         },
         handler: async function (response: any) {
+          if (checkoutSettled) return
+          checkoutSettled = true
           try {
             const verifyResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
@@ -299,6 +303,20 @@ export function PaymentSimulationModal({
         },
         modal: {
           ondismiss: async function() {
+            if (checkoutSettled) return
+            const result = await resolveRazorpayDismiss(razorpayOrderId)
+            if (checkoutSettled) return
+            if (result.outcome === 'paid') {
+              await options.handler(result.payment)
+              return
+            }
+            if (result.outcome === 'unconfirmed') {
+              setRazorpayOpen(false)
+              setProcessing(false)
+              toast.info("We're confirming your payment. If money was deducted, your order will update shortly.")
+              return
+            }
+            checkoutSettled = true
             setRazorpayOpen(false)
             setProcessing(false)
             const cancellationError = Object.assign(

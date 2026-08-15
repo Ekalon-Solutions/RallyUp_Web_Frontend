@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,7 @@ import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/po
 import { getBookingWindowClosedLabel, hasVenueTierMatrix, isBookingWindowOpen, isEventPaid } from "@/lib/event-display-price"
 import { formatPhoneForDisplay } from "@/components/modals/purchase-flow-modal"
 import { slugify } from "@/lib/utils"
+import { resolveRazorpayDismiss, type RecoveredRazorpayPayment } from "@/lib/razorpay-dismiss"
 
 declare global {
   interface Window { Razorpay: any }
@@ -159,11 +160,31 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const [reserving, setReserving] = useState(false)
   const [attributedClub, setAttributedClub] = useState("")
   const [showClubAlert, setShowClubAlert] = useState(false)
+  const razorpaySettledRef = useRef(false)
 
   const handleCheckoutDismiss = async (
     razorpayOrderId: string,
-    options?: { isPublic?: boolean; registrationId?: string }
+    options?: {
+      isPublic?: boolean
+      registrationId?: string
+      onPaid?: (payment: RecoveredRazorpayPayment) => void | Promise<void>
+    }
   ) => {
+    if (razorpaySettledRef.current) return
+    const result = await resolveRazorpayDismiss(razorpayOrderId)
+    if (razorpaySettledRef.current) return
+    if (result.outcome === "paid") {
+      await options?.onPaid?.(result.payment)
+      return
+    }
+    if (result.outcome === "unconfirmed") {
+      setRazorpayOpen(false)
+      setLoading(false)
+      toast.info("We're confirming your payment. If money was deducted, your tickets will appear shortly.")
+      return
+    }
+
+    razorpaySettledRef.current = true
     setRazorpayOpen(false)
     setLoading(false)
     if (!event) return
@@ -986,6 +1007,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         attributed_club: attributedClub || undefined,
       }).catch((err) => console.warn("[VenueTierCart] Pending booking failed:", err))
 
+      let checkoutSettled = false
+      razorpaySettledRef.current = false
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
@@ -994,6 +1017,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         description: `${ticketCount} ticket(s) for ${event.title}`,
         order_id: razorpayOrderId,
         handler: async (response: any) => {
+          if (checkoutSettled || razorpaySettledRef.current) return
+          checkoutSettled = true
+          razorpaySettledRef.current = true
           const { razorpay_payment_id: paymentId, razorpay_order_id: orderId } = response
           try {
             // Fast client-side signature check. The endpoint is stateless (checks the
@@ -1057,7 +1083,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         },
         theme: { color: "#3b82f6" },
         modal: {
-          ondismiss: () => void handleCheckoutDismiss(razorpayOrderId),
+          ondismiss: () => void handleCheckoutDismiss(razorpayOrderId, {
+            onPaid: (payment) => options.handler(payment),
+          }),
         },
       }
 
@@ -1202,6 +1230,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
+      let checkoutSettled = false
+      razorpaySettledRef.current = false
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
@@ -1210,6 +1240,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         description: `Payment for ${event.title} - ${ticketCount} ticket(s)`,
         order_id: razorpayOrderId,
         handler: async (response: any) => {
+          if (checkoutSettled || razorpaySettledRef.current) return
+          checkoutSettled = true
+          razorpaySettledRef.current = true
           const { razorpay_payment_id: paymentId, razorpay_order_id: orderId, razorpay_signature: signature } = response
           try {
             // Fast client-side signature check. The endpoint is stateless (checks the
@@ -1280,6 +1313,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           ondismiss: () => void handleCheckoutDismiss(razorpayOrderId, {
             isPublic: true,
             registrationId: pendingRes.data?.registrationId,
+            onPaid: (payment) => options.handler(payment),
           }),
         },
       }
@@ -1433,6 +1467,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
+      let checkoutSettled = false
+      razorpaySettledRef.current = false
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
@@ -1441,6 +1477,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         description: `${cartItems.length} ticket type(s) for ${event.title}`,
         order_id: razorpayOrderId,
         handler: async (response: any) => {
+          if (checkoutSettled || razorpaySettledRef.current) return
+          checkoutSettled = true
+          razorpaySettledRef.current = true
           const { razorpay_payment_id: paymentId, razorpay_order_id: orderId } = response
           try {
             // Fast client-side signature check. The endpoint is stateless (checks the
@@ -1507,6 +1546,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           ondismiss: () => void handleCheckoutDismiss(razorpayOrderId, {
             isPublic: true,
             registrationId: pendingRes.data?.registrationId,
+            onPaid: (payment) => options.handler(payment),
           }),
         },
       }
@@ -1651,6 +1691,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         attributed_club: attributedClub || undefined,
       }).catch((err) => console.warn("[VenueTierCart] Pending booking failed:", err))
 
+      let checkoutSettled = false
+      razorpaySettledRef.current = false
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
@@ -1659,6 +1701,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         description: `${cartItems.length} ticket type(s) for ${event.title}`,
         order_id: razorpayOrderId,
         handler: async (response: any) => {
+          if (checkoutSettled || razorpaySettledRef.current) return
+          checkoutSettled = true
+          razorpaySettledRef.current = true
           const { razorpay_payment_id: paymentId, razorpay_order_id: orderId } = response
           try {
             // Fast client-side signature check. The endpoint is stateless (checks the
@@ -1719,7 +1764,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         },
         theme: { color: "#3b82f6" },
         modal: {
-          ondismiss: () => void handleCheckoutDismiss(razorpayOrderId),
+          ondismiss: () => void handleCheckoutDismiss(razorpayOrderId, {
+            onPaid: (payment) => options.handler(payment),
+          }),
         },
       }
 
