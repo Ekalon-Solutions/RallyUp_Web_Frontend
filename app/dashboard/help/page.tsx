@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Search, MessageCircle, Book, Video, Mail, Phone, ExternalLink, RefreshCw, AlertCircle } from "lucide-react"
+import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -51,8 +52,12 @@ interface ServiceStatus {
 }
 
 export default function HelpPage() {
-  const { user } = useAuth();
+  const { user, activeClubId } = useAuth();
   const router = useRouter();
+  const [subject, setSubject] = useState("");
+  const [priority, setPriority] = useState<"Low" | "Medium" | "High">("Low");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [systemStatus, setSystemStatus] = useState<{
     status: 'operational' | 'degraded' | 'down';
     services: ServiceStatus[];
@@ -116,6 +121,43 @@ export default function HelpPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  const handleSubmitTicket = async () => {
+    if (!subject.trim() || !message.trim()) {
+      toast.error("Please fill in subject and message");
+      return;
+    }
+    if (!activeClubId) {
+      toast.error("No club selected", { description: "Please select a club and try again." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await apiClient.createSupportTicket({
+        clubId: activeClubId,
+        subject: subject.trim(),
+        priority,
+        message: message.trim(),
+      });
+      if (response.success) {
+        toast.success("Ticket submitted", { description: "Our team will get back to you soon." });
+        setSubject("");
+        setMessage("");
+        setPriority("Low");
+      } else {
+        toast.error("Couldn't submit ticket", {
+          description: response.error || response.message || "Please email us at support@wingman-pro.com",
+        });
+      }
+    } catch {
+      toast.error("Couldn't submit ticket", {
+        description: "Please email us at support@wingman-pro.com",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -208,17 +250,26 @@ export default function HelpPage() {
                   <label htmlFor="subject" className="text-sm font-medium">
                     Subject
                   </label>
-                  <Input id="subject" placeholder="Describe your issue briefly" />
+                  <Input
+                    id="subject"
+                    placeholder="Describe your issue briefly"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <label htmlFor="priority" className="text-sm font-medium">
                     Priority
                   </label>
-                  <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
+                  <select
+                    id="priority"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value as "Low" | "Medium" | "High")}
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
                   </select>
                 </div>
                 <div className="grid gap-2">
@@ -229,11 +280,13 @@ export default function HelpPage() {
                     id="message"
                     placeholder="Please provide detailed information about your issue..."
                     rows={5}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
                   />
                 </div>
-                <Button className="w-full">
+                <Button className="w-full" onClick={handleSubmitTicket} disabled={isSubmitting}>
                   <MessageCircle className="w-4 h-4 mr-2" />
-                  Submit Ticket
+                  {isSubmitting ? "Submitting..." : "Submit Ticket"}
                 </Button>
               </CardContent>
             </Card>

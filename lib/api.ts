@@ -6022,6 +6022,15 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/help-section`, data);
   }
 
+  async createSupportTicket(data: {
+    clubId: string;
+    subject: string;
+    priority: 'Low' | 'Medium' | 'High';
+    message: string;
+  }): Promise<ApiResponse<{ success: boolean; message?: string; ticket?: any }>> {
+    return this.post('/support-tickets', data);
+  }
+
   async searchSportsTeams(clubId: string, q: string): Promise<ApiResponse<any[]>> {
     return this.get(`/club-settings/${clubId}/sports/search`, { params: { q } });
   }
