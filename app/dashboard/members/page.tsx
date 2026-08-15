@@ -96,6 +96,11 @@ interface Member {
   last_login?: string
 }
 
+function getMemberDisplayId(member: Member): string {
+  if (member.username) return member.username.toUpperCase()
+  return member._id.slice(-6).toUpperCase()
+}
+
 export default function MembersPage() {
   const { user, activeClubId } = useAuth()
   const { canEdit: canEditMembers } = useAdminModulePermission('members')
@@ -1008,11 +1013,9 @@ export default function MembersPage() {
                               </div>
                             )}
                           </div>
-                          {member.club_member_id && (
-                            <div className="text-xs font-mono font-medium text-primary mt-1">
-                              ID: {member.club_member_id}
-                            </div>
-                          )}
+                          <div className="text-xs font-mono font-medium text-primary mt-1">
+                            ID: {getMemberDisplayId(member)}
+                          </div>
                           {member.membershipPlan && (
                             <div className="text-xs text-muted-foreground mt-0.5 break-words">
                               Plan: {member.membershipPlan.name} ({member.membershipPlan.price} {member.membershipPlan.currency})
