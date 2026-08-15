@@ -23,7 +23,7 @@ import {
   AlertCircle
 } from "lucide-react"
 import { toast } from "sonner"
-import { apiClient } from "@/lib/api"
+import { apiClient, type ClubPickupAddress } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 
 interface Merchandise {
@@ -60,7 +60,7 @@ interface Merchandise {
 }
 
 interface PickupLocation {
-  id: number
+  id: string | number
   pickup_location: string
   name: string
   city: string
@@ -143,11 +143,42 @@ export function CreateMerchandiseModal({
 
   useEffect(() => {
     if (!isOpen) return
-    apiClient.getFulfillmentPickupLocations(clubId ?? undefined).then((res) => {
-      if (res.success && Array.isArray(res.data)) {
-        setPickupLocations(res.data as PickupLocation[])
+    let cancelled = false
+
+    const loadPickupLocations = async () => {
+      if (clubId) {
+        const clubRes = await apiClient.getClubPickupAddresses(clubId)
+        if (cancelled) return
+        if (clubRes.success) {
+          const payload = (clubRes.data as any)?.data ?? clubRes.data
+          const list = Array.isArray(payload?.pickupAddresses) ? payload.pickupAddresses : []
+          if (list.length > 0) {
+            setPickupLocations(
+              list
+                .filter((addr: ClubPickupAddress) => addr.pickupLocation)
+                .map((addr: ClubPickupAddress) => ({
+                  id: addr._id,
+                  pickup_location: addr.pickupLocation,
+                  name: addr.label || addr.name,
+                  city: addr.city,
+                  pin_code: addr.zipCode,
+                }))
+            )
+            return
+          }
+        }
       }
-    })
+
+      const res = await apiClient.getFulfillmentPickupLocations(clubId ?? undefined)
+      if (cancelled) return
+      const locations = Array.isArray(res.data) ? res.data : []
+      setPickupLocations(locations as PickupLocation[])
+    }
+
+    loadPickupLocations()
+    return () => {
+      cancelled = true
+    }
   }, [isOpen, clubId])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -524,9 +555,9 @@ export function CreateMerchandiseModal({
                     <SelectValue placeholder="Default (Primary)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.isArray(pickupLocations) && pickupLocations.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.pickup_location}>
-                        {loc.name || loc.pickup_location} — {loc.city} ({loc.pin_code})
+                    {pickupLocations.map((loc) => (
+                      <SelectItem key={String(loc.id || loc.pickup_location)} value={loc.pickup_location}>
+                        {loc.name || loc.pickup_location} — {loc.city}{loc.pin_code ? ` (${loc.pin_code})` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>

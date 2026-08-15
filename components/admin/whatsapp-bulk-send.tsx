@@ -1,7 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { apiClient, WhatsAppBulkPreview, WhatsAppMarketingTemplate } from "@/lib/api"
+import { useEffect, useMemo, useState } from "react"
+import {
+  apiClient,
+  Event,
+  WhatsAppBulkPreview,
+  WhatsAppMarketingTemplate,
+} from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -24,9 +29,22 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Send, ShieldCheck, AlertTriangle, Lock } from "lucide-react"
+import {
+  MEMBER_TOKENS,
+  ROLE_LABELS,
+  SAMPLE_MEMBER,
+  SLOT_ROLES,
+  TemplateSlot,
+  TemplateSlotRole,
+  emptySlots,
+  isMemberRole,
+  renderTemplatePreview,
+  valueForRole,
+} from "@/lib/whatsapp-template-mapping"
 
 const inr = (n: number) => new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(n)
 const OPT_OUT_SUFFIX = "Reply STOP to unsubscribe."
+
 
 function placeholdersFromText(text?: string): number[] {
   if (!text) return []
@@ -36,6 +54,14 @@ function placeholdersFromText(text?: string): number[] {
     if (Number.isFinite(index) && index > 0) indexes.add(index)
   }
   return Array.from(indexes).sort((a, b) => a - b)
+}
+
+function asEventList(data: unknown): Event[] {
+  if (Array.isArray(data)) return data as Event[]
+  if (data && typeof data === "object" && Array.isArray((data as { events?: Event[] }).events)) {
+    return (data as { events: Event[] }).events
+  }
+  return []
 }
 
 interface Props {
@@ -50,35 +76,57 @@ export function WhatsAppBulkSend({ clubId }: Props) {
   const [templatesLoading, setTemplatesLoading] = useState(true)
   const [templatesError, setTemplatesError] = useState("")
   const [variables, setVariables] = useState<Record<string, string>>({})
+  const [slotRoles, setSlotRoles] = useState<Record<string, TemplateSlotRole>>({})
   const [headerImageUrl, setHeaderImageUrl] = useState("")
+  const [clubName, setClubName] = useState("")
+  const [events, setEvents] = useState<Event[]>([])
+  const [eventId, setEventId] = useState("")
   const [previewing, setPreviewing] = useState(false)
   const [sending, setSending] = useState(false)
   const [preview, setPreview] = useState<WhatsAppBulkPreview | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const selectedTemplate = templates.find((template) => template.name === templateName)
-  const selectedVariableIndexes =
-    selectedTemplate?.variableIndexes?.length
-      ? selectedTemplate.variableIndexes
-      : placeholdersFromText(selectedTemplate?.bodyPreview)
-  const missingVariableIndexes = selectedVariableIndexes.filter(
-    (index) => !variables[String(index)]?.trim()
+  const selectedEvent = events.find((event) => event._id === eventId) || null
+  const selectedVariableIndexes = useMemo(
+    () =>
+      selectedTemplate?.variableIndexes?.length
+        ? selectedTemplate.variableIndexes
+        : placeholdersFromText(selectedTemplate?.bodyPreview),
+    [selectedTemplate]
   )
+  const slots: TemplateSlot[] = useMemo(
+    () =>
+      emptySlots(selectedVariableIndexes).map((slot) => {
+        const role = slotRoles[String(slot.index)] || "custom"
+        return { ...slot, role, label: ROLE_LABELS[role] }
+      }),
+    [selectedVariableIndexes, slotRoles]
+  )
+  const missingVariableIndexes = slots
+    .filter((slot) => !isMemberRole(slot.role) && !variables[String(slot.index)]?.trim())
+    .map((slot) => slot.index)
 
   useEffect(() => {
     let cancelled = false
 
-    const loadTemplates = async () => {
+    const load = async () => {
       setTemplatesLoading(true)
       setTemplatesError("")
       setVariables({})
+      setSlotRoles({})
       setPreview(null)
-      const res = await apiClient.listBulkMarketingTemplates(clubId)
+
+      const [templatesRes, clubRes, eventsRes] = await Promise.all([
+        apiClient.listBulkMarketingTemplates(clubId),
+        apiClient.getClubById(clubId),
+        apiClient.getEventsByClub(clubId),
+      ])
 
       if (cancelled) return
 
-      if (res.success && res.data) {
-        const availableTemplates = res.data.templates || []
+      if (templatesRes.success && templatesRes.data) {
+        const availableTemplates = templatesRes.data.templates || []
         setTemplates(availableTemplates)
         setTemplateName((current) =>
           availableTemplates.some((template) => template.name === current)
@@ -87,22 +135,64 @@ export function WhatsAppBulkSend({ clubId }: Props) {
         )
       } else {
         setTemplates([])
-        setTemplatesError(res.error || "Could not load approved marketing templates from AiSensy")
+        setTemplatesError(templatesRes.error || "Could not load approved marketing templates from AiSensy")
       }
+
+      const clubData = clubRes.success ? (clubRes.data as { name?: string; club?: { name?: string } } | undefined) : undefined
+      setClubName(clubData?.name?.trim() || clubData?.club?.name?.trim() || "")
+
+      const loadedEvents = eventsRes.success ? asEventList(eventsRes.data) : []
+      const sorted = [...loadedEvents].sort((a, b) => {
+        const aTime = new Date(a.startTime || a.eventDate || 0).getTime()
+        const bTime = new Date(b.startTime || b.eventDate || 0).getTime()
+        return bTime - aTime
+      })
+      setEvents(sorted)
+      setEventId("")
       setTemplatesLoading(false)
     }
 
-    loadTemplates()
+    load()
 
     return () => {
       cancelled = true
     }
   }, [clubId])
 
-  const handleTemplateChange = (name: string) => {
-    setTemplateName(name)
+  useEffect(() => {
+    setSlotRoles({})
     setVariables({})
     setHeaderImageUrl("")
+    setPreview(null)
+  }, [selectedTemplate?.name])
+
+  useEffect(() => {
+    setVariables((current) => {
+      const next = { ...current }
+      let changed = false
+      for (const slot of slots) {
+        if (slot.role === "custom") continue
+        const value = valueForRole(slot.role, { clubName, event: selectedEvent })
+        if (next[String(slot.index)] !== value) {
+          next[String(slot.index)] = value
+          changed = true
+        }
+      }
+      return changed ? next : current
+    })
+  }, [slots, clubName, selectedEvent])
+
+  const handleTemplateChange = (name: string) => {
+    setTemplateName(name)
+    setPreview(null)
+  }
+
+  const handleRoleChange = (index: number, role: TemplateSlotRole) => {
+    setSlotRoles((current) => ({ ...current, [String(index)]: role }))
+    setVariables((current) => ({
+      ...current,
+      [String(index)]: valueForRole(role, { clubName, event: selectedEvent }),
+    }))
     setPreview(null)
   }
 
@@ -111,24 +201,17 @@ export function WhatsAppBulkSend({ clubId }: Props) {
 
   const buildVariables = () => {
     const v: Record<string, string> = {}
-    if (selectedVariableIndexes.length > 0) {
-      selectedVariableIndexes.forEach((index) => {
-        v[String(index)] = variables[String(index)]?.trim() || ""
-      })
-      return v
-    }
-    Object.entries(variables).forEach(([key, value]) => {
-      if (value.trim()) v[key] = value.trim()
+    slots.forEach((slot) => {
+      v[String(slot.index)] = isMemberRole(slot.role)
+        ? MEMBER_TOKENS[slot.role]
+        : variables[String(slot.index)]?.trim() || ""
     })
     return v
   }
 
-  const templatePreview = (() => {
-    if (!selectedTemplate?.bodyPreview) return ""
-    return selectedTemplate.bodyPreview.replace(/\{\{\s*(\d+)\s*\}\}/g, (match, index) => {
-      return variables[index] || match
-    })
-  })()
+  const templatePreview = selectedTemplate?.bodyPreview
+    ? renderTemplatePreview(selectedTemplate.bodyPreview, variables)
+    : ""
 
   const handlePreview = async () => {
     if (!templateName.trim()) {
@@ -136,7 +219,8 @@ export function WhatsAppBulkSend({ clubId }: Props) {
       return
     }
     if (missingVariableIndexes.length > 0) {
-      toast.error(`Fill variable {{${missingVariableIndexes[0]}}} before previewing`)
+      const label = slots.find((slot) => slot.index === missingVariableIndexes[0])?.label || "required fields"
+      toast.error(`Fill ${label} before previewing`)
       return
     }
     if (missingHeaderImage) {
@@ -161,7 +245,8 @@ export function WhatsAppBulkSend({ clubId }: Props) {
 
   const handleSend = async () => {
     if (missingVariableIndexes.length > 0) {
-      toast.error(`Fill variable {{${missingVariableIndexes[0]}}} before sending`)
+      const label = slots.find((slot) => slot.index === missingVariableIndexes[0])?.label || "required fields"
+      toast.error(`Fill ${label} before sending`)
       return
     }
     if (missingHeaderImage) {
@@ -230,7 +315,7 @@ export function WhatsAppBulkSend({ clubId }: Props) {
             {selectedTemplate && (
               <div className="rounded-md border bg-muted/30 p-3 text-sm">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Template Preview</span>
+                  <span className="text-xs font-medium text-muted-foreground">Message preview</span>
                   <span className="text-[11px] text-muted-foreground">
                     {selectedTemplate.category} - {selectedTemplate.status}
                   </span>
@@ -247,9 +332,35 @@ export function WhatsAppBulkSend({ clubId }: Props) {
                     line will still be applied during send.
                   </p>
                 )}
+                {slots.some((slot) => isMemberRole(slot.role)) && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Preview uses sample member “{SAMPLE_MEMBER.member_name}”. Each recipient gets their own details.
+                  </p>
+                )}
               </div>
             )}
           </div>
+          {selectedTemplate && (
+            <div className="space-y-1">
+              <Label className="text-xs">Event (for mapped event fields)</Label>
+              <Select
+                value={eventId}
+                onValueChange={setEventId}
+                disabled={events.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={events.length === 0 ? "No club events found" : "Select an event"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {events.map((event) => (
+                    <SelectItem key={event._id} value={event._id}>
+                      {event.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {needsHeaderImage && (
             <div className="space-y-1">
               <Label className="text-xs">Header image URL</Label>
@@ -260,24 +371,54 @@ export function WhatsAppBulkSend({ clubId }: Props) {
               />
             </div>
           )}
-          {selectedVariableIndexes.length > 0 ? (
-            <div className="grid sm:grid-cols-2 gap-3">
-              {selectedVariableIndexes.map((index) => (
-                <div key={index} className="space-y-1">
-                  <Label className="text-xs">Variable {`{{${index}}}`}</Label>
-                  <Textarea
-                    value={variables[String(index)] || ""}
-                    onChange={(e) =>
-                      setVariables((current) => ({
-                        ...current,
-                        [String(index)]: e.target.value,
-                      }))
-                    }
-                    rows={1}
-                    placeholder={`Enter value for {{${index}}}`}
-                  />
-                </div>
-              ))}
+          {slots.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Map each placeholder yourself. Choose a field or enter custom text.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {slots.map((slot) => {
+                  const autoMember = isMemberRole(slot.role)
+                  return (
+                    <div key={slot.index} className="space-y-1 rounded-md border p-2">
+                      <Label className="text-xs">
+                        {`{{${slot.index}}}`} mapping
+                      </Label>
+                      <Select
+                        value={slot.role}
+                        onValueChange={(role) => handleRoleChange(slot.index, role as TemplateSlotRole)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SLOT_ROLES.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              {ROLE_LABELS[role]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Textarea
+                        value={
+                          autoMember
+                            ? `${ROLE_LABELS[slot.role]} · filled per member at send`
+                            : variables[String(slot.index)] || ""
+                        }
+                        onChange={(e) =>
+                          setVariables((current) => ({
+                            ...current,
+                            [String(slot.index)]: e.target.value,
+                          }))
+                        }
+                        rows={1}
+                        disabled={autoMember}
+                        placeholder={autoMember ? "Personalized per member" : `Value for {{${slot.index}}}`}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           ) : selectedTemplate ? (
             <p className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground">
@@ -301,7 +442,12 @@ export function WhatsAppBulkSend({ clubId }: Props) {
             </Button>
             {missingVariableIndexes.length > 0 && (
               <span className="text-xs text-amber-700">
-                Fill {missingVariableIndexes.map((index) => `{{${index}}}`).join(", ")} to continue.
+                Fill{" "}
+                {slots
+                  .filter((slot) => missingVariableIndexes.includes(slot.index))
+                  .map((slot) => slot.label)
+                  .join(", ")}{" "}
+                to continue.
               </span>
             )}
             {!isSuperAdmin && (
@@ -323,6 +469,13 @@ export function WhatsAppBulkSend({ clubId }: Props) {
           </DialogHeader>
           {preview && (
             <div className="space-y-3 text-sm">
+              {templatePreview ? (
+                <div className="rounded-md border bg-muted/30 p-3 whitespace-pre-wrap">
+                  {templatePreview}
+                  {"\n"}
+                  {OPT_OUT_SUFFIX}
+                </div>
+              ) : null}
               <p className="text-base">
                 Are you sure you want to send this to{" "}
                 <strong>{preview.eligible.toLocaleString("en-IN")} members</strong> for a cost of{" "}

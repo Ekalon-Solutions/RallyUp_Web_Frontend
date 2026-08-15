@@ -6892,7 +6892,10 @@ class ApiClient {
   }
 
   async getFulfillmentPickupLocations(clubId?: string): Promise<ApiResponse<any[]>> {
-    return this.get('/fulfillment/pickup-locations', { params: clubId ? { clubId } : undefined });
+    const res = await this.get('/fulfillment/pickup-locations', { params: clubId ? { clubId } : undefined });
+    if (!res.success) return { ...res, data: [] };
+    const payload = (res.data as any)?.data ?? res.data;
+    return { ...res, data: Array.isArray(payload) ? payload : [] };
   }
 
   async getFulfillmentCouriers(orderId: string, params?: { pickupPin?: string; weight?: number; sort?: 'cost' | 'speed' }, clubId?: string): Promise<ApiResponse<any[]>> {
