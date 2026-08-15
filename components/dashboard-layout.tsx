@@ -785,9 +785,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     if (!isAdminRole) return false
     const key = ADMIN_NAV_FEATURE_MAP[href]
     if (!key) return false
-    // Use the loaded flag map, not the optimistic hook (that one returns true
-    // when config has not arrived yet). Missing config → leave visible.
-    if (!clubFeatures) return false
+    if (!clubFeatures) return !clubFeaturesLoading
     return !isFeatureEnabled(clubFeatures, key)
   }
 
@@ -873,10 +871,11 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     
     const isRegularUser = !user.role || user.role === 'member'
     
-    if (clubFeatures && (effectiveRole === 'admin' || effectiveRole === 'super_admin')) {
+    if (effectiveRole === 'admin' || effectiveRole === 'super_admin') {
       nav = nav.filter((item) => {
         const key = ADMIN_NAV_FEATURE_MAP[item.href]
         if (!key) return true
+        if (!clubFeatures) return clubFeaturesLoading
         return isFeatureEnabled(clubFeatures, key)
       })
     }

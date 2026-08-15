@@ -5031,12 +5031,16 @@ class ApiClient {
   }
 
   async getMyClubFeatures(clubId: string): Promise<ApiResponse<import('./clubFeatures').ResolvedClubFeatures>> {
-    return this.request(`/club-features/my-club?clubId=${encodeURIComponent(clubId)}`);
+    const res = await this.request<any>(`/club-features/my-club?clubId=${encodeURIComponent(clubId)}`);
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
   }
 
   /** Member-accessible variant of getMyClubFeatures (auth, not adminAuth). */
   async getMyClubFeaturesAsMember(clubId: string): Promise<ApiResponse<import('./clubFeatures').ResolvedClubFeatures>> {
-    return this.request(`/club-features/my-club/member?clubId=${encodeURIComponent(clubId)}`);
+    const res = await this.request<any>(`/club-features/my-club/member?clubId=${encodeURIComponent(clubId)}`);
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
   }
 
   async submitFeatureUpgradeInquiry(body: {

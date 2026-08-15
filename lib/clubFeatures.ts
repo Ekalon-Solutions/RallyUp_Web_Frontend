@@ -91,7 +91,11 @@ export function clubFeatureFlags(
 export function normalizeResolvedClubFeatures(
   raw: Partial<ResolvedClubFeatures> | null | undefined
 ): ResolvedClubFeatures | null {
-  if (!raw || !raw.clubId) return null;
+  const payload = (raw as any)?.data && !(raw as any).clubId
+    ? (raw as any).data
+    : raw
+  if (!payload || !payload.clubId) return null;
+  raw = payload
   return {
     clubId: String(raw.clubId),
     features_schema_version: raw.features_schema_version ?? 0,
