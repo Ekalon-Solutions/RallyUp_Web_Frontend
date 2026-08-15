@@ -166,6 +166,37 @@ export function valuesFromContext(
   return values
 }
 
+const DYNAMIC_URL = /^(.*)\{\{\s*\d+\s*\}\}(.*)$/
+
+export function isDynamicUrlButton(url?: string): boolean {
+  return Boolean(url && DYNAMIC_URL.test(url))
+}
+
+export function urlButtonParameter(templateUrl: string | undefined, userValue: string): string {
+  const value = String(userValue || "").trim()
+  if (!value) return ""
+  if (!templateUrl) return value
+  const match = templateUrl.match(DYNAMIC_URL)
+  if (!match) return ""
+  const prefix = match[1]
+  const suffix = match[2]
+  if (prefix && value.startsWith(prefix) && (!suffix || value.endsWith(suffix))) {
+    return value.slice(prefix.length, suffix ? value.length - suffix.length : undefined)
+  }
+  if (prefix && value.startsWith(prefix)) {
+    return value.slice(prefix.length)
+  }
+  return value
+}
+
+export function resolveUrlButtonHref(templateUrl: string | undefined, userValue?: string): string {
+  if (!templateUrl) return String(userValue || "").trim()
+  const match = templateUrl.match(DYNAMIC_URL)
+  if (!match) return userValue?.trim() || templateUrl
+  const param = urlButtonParameter(templateUrl, userValue || "")
+  return `${match[1]}${param || "{{1}}"}${match[2]}`
+}
+
 export function renderTemplatePreview(
   body: string,
   variables: Record<string, string>,

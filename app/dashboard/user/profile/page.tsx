@@ -21,6 +21,7 @@ import { VolunteerSignUpModal } from "@/components/volunteer/volunteer-signup-mo
 import { VolunteerProfile } from "@/lib/api"
 import { apiClient } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
+import { extractClubTeamId, isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
 
 const isSystemAdmin = (role: string | undefined) =>
   role === "admin" || role === "super_admin" || role === "system_owner"
@@ -32,6 +33,18 @@ function normalizeClubId(c: any): string | null {
   const id = c?._id?.toString?.()
   if (id) return id
   return typeof c === "string" ? c : null
+}
+
+function getClubMemberIdFromUser(u: any, clubId?: string | null): string {
+  const memberships = Array.isArray(u?.memberships) ? u.memberships : []
+  if (clubId) {
+    const match = memberships.find((m: any) =>
+      normalizeClubId(m.club_id) === clubId || normalizeClubId(m.club) === clubId
+    )
+    if (match?.club_member_id) return String(match.club_member_id)
+  }
+  const anyWithId = memberships.find((m: any) => m?.club_member_id)
+  return anyWithId?.club_member_id ? String(anyWithId.club_member_id) : ""
 }
 
 export default function UserProfilePage() {
@@ -52,7 +65,9 @@ export default function UserProfilePage() {
     state_province: "",
     zip_code: "",
     country: "",
+    club_member_id: "",
   })
+  const [clubTeamId, setClubTeamId] = useState("")
 
   const [showOtpInput, setShowOtpInput] = useState(false)
   const [otp, setOtp] = useState("")
@@ -105,6 +120,38 @@ export default function UserProfilePage() {
   }, [user, activeClubId])
 
   useEffect(() => {
+    const clubId = currentClub?._id || activeClubId
+    if (!clubId || !isMember(user?.role)) {
+      setClubTeamId("")
+      return
+    }
+    let cancelled = false
+    const loadTeamId = async () => {
+      let teamId = extractClubTeamId(currentClub)
+      const sources = [
+        () => apiClient.getClubById(String(clubId)),
+        () => apiClient.getClubSettings(String(clubId)),
+        () => apiClient.getClubById(String(clubId), true),
+        () => apiClient.getClubSettings(String(clubId), true),
+      ]
+      for (const fetchSource of sources) {
+        if (teamId || cancelled) break
+        try {
+          const res: any = await fetchSource()
+          teamId = extractClubTeamId(res?.data?.data || res?.data || res)
+        } catch {
+          // try the next source
+        }
+      }
+      if (!cancelled) setClubTeamId(teamId)
+    }
+    loadTeamId()
+    return () => {
+      cancelled = true
+    }
+  }, [currentClub, activeClubId, user?.role])
+
+  useEffect(() => {
     if (user) {
       const u = user as any
       setProfileForm({
@@ -118,9 +165,10 @@ export default function UserProfilePage() {
         state_province: u.state_province || "",
         zip_code: u.zip_code || "",
         country: u.country || "",
+        club_member_id: getClubMemberIdFromUser(u, activeClubId),
       })
     }
-  }, [user])
+  }, [user, activeClubId])
 
   useEffect(() => {
     if (!user || isSystemAdmin(user.role)) return
@@ -236,6 +284,11 @@ export default function UserProfilePage() {
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
+    const clubId = currentClub?._id || activeClubId
+    if (isMember(user?.role) && clubId && isClubMemberIdMandatory(clubTeamId) && !profileForm.club_member_id?.trim()) {
+      toast.error(`Club Membership ID is required for ${currentClub?.name || "this club"}`)
+      return
+    }
     setLoading(true)
 
     try {
@@ -250,11 +303,15 @@ export default function UserProfilePage() {
         state_province: profileForm.state_province || undefined,
         zip_code: profileForm.zip_code || undefined,
         country: profileForm.country || undefined,
+        ...(isMember(user?.role) && clubId
+          ? { club_member_id: profileForm.club_member_id.trim(), clubId: String(clubId) }
+          : {}),
       })
 
       if (result.success) {
         toast.success("Profile updated successfully")
         setIsEditing(false)
+        await checkAuth()
       } else {
         toast.error(result.error || "Failed to update profile")
       }
@@ -508,6 +565,20 @@ export default function UserProfilePage() {
                       </div>
                       {isMember(user?.role) && (
                         <>
+                          {(currentClub || activeClubId) && (
+                            <div className="space-y-2">
+                              <Label htmlFor="club_member_id">
+                                Club Membership ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                              </Label>
+                              <Input
+                                id="club_member_id"
+                                value={profileForm.club_member_id}
+                                onChange={(e) => setProfileForm({ ...profileForm, club_member_id: e.target.value })}
+                                placeholder={isClubMemberIdMandatory(clubTeamId) ? "Arsenal Membership No. (Digital or Red)" : "Optional — as registered on official site"}
+                                required={isClubMemberIdMandatory(clubTeamId)}
+                              />
+                            </div>
+                          )}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="address_line1">Address Line 1</Label>
@@ -688,6 +759,14 @@ export default function UserProfilePage() {
                           </div>
                         </div>
                       </div>
+                      {isMember(user?.role) && (currentClub || activeClubId) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Club Membership ID</Label>
+                            <p className="text-sm font-mono">{profileForm.club_member_id || "—"}</p>
+                          </div>
+                        </div>
+                      )}
                       {/* Other (read-only, not editable) */}
                       {isMember(user?.role) && (user as any).other != null && (user as any).other !== "" && (
                         <>
@@ -724,6 +803,9 @@ export default function UserProfilePage() {
                             <p className="font-medium">{m.club_id?.name || 'Club'}</p>
                             {m.membership_level_id && (
                               <p className="text-xs text-muted-foreground">{m.membership_level_id.name}</p>
+                            )}
+                            {m.club_member_id && (
+                              <p className="text-xs font-mono text-muted-foreground">ID: {m.club_member_id}</p>
                             )}
                             {m.status && (
                               <p className="text-xs text-muted-foreground">Status: {m.status}</p>
@@ -907,6 +989,12 @@ export default function UserProfilePage() {
                   <>
                     <Separator />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {(currentClub || activeClubId) && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-muted-foreground">Club Membership ID</Label>
+                          <p className="text-sm font-mono">{profileForm.club_member_id || "—"}</p>
+                        </div>
+                      )}
                       {(user as any).username != null && (user as any).username !== '' && (
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-muted-foreground">Username</Label>

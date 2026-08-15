@@ -1,11 +1,19 @@
 "use client"
 
+import { ExternalLink, Phone, Reply } from "lucide-react"
+import type { WhatsAppTemplateButton } from "@/lib/api"
+import { resolveUrlButtonHref } from "@/lib/whatsapp-template-mapping"
+
 const CTA_SUFFIX = /\s*\|\s*\[([^,\]]+),\s*(https?:\/\/[^\]]+)\]\s*$/
 
-function splitCta(text: string): { body: string; buttonLabel?: string } {
+function splitCta(text: string): { body: string; buttonLabel?: string; buttonUrl?: string } {
   const match = text.match(CTA_SUFFIX)
   if (!match) return { body: text.trim() }
-  return { body: text.slice(0, match.index).trim(), buttonLabel: match[1].trim() }
+  return {
+    body: text.slice(0, match.index).trim(),
+    buttonLabel: match[1].trim(),
+    buttonUrl: match[2].trim(),
+  }
 }
 
 function renderHighlighted(text: string) {
@@ -25,21 +33,37 @@ function renderHighlighted(text: string) {
   })
 }
 
+function buttonIcon(type: string) {
+  if (type === "URL") return <ExternalLink className="h-3.5 w-3.5" />
+  if (type === "PHONE_NUMBER") return <Phone className="h-3.5 w-3.5" />
+  return <Reply className="h-3.5 w-3.5" />
+}
+
 interface Props {
   body?: string
   headerImageUrl?: string
   clubName?: string
-  optOut?: string
+  footer?: string
+  buttons?: WhatsAppTemplateButton[]
+  buttonUrls?: Record<string, string>
 }
 
 export function WhatsAppMessagePreview({
   body,
   headerImageUrl,
   clubName,
-  optOut,
+  footer,
+  buttons,
+  buttonUrls,
 }: Props) {
-  const raw = [body?.trim() || "", optOut?.trim() || ""].filter(Boolean).join("\n")
-  const { body: message, buttonLabel } = splitCta(raw || "Select a template to preview the WhatsApp message.")
+  const parsed = splitCta(body?.trim() || "Select a template to preview the WhatsApp message.")
+  const message = parsed.body
+  const previewButtons: WhatsAppTemplateButton[] =
+    buttons && buttons.length > 0
+      ? buttons
+      : parsed.buttonLabel
+        ? [{ type: "URL", text: parsed.buttonLabel, url: parsed.buttonUrl, index: 0, urlIndex: 0 }]
+        : []
   const time = new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })
 
   return (
@@ -62,21 +86,46 @@ export function WhatsAppMessagePreview({
           backgroundSize: "14px 14px",
         }}
       >
-        <div className="ml-0 max-w-[88%] rounded-lg rounded-tl-none bg-white px-2.5 py-2 text-[13px] leading-snug text-[#111b21] shadow-sm">
+        <div className="ml-0 max-w-[88%] overflow-hidden rounded-lg rounded-tl-none bg-white text-[13px] leading-snug text-[#111b21] shadow-sm">
           {headerImageUrl ? (
             <img
               src={headerImageUrl}
               alt="Template header"
-              className="mb-2 h-32 w-full rounded-md object-cover"
+              className="h-32 w-full object-cover"
             />
           ) : null}
-          <p className="whitespace-pre-wrap">{renderHighlighted(message)}</p>
-          {buttonLabel ? (
-            <div className="mt-2 border-t border-[#e9edef] pt-1.5 text-center text-[13px] font-medium text-[#00a884]">
-              {buttonLabel}
+          <div className="px-2.5 py-2">
+            <p className="whitespace-pre-wrap">{renderHighlighted(message)}</p>
+            {footer ? (
+              <p className="mt-2 text-[11px] text-[#667781]">{footer}</p>
+            ) : null}
+            <div className="mt-1 text-right text-[10px] text-[#667781]">{time}</div>
+          </div>
+          {previewButtons.length > 0 ? (
+            <div className="border-t border-[#e9edef]">
+              {previewButtons.map((button) => {
+                const href =
+                  button.type === "URL"
+                    ? resolveUrlButtonHref(
+                        button.url,
+                        button.urlIndex != null
+                          ? buttonUrls?.[String(button.urlIndex)]
+                          : buttonUrls?.[String(button.index)]
+                      )
+                    : undefined
+                return (
+                  <div
+                    key={`${button.index}-${button.text}`}
+                    className="flex items-center justify-center gap-1.5 border-t border-[#e9edef] px-2 py-2 text-center text-[13px] font-medium text-[#00a884] first:border-t-0"
+                    title={href || button.phoneNumber || button.text}
+                  >
+                    {buttonIcon(button.type)}
+                    <span className="truncate">{button.text}</span>
+                  </div>
+                )
+              })}
             </div>
           ) : null}
-          <div className="mt-1 text-right text-[10px] text-[#667781]">{time}</div>
         </div>
       </div>
     </div>

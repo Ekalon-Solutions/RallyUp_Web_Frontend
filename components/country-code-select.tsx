@@ -35,6 +35,7 @@ export function CountryCodeSelect({
       <SelectTrigger
         id={id}
         className={cn(
+          "[&>svg]:hidden",
           variant === "login" &&
             "h-10 bg-white/10 border-white/20 text-white focus:ring-2 focus:ring-sky-400 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed [&>span]:text-white",
           className

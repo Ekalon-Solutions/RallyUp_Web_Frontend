@@ -114,12 +114,25 @@ export interface WhatsAppBulkSendResult {
   estimatedCostInr: number;
 }
 
+export interface WhatsAppTemplateButton {
+  type: string;
+  text: string;
+  url?: string;
+  phoneNumber?: string;
+  example?: string;
+  index: number;
+  urlIndex?: number;
+}
+
 export interface WhatsAppMarketingTemplate {
   name: string;
   status: string;
   category: string;
   type?: string;
+  headerFormat?: string;
   bodyPreview?: string;
+  footerPreview?: string;
+  buttons?: WhatsAppTemplateButton[];
   variableIndexes: number[];
 }
 
@@ -1805,6 +1818,8 @@ class ApiClient {
     state_province?: string;
     zip_code?: string;
     country?: string;
+    club_member_id?: string;
+    clubId?: string;
     notificationPreferences?: {
       events?: boolean;
       membershipRenewals?: boolean;
@@ -1879,6 +1894,14 @@ class ApiClient {
 
     if (data.notificationPreferences !== undefined) {
       backendData.notificationPreferences = data.notificationPreferences;
+    }
+
+    if (data.club_member_id !== undefined) {
+      backendData.club_member_id = data.club_member_id;
+    }
+
+    if (data.clubId !== undefined) {
+      backendData.clubId = data.clubId;
     }
 
     return this.request(endpoint, {
@@ -1977,6 +2000,8 @@ class ApiClient {
     isActive?: boolean;
     role?: string;
     newPassword?: string;
+    club_member_id?: string;
+    clubId?: string;
   }): Promise<ApiResponse<User>> {
     return this.request(`/admin/members/${id}`, {
       method: 'PUT',
@@ -7027,16 +7052,40 @@ class ApiClient {
 
   async previewBulkMarketing(
     clubId: string,
-    data: { templateName: string; variables: Record<string, string>; headerImageUrl?: string; audience?: any }
+    data: {
+      templateName: string
+      variables: Record<string, string>
+      headerImageUrl?: string
+      buttonUrls?: Record<string, string>
+      audience?: any
+    }
   ): Promise<ApiResponse<{ preview: WhatsAppBulkPreview }>> {
     return this.post(`/clubs/${clubId}/whatsapp-marketing/bulk/preview`, data);
   }
 
   async sendBulkMarketing(
     clubId: string,
-    data: { templateName: string; variables: Record<string, string>; headerImageUrl?: string; audience?: any }
+    data: {
+      templateName: string
+      variables: Record<string, string>
+      headerImageUrl?: string
+      buttonUrls?: Record<string, string>
+      audience?: any
+    }
   ): Promise<ApiResponse<{ result: WhatsAppBulkSendResult }>> {
     return this.post(`/clubs/${clubId}/whatsapp-marketing/bulk/send`, data);
+  }
+
+  async uploadWhatsAppHeaderImage(
+    clubId: string,
+    file: File
+  ): Promise<ApiResponse<{ url: string; filename: string }>> {
+    const formData = new FormData()
+    formData.append("image", file)
+    return this.request(`/clubs/${clubId}/whatsapp-marketing/bulk/header-image`, {
+      method: "POST",
+      body: formData,
+    })
   }
 
   // System Owner safety

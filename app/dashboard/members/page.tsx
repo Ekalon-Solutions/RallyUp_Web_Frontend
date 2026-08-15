@@ -25,6 +25,7 @@ import { ProtectedRoute } from '@/components/protected-route'
 import { formatDisplayDate } from '@/lib/utils'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import ImportMembersModal from '@/components/modals/import-members-modal'
+import { extractClubTeamId, isClubMemberIdMandatory } from '@/components/modals/join-membership-modal'
 import { 
   Search, 
   Users, 
@@ -144,8 +145,10 @@ export default function MembersPage() {
     email: '',
     phoneNumber: '',
     countryCode: '',
-    isActive: true
+    isActive: true,
+    club_member_id: '',
   })
+  const [clubTeamId, setClubTeamId] = useState('')
   type AddResultStatus = 'added' | 'updated' | 'already_member'
   interface AddResultEntry {
     name: string
@@ -156,12 +159,23 @@ export default function MembersPage() {
   const [currentClubName, setCurrentClubName] = useState<string>((user as any)?.club?.name || "")
 
   useEffect(() => {
-    if (clubId) {
-      apiClient.getClubById(clubId).then((res: any) => {
-        const name = res?.data?.name || res?.name
-        if (name) setCurrentClubName(name)
-      }).catch(() => {})
+    if (!clubId) {
+      setClubTeamId('')
+      return
     }
+    apiClient.getClubById(clubId).then(async (res: any) => {
+      const club = res?.data?.data || res?.data || res
+      const name = club?.name || res?.data?.name || res?.name
+      if (name) setCurrentClubName(name)
+      let teamId = extractClubTeamId(club)
+      if (!teamId) {
+        const settingsRes: any = await apiClient.getClubSettings(clubId)
+        teamId = extractClubTeamId(settingsRes?.data?.data || settingsRes?.data || settingsRes)
+      }
+      setClubTeamId(teamId)
+    }).catch(() => {
+      setClubTeamId('')
+    })
   }, [clubId])
 
   useEffect(() => {
@@ -279,6 +293,12 @@ export default function MembersPage() {
     return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
   }
 
+  const getStatusPillClass = (isActive: boolean): string => {
+    return isActive
+      ? `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${getStatusColor(true)}`
+      : `inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium whitespace-nowrap leading-4 ${getStatusColor(false)}`
+  }
+
   const getVerificationColor = (isVerified: boolean): string => {
     return isVerified ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
   }
@@ -370,9 +390,17 @@ export default function MembersPage() {
 
   const handleEditMember = async () => {
     if (!selectedMember) return
+    if (isClubMemberIdMandatory(clubTeamId) && !editFormData.club_member_id?.trim()) {
+      toast.error(`Club Membership ID is required for ${currentClubName || 'this club'}`)
+      return
+    }
 
     try {
-      const response = await apiClient.updateMember(selectedMember._id, editFormData)
+      const response = await apiClient.updateMember(selectedMember._id, {
+        ...editFormData,
+        club_member_id: editFormData.club_member_id.trim(),
+        clubId: clubId ?? undefined,
+      })
 
       if (response.success) {
         toast.success('Member updated successfully')
@@ -416,7 +444,8 @@ export default function MembersPage() {
       email: member.email,
       phoneNumber: member.phoneNumber,
       countryCode: member.countryCode,
-      isActive: member.isActive
+      isActive: member.isActive,
+      club_member_id: member.club_member_id || '',
     })
     setIsEditDialogOpen(true)
   }
@@ -947,7 +976,7 @@ export default function MembersPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="font-semibold break-words">{member.name}</h3>
-                            <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(member.isActive)}`}>
+                            <div className={getStatusPillClass(member.isActive)}>
                               {member.isActive ? 'Active' : 'Inactive'}
                             </div>
                             <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getVerificationColor(member.isPhoneVerified)}`}>
@@ -1292,9 +1321,9 @@ export default function MembersPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-lg break-words">{selectedMember.name}</h3>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge className={getStatusColor(selectedMember.isActive)}>
+                        <div className={getStatusPillClass(selectedMember.isActive)}>
                           {selectedMember.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
+                        </div>
                         <Badge className={getVerificationColor(selectedMember.isPhoneVerified)}>
                           {selectedMember.isPhoneVerified ? 'Verified' : 'Unverified'}
                         </Badge>
@@ -1361,12 +1390,10 @@ export default function MembersPage() {
                   <div className="rounded-lg border p-4 space-y-3">
                     <h4 className="font-semibold text-sm text-muted-foreground">Account & details (read-only)</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      {selectedMember.club_member_id != null && selectedMember.club_member_id !== '' && (
-                        <div>
-                          <Label className="text-muted-foreground text-xs">Club Membership ID</Label>
-                          <p className="font-medium font-mono text-primary">{selectedMember.club_member_id}</p>
-                        </div>
-                      )}
+                      <div>
+                        <Label className="text-muted-foreground text-xs">Club Membership ID</Label>
+                        <p className="font-medium font-mono text-primary">{selectedMember.club_member_id || '—'}</p>
+                      </div>
                       {selectedMember.username != null && selectedMember.username !== '' && (
                         <div>
                           <Label className="text-muted-foreground text-xs">Username</Label>
@@ -1481,9 +1508,9 @@ export default function MembersPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">Status:</span>
-                          <Badge className={getStatusColor(selectedMember.isActive)}>
+                          <div className={getStatusPillClass(selectedMember.isActive)}>
                             {selectedMember.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">Verification:</span>
@@ -1551,6 +1578,18 @@ export default function MembersPage() {
                         required 
                       />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-club_member_id">
+                      Club Membership ID{isClubMemberIdMandatory(clubTeamId) ? ' *' : <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>}
+                    </Label>
+                    <Input
+                      id="edit-club_member_id"
+                      value={editFormData.club_member_id}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => setEditFormData({ ...editFormData, club_member_id: e.target.value })}
+                      placeholder={isClubMemberIdMandatory(clubTeamId) ? 'Arsenal Membership No. (Digital or Red)' : 'Optional — as registered on official site'}
+                      required={isClubMemberIdMandatory(clubTeamId)}
+                    />
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch 

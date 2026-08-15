@@ -96,6 +96,20 @@ interface ServiceabilityResult {
   message: string
 }
 
+interface PickupEligibleEvent {
+  eventId: string
+  eventTitle: string
+  eventDate: string
+  eventVenue: string
+  ticketCount: number
+}
+
+function formatPickupEventDate(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString(undefined, { dateStyle: 'medium' })
+}
+
 function formatEstimatedDays(estimatedDays: { min: number; max: number }, titleCase = false): string {
   const { min, max } = estimatedDays
   const unit = titleCase
@@ -165,9 +179,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
   const [isAutoApplied, setIsAutoApplied] = useState(false)
   const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
-  const deliveryMethodState = useState<'standard' | 'pickup'>('standard')
-  const deliveryMethod = deliveryMethodState[0]
-  const setDeliveryMethod = deliveryMethodState[1]
+  const [deliveryMethod, setDeliveryMethod] = useState<'standard' | 'pickup'>('standard')
+  const [pickupEvent, setPickupEvent] = useState<PickupEligibleEvent | null>(null)
+  const [pickupEligibleEvents, setPickupEligibleEvents] = useState<PickupEligibleEvent[]>([])
+  const [pickupEventsLoading, setPickupEventsLoading] = useState(false)
 
   const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
 
@@ -268,6 +283,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       setIsAutoApplied(false)
       setAutoCouponRemoved(false)
       setDeliveryMethod('standard')
+      setPickupEvent(null)
+      setPickupEligibleEvents([])
     }
   }, [isOpen])
 
@@ -295,6 +312,48 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       fetchSettings()
     }
   }, [isOpen, items])
+
+  useEffect(() => {
+    if (!isOpen || !user) {
+      setPickupEligibleEvents([])
+      setPickupEvent(null)
+      return
+    }
+    const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
+    if (!clubId) return
+
+    let cancelled = false
+    setPickupEventsLoading(true)
+    apiClient.get<PickupEligibleEvent[] | { data?: PickupEligibleEvent[] }>(`/events/my-pickup-eligible?clubId=${clubId}`)
+      .then((res) => {
+        if (cancelled) return
+        const payload = res.data
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray((payload as any)?.data)
+            ? (payload as any).data
+            : []
+        setPickupEligibleEvents(list)
+        setPickupEvent((current) =>
+          current && list.some((ev: PickupEligibleEvent) => ev.eventId === current.eventId)
+            ? current
+            : null
+        )
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPickupEligibleEvents([])
+          setPickupEvent(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPickupEventsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, user, items])
 
 
   useEffect(() => {
@@ -588,6 +647,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         ...(deliveryMethod === 'pickup'
           ? {
               shippingCost: 0,
+              pickupEventId: pickupEvent!.eventId,
+              pickupEventTitle: pickupEvent!.eventTitle,
+              pickupEventDate: pickupEvent!.eventDate,
             }
           : {
 
@@ -727,7 +789,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       return false
     }
 
-    if (deliveryMethod === 'standard') {
+    if (deliveryMethod === 'pickup') {
+      if (!pickupEvent) {
+        toast.error('Please select an event for pickup')
+        return false
+      }
+    } else {
       // Standard delivery — full address required
 
       const addressRequired = ['address', 'city', 'state', 'zipCode', 'country']
@@ -870,7 +937,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {/* Standard Delivery */}
                     <button
                       type="button"
-                      onClick={() => setDeliveryMethod('standard')}
+                      onClick={() => { setDeliveryMethod('standard'); setPickupEvent(null) }}
                       className={cn(
                         "w-full border rounded-lg p-3 text-left transition-colors",
                         deliveryMethod === 'standard'
@@ -886,23 +953,89 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     </button>
 
                     {/* Pickup at Next Screening */}
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryMethod('pickup')}
-                      className={cn(
-                        "w-full border rounded-lg p-3 text-left transition-colors",
-                        deliveryMethod === 'pickup'
-                          ? "border-primary ring-1 ring-primary"
-                          : "border-border hover:border-gray-300"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Ticket className="w-4 h-4" />
-                        Pickup at Next Screening
-                        <span className="text-green-600 font-semibold ml-auto">FREE</span>
+                    {user ? (
+                      <button
+                        type="button"
+                        disabled={!pickupEventsLoading && pickupEligibleEvents.length === 0}
+                        onClick={() => {
+                          setDeliveryMethod('pickup')
+                          if (!pickupEvent && pickupEligibleEvents.length === 1) {
+                            setPickupEvent(pickupEligibleEvents[0])
+                          }
+                        }}
+                        title={pickupEligibleEvents.length === 0 && !pickupEventsLoading ? 'No upcoming event tickets found' : undefined}
+                        className={cn(
+                          "w-full border rounded-lg p-3 text-left transition-colors",
+                          deliveryMethod === 'pickup'
+                            ? "border-primary ring-1 ring-primary"
+                            : pickupEligibleEvents.length === 0 && !pickupEventsLoading
+                              ? "border-border opacity-50 cursor-not-allowed"
+                              : "border-border hover:border-gray-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Ticket className="w-4 h-4" />
+                          Pickup at Next Screening
+                          <span className="text-green-600 font-semibold ml-auto">FREE</span>
+                        </div>
+                        {pickupEventsLoading ? (
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" /> Loading events...
+                          </p>
+                        ) : pickupEligibleEvents.length === 0 ? (
+                          <p className="text-xs text-muted-foreground mt-0.5">No upcoming event tickets found</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground mt-0.5">Collect your order at an event you have tickets for</p>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="w-full border rounded-lg p-3 opacity-50 cursor-not-allowed border-border">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Ticket className="w-4 h-4" />
+                          Pickup at Next Screening
+                          <span className="text-green-600 font-semibold ml-auto">FREE</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">Sign in to use event pickup</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">Collect your order at your next event screening</p>
-                    </button>
+                    )}
+
+                    {deliveryMethod === 'pickup' && pickupEligibleEvents.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">Select your pickup event:</p>
+                        {pickupEligibleEvents.map(ev => (
+                          <button
+                            key={ev.eventId}
+                            type="button"
+                            onClick={() => setPickupEvent(ev)}
+                            className={cn(
+                              "w-full border rounded-lg p-3 text-left transition-colors",
+                              pickupEvent?.eventId === ev.eventId
+                                ? "border-primary ring-1 ring-primary bg-primary/5"
+                                : "border-border hover:border-gray-300"
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{ev.eventTitle}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
+                                  <CalendarDays className="w-3 h-3 shrink-0" />
+                                  <span>{formatPickupEventDate(ev.eventDate)}</span>
+                                  {ev.eventVenue && <span>· {ev.eventVenue}</span>}
+                                </div>
+                              </div>
+                              <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+                                {ev.ticketCount} ticket{ev.ticketCount !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            {pickupEvent?.eventId === ev.eventId && (
+                              <div className="flex items-center gap-1 mt-1.5 text-xs text-primary font-medium">
+                                <CheckCircle className="w-3 h-3" /> Selected
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -924,7 +1057,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 <CardContent className="space-y-4">
                   {deliveryMethod === 'pickup' && (
                     <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                      Pickup at next screening selected. Shipping address is disabled and not required.
+                      {pickupEvent
+                        ? `Pickup at ${pickupEvent.eventTitle} on ${formatPickupEventDate(pickupEvent.eventDate)}. Shipping address is not required.`
+                        : 'Select a pickup event above. Shipping address is disabled and not required.'}
                     </div>
                   )}
 
@@ -1591,7 +1726,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 disabled={
                   loading ||
                   items.length === 0 ||
-                  (deliveryMethod === 'standard' && (!hasCompleteShippingAddress || orderBlocked || deliveryUnavailable))
+                  (deliveryMethod === 'standard' && (!hasCompleteShippingAddress || orderBlocked || deliveryUnavailable)) ||
+                  (deliveryMethod === 'pickup' && !pickupEvent)
                 }
 
               >

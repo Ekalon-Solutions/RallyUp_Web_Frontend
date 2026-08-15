@@ -102,7 +102,7 @@ export function VendorRoster({ onChanged }: VendorRosterProps) {
     try {
       const res = await apiClient.createVendor(clubId, { name, email, phoneNumber, countryCode })
       if (res.success) {
-        toast.success(`Vendor ${name} created`)
+        toast.success(res.message || res.data?.message || `Vendor ${name} created`)
         setCreateOpen(false)
         setCreateForm(EMPTY_FORM)
         await refresh()

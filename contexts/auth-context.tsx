@@ -597,6 +597,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             state_province: raw.state_province ?? prev.state_province,
             zip_code: raw.zip_code ?? prev.zip_code,
             country: raw.country ?? prev.country,
+            memberships: Array.isArray(prev.memberships) && raw.clubId
+              ? prev.memberships.map((m: any) => {
+                  const membershipClubId = m?.club_id?._id?.toString?.() ?? m?.club_id ?? m?.club?._id ?? m?.club
+                  return String(membershipClubId) === String(raw.clubId)
+                    ? { ...m, club_member_id: raw.club_member_id ?? "" }
+                    : m
+                })
+              : prev.memberships,
           } as any;
         });
 
