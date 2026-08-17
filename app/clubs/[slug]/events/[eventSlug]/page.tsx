@@ -273,25 +273,25 @@ export default function EventDetailPage() {
   const returnPath = `/clubs/${slug}/events/${eventSlug}`
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b shadow-sm">
-        <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="container mx-auto max-w-6xl px-3 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             {logo && (
-              <img src={logo} alt={title} className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 object-contain rounded-lg" />
+              <img src={logo} alt={title} className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 object-contain rounded-lg" />
             )}
-            <span className="font-black text-base sm:text-lg tracking-tight truncate">{title}</span>
+            <span className="font-black text-sm sm:text-lg tracking-tight leading-tight min-w-0 break-words [overflow-wrap:anywhere] line-clamp-2">{title}</span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Button
               size="sm"
               variant="ghost"
               onClick={() => router.push(`/clubs/${slug}`)}
-              className="font-semibold px-3 sm:px-4"
+              className="font-semibold px-2 sm:px-4"
             >
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Back
+              <ArrowLeft className="sm:mr-1.5 h-4 w-4" />
+              <span className="hidden min-[360px]:inline">Back</span>
             </Button>
           </div>
         </div>

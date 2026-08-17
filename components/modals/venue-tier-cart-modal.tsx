@@ -1842,16 +1842,16 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       modal={!razorpayOpen}
     >
       <DialogContent
-        className={`max-w-xl w-[95vw] sm:w-full max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6 ${refundPolicy.policyModalOpen ? "pointer-events-none" : ""}`}
+        className={`flex w-[calc(100vw-1.5rem)] max-w-md sm:max-w-lg max-h-[calc(100dvh-2rem)] flex-col overflow-hidden p-4 sm:p-6 ${refundPolicy.policyModalOpen ? "pointer-events-none" : ""}`}
         onInteractOutside={(e) => { if (razorpayOpen) e.preventDefault() }}
         onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
       >
-        <DialogHeader className="flex-shrink-0">
+        <DialogHeader className="flex-shrink-0 pr-8 text-left">
           <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
+            <CreditCard className="w-5 h-5 shrink-0" />
             {showWizardStep ? titleByStep[step] : 'Select Tickets'}
           </DialogTitle>
-          <DialogDescription>{showWizardStep ? descriptionByStep[step] : event.title}</DialogDescription>
+          <DialogDescription className="break-words [overflow-wrap:anywhere]">{showWizardStep ? descriptionByStep[step] : event.title}</DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-2 px-1">

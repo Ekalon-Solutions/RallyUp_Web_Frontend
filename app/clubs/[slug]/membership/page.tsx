@@ -216,37 +216,37 @@ export default function ClubMembershipPlansPage() {
   const primaryColor = settings.designSettings?.primaryColor || "#3b82f6"
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="min-h-screen bg-muted/20 overflow-x-hidden">
       <div className="border-b bg-background">
-        <div className="container mx-auto px-6 py-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <button
               onClick={() => router.push(`/clubs/${slug}`)}
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground min-w-0"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back to {club.name}
+              <ArrowLeft className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 break-words [overflow-wrap:anywhere] leading-tight line-clamp-2">Back to {club.name}</span>
             </button>
             {isAppRedirect && (
               <a
                 href="wingmanpro://sso-callback?status=cancelled"
-                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
+                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 shrink-0"
               >
                 Return to Mobile App
               </a>
             )}
           </div>
           {!isLoggedIn && (
-            <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
+            <Button variant="outline" size="sm" className="self-start sm:self-auto" onClick={() => setLoginOpen(true)}>
               Member Login
             </Button>
           )}
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-12 max-w-5xl">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight">
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-5xl">
+        <div className="text-center mb-8 sm:mb-10">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-balance">
             {hasActiveMembership ? "Upgrade Your Membership" : `Join ${club.name}`}
           </h1>
           <p className="text-muted-foreground mt-2">

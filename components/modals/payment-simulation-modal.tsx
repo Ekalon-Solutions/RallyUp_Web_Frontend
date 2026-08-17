@@ -399,14 +399,14 @@ export function PaymentSimulationModal({
   return (
     <Dialog open={isOpen} onOpenChange={() => { if (!razorpayOpen) onClose() }} modal={!razorpayOpen}>
       <DialogContent
-        className="max-w-md"
+        className="flex w-[calc(100vw-1.5rem)] max-w-md sm:max-w-lg max-h-[calc(100dvh-2rem)] flex-col gap-3 overflow-y-auto overflow-x-hidden p-4 sm:gap-4 sm:p-6"
         onInteractOutside={(e) => { if (razorpayOpen) e.preventDefault() }}
         onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
       >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
-            {dialogTitle ?? "Complete Payment"}
+        <DialogHeader className="shrink-0 space-y-1.5 text-left">
+          <DialogTitle className="flex items-start gap-2 pr-8 text-left text-lg sm:text-xl leading-tight break-words [overflow-wrap:anywhere]">
+            <CreditCard className="w-5 h-5 shrink-0 mt-0.5" />
+            <span className="min-w-0">{dialogTitle ?? "Complete Payment"}</span>
           </DialogTitle>
           <DialogDescription>
             {dialogDescription ?? "Secure payment powered by Razorpay"}

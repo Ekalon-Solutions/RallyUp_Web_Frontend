@@ -121,13 +121,13 @@ export default function ClubGuestRefundsPage() {
   };
 
   return (
-    <div className="public-theme flex min-h-[100dvh] flex-col bg-zinc-950 text-white">
-      <header className="flex items-center gap-2 px-4 py-4">
-        <Ticket className="h-6 w-6 text-primary" />
-        <span className="font-semibold">{clubName || 'Ticket Cancellation'}</span>
+    <div className="public-theme flex min-h-[100dvh] flex-col bg-zinc-950 text-white overflow-x-hidden">
+      <header className="flex items-center gap-2 px-4 py-4 min-w-0">
+        <Ticket className="h-6 w-6 text-primary shrink-0" />
+        <span className="font-semibold min-w-0 break-words [overflow-wrap:anywhere] leading-tight line-clamp-2">{clubName || 'Ticket Cancellation'}</span>
       </header>
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-10">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 sm:px-6 pb-10">
         {step === 'verify' && (
           <GuestPhoneVerification
             heading="Cancel your ticket"

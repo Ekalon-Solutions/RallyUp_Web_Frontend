@@ -89,13 +89,13 @@ export function ClubGallerySection({ albums, loading, primaryColor }: ClubGaller
     const albumMedia = getAlbumMediaItems(selectedAlbum)
     return (
       <div className="space-y-5">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setSelectedAlbum(null)} className="gap-1">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setSelectedAlbum(null)} className="gap-1 shrink-0">
             <ChevronLeft className="h-4 w-4" />
             Back to Albums
           </Button>
-          <div className="h-4 w-px bg-border" />
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="hidden sm:block h-4 w-px bg-border" />
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="font-semibold truncate">{selectedAlbum.name}</span>
             <Badge variant="secondary" className="shrink-0">
               {albumMedia.length} items
@@ -181,9 +181,9 @@ export function ClubGallerySection({ albums, loading, primaryColor }: ClubGaller
                       {activeIndex + 1} / {mediaItems.length}
                     </p>
                   </div>
-                  <Button onClick={() => downloadMedia(activeMedia)}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
+                  <Button onClick={() => downloadMedia(activeMedia)} className="shrink-0" size="sm">
+                    <Download className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Download</span>
                   </Button>
                 </div>
               </div>

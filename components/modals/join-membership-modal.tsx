@@ -1388,19 +1388,19 @@ export function JoinMembershipModal({
           onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
         >
           <DialogHeader className={cn(
-            "shrink-0 px-6 py-6 relative rounded-t-2xl",
+            "shrink-0 px-4 sm:px-6 py-5 sm:py-6 pr-12 relative rounded-t-2xl",
             isDashboard
               ? "bg-card border-b border-border text-card-foreground"
               : "bg-secondary text-white"
           )}>
             <DialogTitle className={cn(
-              "flex items-center gap-2 text-2xl font-bold",
+              "flex items-start gap-2 text-lg sm:text-2xl font-bold text-left",
               isDashboard ? "text-foreground" : "text-white font-black"
             )}>
-              <div className={cn("rounded-lg p-2", isDashboard ? "bg-primary/10 text-primary" : "bg-white/10 text-white")}>
+              <div className={cn("rounded-lg p-2 shrink-0", isDashboard ? "bg-primary/10 text-primary" : "bg-white/10 text-white")}>
                 <Users className="w-5 h-5" />
               </div>
-              {dialogTitle}
+              <span className="break-words">{dialogTitle}</span>
             </DialogTitle>
             <DialogDescription className={cn("text-sm mt-1", isDashboard ? "text-muted-foreground" : "text-white/80")}>
               {mode === "register" ? (
@@ -1418,7 +1418,7 @@ export function JoinMembershipModal({
           {renderCurrentMembershipBanner()}
 
           <div className={cn(
-            "flex-1 overflow-y-auto px-6 pb-6 pt-6 space-y-5",
+            "flex-1 overflow-y-auto px-4 sm:px-6 pb-6 pt-5 sm:pt-6 space-y-5",
             isDashboard ? "bg-background text-foreground" : "bg-white text-slate-800"
           )}>
             {mode === "register" ? (
@@ -1453,7 +1453,7 @@ export function JoinMembershipModal({
                     <Label htmlFor="email" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Email Address <span className="text-primary ml-0.5">*</span></Label>
                     <Input id="email" type="email" value={registrationData.email} onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
-                  <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
+                  <div className="sm:col-span-2 grid grid-cols-1 min-[420px]:grid-cols-[7rem_1fr] gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="countryCode" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Country Code <span className="text-primary ml-0.5">*</span></Label>
                       <CountryCodeSelect id="countryCode" value={registrationData.countryCode} onValueChange={(value) => setRegistrationData({ ...registrationData, countryCode: value })} className={cn("h-12 rounded-xl focus:ring-0 focus:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")} />

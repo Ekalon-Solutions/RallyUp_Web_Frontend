@@ -147,10 +147,10 @@ export function EventPaymentSimulationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
+      <DialogContent className="flex w-[calc(100vw-1.5rem)] max-w-md sm:max-w-lg max-h-[calc(100dvh-2rem)] flex-col gap-3 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
+        <DialogHeader className="text-left pr-8">
+          <DialogTitle className="flex items-start gap-2 text-left">
+            <CreditCard className="w-5 h-5 shrink-0 mt-0.5" />
             Payment Simulation
           </DialogTitle>
           <DialogDescription>Simulate payment for the event</DialogDescription>

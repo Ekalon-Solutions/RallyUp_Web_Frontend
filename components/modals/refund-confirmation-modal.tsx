@@ -42,8 +42,8 @@ export function RefundConfirmationModal({
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex w-[calc(100vw-1.5rem)] max-w-md sm:max-w-lg max-h-[calc(100dvh-2rem)] flex-col gap-3 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
+        <DialogHeader className="text-left pr-8">
           <DialogTitle>Confirm Refund Request</DialogTitle>
           <DialogDescription>
             Review the refund breakdown before confirming
@@ -128,11 +128,11 @@ export function RefundConfirmationModal({
           )}
         </div>
 
-        <DialogFooter>
-          <Button onClick={onCancel} disabled={loading} variant="outline">
+        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button onClick={onCancel} disabled={loading} variant="outline" className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button onClick={onConfirm} disabled={loading} variant="destructive">
+          <Button onClick={onConfirm} disabled={loading} variant="destructive" className="w-full sm:w-auto">
             {loading ? 'Processing...' : 'Confirm Refund Request'}
           </Button>
         </DialogFooter>

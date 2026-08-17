@@ -101,7 +101,7 @@ export function RefundPolicyModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-lg w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] gap-0 p-0 sm:p-0 overflow-hidden flex flex-col border-primary/10"
+        className="flex w-[calc(100vw-1.5rem)] max-w-md sm:max-w-lg max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:p-0 border-primary/10"
         onInteractOutside={(e) => {
           if (isCheckoutFlow) e.preventDefault()
         }}
@@ -117,10 +117,10 @@ export function RefundPolicyModal({
                 Refund Policy
               </span>
             </div>
-            <DialogTitle className="text-xl sm:text-2xl md:text-[1.65rem] font-bold tracking-tight leading-tight text-foreground pr-6 sm:pr-0">
+            <DialogTitle className="text-lg sm:text-2xl md:text-[1.65rem] font-bold tracking-tight leading-tight text-foreground pr-8 sm:pr-0 break-words [overflow-wrap:anywhere] line-clamp-2">
               {policy?.clubName ? `${policy.clubName} — Cancellations` : "Cancellation & Refunds"}
             </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
+            <DialogDescription className="text-xs sm:text-sm leading-relaxed text-muted-foreground break-words [overflow-wrap:anywhere]">
               {policy?.eventTitle
                 ? `Terms for "${policy.eventTitle}". Club policies apply to ticket cancellations; platform fees are governed separately.`
                 : "Review cancellation terms before you complete your purchase."}

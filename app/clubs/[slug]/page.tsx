@@ -562,24 +562,24 @@ export default function PublicClubPage() {
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+        <div className="container mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             {(designSettings.logo || club.logo) && (
               <img
                 src={designSettings.logo || club.logo!}
                 alt={title}
-                className="h-9 w-9 flex-shrink-0 object-contain rounded-lg"
+                className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 object-contain rounded-lg"
               />
             )}
-            <span className="font-black text-base sm:text-lg tracking-tight truncate">
+            <span className="font-black text-sm sm:text-base md:text-lg tracking-tight leading-tight min-w-0 break-words [overflow-wrap:anywhere] line-clamp-2">
               {title}
             </span>
           </div>
 
           {hasCommunitySections && (
-            <nav className="hidden md:flex items-center justify-center gap-4 text-sm font-semibold">
+            <nav className="hidden lg:flex items-center justify-center gap-3 xl:gap-4 text-sm font-semibold shrink-0">
               {websiteSetup.sections.events && (
                 <button
                   type="button"
@@ -643,17 +643,24 @@ export default function PublicClubPage() {
             </nav>
           )}
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <Button
               size="sm"
-              className="font-bold px-4 sm:px-6 text-sm"
+              className="font-bold px-2.5 sm:px-4 lg:px-6 text-xs sm:text-sm h-8 sm:h-9"
               style={{ backgroundColor: primaryColor, color: "white" }}
               onClick={handleOpenJoinModal}
             >
-              {joinButtonLabel}
+              <span className="sm:hidden">{hasActiveMembership ? "Upgrade" : "Join"}</span>
+              <span className="hidden sm:inline">{joinButtonLabel}</span>
             </Button>
-            <Button size="sm" variant="outline" className="font-bold px-4 sm:px-6 text-sm" onClick={() => isLoggedIn ? router.push(getDashboardPath()) : setLoginOpen(true)}>
-              {isLoggedIn ? "Dashboard" : "Member Login"}
+            <Button
+              size="sm"
+              variant="outline"
+              className="font-bold px-2.5 sm:px-4 lg:px-6 text-xs sm:text-sm h-8 sm:h-9"
+              onClick={() => isLoggedIn ? router.push(getDashboardPath()) : setLoginOpen(true)}
+            >
+              <span className="sm:hidden">{isLoggedIn ? "Hub" : "Login"}</span>
+              <span className="hidden sm:inline">{isLoggedIn ? "Dashboard" : "Member Login"}</span>
             </Button>
           </div>
         </div>
@@ -680,70 +687,70 @@ export default function PublicClubPage() {
       )}
 
       {hasCommunitySections && (
-        <section className="container mx-auto px-6 py-12 md:py-16">
-          <div className="max-w-7xl mx-auto space-y-10 md:space-y-12">
-            <div className="space-y-8">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="flex md:hidden flex-wrap w-full max-w-4xl mx-auto gap-2 h-auto bg-muted/50 p-2">
+        <section className="container mx-auto px-4 sm:px-6 py-8 md:py-16">
+          <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
+            <div className="space-y-6 sm:space-y-8 min-w-0">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
+                  <TabsList className="flex lg:hidden w-full max-w-full mx-auto gap-2 h-auto bg-muted/50 p-1.5 overflow-x-auto flex-nowrap justify-start [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     {websiteSetup.sections.events && (
                       <TabsTrigger
                         value="events"
-                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        className="text-sm sm:text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-3 sm:px-4 py-2 sm:py-3 shrink-0 flex-none whitespace-nowrap"
                         style={{
                           color: activeTab === 'events' ? primaryColor : undefined
                         }}
                       >
-                        <Calendar className="h-5 w-5 mr-2" />
-                        Events & Activities
+                        <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                        Events
                       </TabsTrigger>
                     )}
                     {websiteSetup.sections.news && (
                       <TabsTrigger
                         value="news"
-                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        className="text-sm sm:text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-3 sm:px-4 py-2 sm:py-3 shrink-0 flex-none whitespace-nowrap"
                         style={{
                           color: activeTab === 'news' ? primaryColor : undefined
                         }}
                       >
-                        <Newspaper className="h-5 w-5 mr-2" />
-                        News & Updates
+                        <Newspaper className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                        News
                       </TabsTrigger>
                     )}
 
                     {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
                       <TabsTrigger
                         value="store"
-                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        className="text-sm sm:text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-3 sm:px-4 py-2 sm:py-3 shrink-0 flex-none whitespace-nowrap"
                         style={{
                           color: activeTab === "store" ? primaryColor : undefined,
                         }}
                       >
-                        <Store className="h-5 w-5 mr-2" />
-                        Merchandise
+                        <Store className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                        Store
                       </TabsTrigger>
                     )}
                     {websiteSetup.sections.gallery && (
                       <TabsTrigger
                         value="gallery"
-                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        className="text-sm sm:text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-3 sm:px-4 py-2 sm:py-3 shrink-0 flex-none whitespace-nowrap"
                         style={{
                           color: activeTab === "gallery" ? primaryColor : undefined,
                         }}
                       >
-                        <Images className="h-5 w-5 mr-2" />
+                        <Images className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
                         Gallery
                       </TabsTrigger>
                     )}
                     {websiteSetup.sections.chants && (
                       <TabsTrigger
                         value="chants"
-                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        className="text-sm sm:text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-3 sm:px-4 py-2 sm:py-3 shrink-0 flex-none whitespace-nowrap"
                         style={{
                           color: activeTab === "chants" ? primaryColor : undefined,
                         }}
                       >
-                        <Music className="h-5 w-5 mr-2" />
-                        Club Chants
+                        <Music className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                        Chants
                       </TabsTrigger>
                     )}
                   </TabsList>
@@ -752,9 +759,9 @@ export default function PublicClubPage() {
                     <TabsContent value="news" className="mt-8">
                       <Card className="border-2 shadow-lg">
                         <CardHeader>
-                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                              <Newspaper className="h-6 w-6" style={{ color: primaryColor }} />
+                          <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <Newspaper className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: primaryColor }} />
                             </div>
                             Latest News & Updates
                           </CardTitle>
@@ -765,9 +772,9 @@ export default function PublicClubPage() {
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
                             </div>
                           ) : news.length > 0 ? (
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 min-w-0">
                               {news.map((article) => (
-                                <Card key={article._id} className="hover:shadow-lg transition-all border-2">
+                                <Card key={article._id} className="hover:shadow-lg transition-all border-2 min-w-0">
                                   {article.featuredImage && (
                                     <div className="relative h-48 overflow-hidden rounded-t-lg">
                                       <img
@@ -804,7 +811,7 @@ export default function PublicClubPage() {
                                     )}
                                   </CardHeader>
                                   <CardContent>
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                                       <span className="flex items-center gap-1">
                                         <User className="w-4 h-4" />
                                         {article.author}
@@ -849,9 +856,9 @@ export default function PublicClubPage() {
                     <TabsContent value="events" className="mt-8">
                       <Card className="border-2 shadow-lg">
                         <CardHeader>
-                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                              <Calendar className="h-6 w-6" style={{ color: primaryColor }} />
+                          <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <Calendar className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: primaryColor }} />
                             </div>
                             Upcoming Events & Activities
                           </CardTitle>
@@ -862,9 +869,9 @@ export default function PublicClubPage() {
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
                             </div>
                           ) : events.filter((e: any) => !e?.memberOnly).length > 0 ? (
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 min-w-0">
                               {events.filter((e: any) => !e?.memberOnly).map((event) => (
-                                <Card key={event._id} className="hover:shadow-lg transition-all border-2 overflow-hidden flex flex-col h-full">
+                                <Card key={event._id} className="hover:shadow-lg transition-all border-2 overflow-hidden flex flex-col h-full min-w-0">
                                   <EventImage
                                     eventId={event._id}
                                     imageVersion={event.imageVersion}
@@ -992,9 +999,9 @@ export default function PublicClubPage() {
                     <TabsContent value="store" className="mt-8">
                       <Card className="border-2 shadow-lg">
                         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                              <Store className="h-6 w-6" style={{ color: primaryColor }} />
+                          <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <Store className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: primaryColor }} />
                             </div>
                             Merchandise
                           </CardTitle>
@@ -1005,9 +1012,9 @@ export default function PublicClubPage() {
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
                             </div>
                           ) : merchandise.length > 0 ? (
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 min-w-0">
                               {merchandise.map((item: any) => (
-                                <Card key={item._id} className="hover:shadow-lg transition-all border-2 overflow-hidden flex flex-col">
+                                <Card key={item._id} className="hover:shadow-lg transition-all border-2 overflow-hidden flex flex-col min-w-0">
                                   {item.featuredImage && (
                                     <div className="relative h-44 overflow-hidden">
                                       <img src={item.featuredImage} alt={item.name} className="w-full h-full object-cover" />
@@ -1059,9 +1066,9 @@ export default function PublicClubPage() {
                     <TabsContent value="gallery" className="mt-8">
                       <Card className="border-2 shadow-lg">
                         <CardHeader>
-                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                              <Images className="h-6 w-6" style={{ color: primaryColor }} />
+                          <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <Images className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: primaryColor }} />
                             </div>
                             Gallery
                           </CardTitle>
@@ -1082,9 +1089,9 @@ export default function PublicClubPage() {
                     <TabsContent value="chants" className="mt-8">
                       <Card className="border-2 shadow-lg">
                         <CardHeader>
-                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                              <Music className="h-6 w-6" style={{ color: primaryColor }} />
+                          <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <Music className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: primaryColor }} />
                             </div>
                             Club Chants
                           </CardTitle>
@@ -1095,9 +1102,9 @@ export default function PublicClubPage() {
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
                             </div>
                           ) : chants.length > 0 ? (
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 min-w-0">
                               {chants.map((chant) => (
-                                <Card key={chant._id} className="hover:shadow-lg transition-all border-2 overflow-hidden">
+                                <Card key={chant._id} className="hover:shadow-lg transition-all border-2 overflow-hidden min-w-0">
                                   <CardHeader>
                                     <CardTitle className="text-lg line-clamp-2">{chant.title}</CardTitle>
                                     {chant.description && (
@@ -1117,10 +1124,11 @@ export default function PublicClubPage() {
                                       <audio controls src={chant.fileUrl} className="w-full" />
                                     )}
                                     {chant.fileType === "iframe" && chant.iframeUrl && (
-                                      <div className="w-full overflow-hidden rounded-md border">
+                                      <div className="w-full overflow-hidden rounded-md border max-w-full">
                                         <iframe
                                           src={chant.iframeUrl}
-                                          width={chant.iframeWidth || "100%"}
+                                          className="w-full max-w-full"
+                                          width="100%"
                                           height={chant.iframeHeight || "400"}
                                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                           allowFullScreen
@@ -1147,18 +1155,18 @@ export default function PublicClubPage() {
         </section>
       )}
 
-      <section className="bg-muted/30 border-t overflow-hidden relative py-32 md:py-48">
-        <div className="container mx-auto px-6 relative">
-          <div className="max-w-4xl mx-auto text-center space-y-10">
-            <h3 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-tight">Be Part of the Journey</h3>
-            <p className="text-muted-foreground text-2xl md:text-3xl leading-relaxed max-w-3xl mx-auto">
+      <section className="bg-muted/30 border-t overflow-hidden relative py-16 sm:py-24 md:py-48">
+        <div className="container mx-auto px-4 sm:px-6 relative">
+          <div className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-10">
+            <h3 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-tight text-balance">Be Part of the Journey</h3>
+            <p className="text-muted-foreground text-base sm:text-xl md:text-3xl leading-relaxed max-w-3xl mx-auto">
               Join <strong>{club.name}</strong> today and unlock access to exclusive content,
               priority event booking, and a global network of passionate fans.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-6 pt-10">
+            <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 pt-4 sm:pt-10">
               <Button
                 size="lg"
-                className="w-full sm:w-auto sm:px-16 h-20 text-2xl font-black shadow-2xl hover:scale-105 transition-all rounded-[2rem]"
+                className="w-full sm:w-auto sm:px-16 h-12 sm:h-16 md:h-20 text-base sm:text-xl md:text-2xl font-black shadow-2xl hover:scale-105 transition-all rounded-2xl md:rounded-[2rem]"
                 style={{
                   backgroundColor: primaryColor,
                   color: 'white'
@@ -1173,7 +1181,7 @@ export default function PublicClubPage() {
       </section>
 
       <footer className="border-t bg-card">
-        <div className="container mx-auto px-6 py-12 md:py-16">
+        <div className="container mx-auto px-4 sm:px-6 py-10 md:py-16">
           {footerColumnCount > 0 && (
             <div
               className={[

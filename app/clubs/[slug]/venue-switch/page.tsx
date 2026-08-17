@@ -169,13 +169,13 @@ export default function ClubGuestVenueSwitchPage() {
   };
 
   return (
-    <div className="public-theme flex min-h-[100dvh] flex-col bg-zinc-950 text-white">
-      <header className="flex items-center gap-2 px-4 py-4">
-        <Ticket className="h-6 w-6 text-primary" />
-        <span className="font-semibold">Change your venue</span>
+    <div className="public-theme flex min-h-[100dvh] flex-col bg-zinc-950 text-white overflow-x-hidden">
+      <header className="flex items-center gap-2 px-4 py-4 min-w-0">
+        <Ticket className="h-6 w-6 text-primary shrink-0" />
+        <span className="font-semibold truncate">Change your venue</span>
       </header>
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-10">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 sm:px-6 pb-10">
         {step === 'verify' && (
           <GuestPhoneVerification
             heading="Change your venue"
@@ -226,7 +226,7 @@ export default function ClubGuestVenueSwitchPage() {
                           <p className="text-xs text-zinc-300">
                             Cancel {t.attendeeName}&apos;s ticket and request a refund? This can&apos;t be undone.
                           </p>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col min-[380px]:flex-row gap-2">
                             <Button
                               type="button"
                               size="sm"
@@ -249,7 +249,7 @@ export default function ClubGuestVenueSwitchPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-3 flex flex-col min-[380px]:flex-row gap-2">
                           <Button
                             type="button"
                             className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -295,18 +295,18 @@ export default function ClubGuestVenueSwitchPage() {
               {activeTicket.targets.map((target) => (
                 <Card
                   key={`${target.eventId ?? 'venue'}:${target.venueId ?? ''}:${target.tierId ?? ''}`}
-                  className="flex items-center justify-between gap-3 border-zinc-800 bg-zinc-900 p-4"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-zinc-800 bg-zinc-900 p-4"
                 >
-                  <div>
-                    {target.eventTitle && <p className="text-xs text-primary">{target.eventTitle}</p>}
-                    <p className="font-medium">{target.venueName}</p>
+                  <div className="min-w-0">
+                    {target.eventTitle && <p className="text-xs text-primary break-words">{target.eventTitle}</p>}
+                    <p className="font-medium break-words">{target.venueName}</p>
                     {target.tierName && <p className="text-xs text-zinc-400">{target.tierName}</p>}
                     <p className="text-xs text-zinc-500">{target.seatsLeft} seats left</p>
                   </div>
                   <Button
                     type="button"
                     size="sm"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto shrink-0"
                     disabled={loading}
                     onClick={() => submitSwitch(target)}
                   >

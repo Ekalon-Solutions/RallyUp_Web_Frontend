@@ -858,41 +858,41 @@ function ClubsPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white public-theme">
+    <div className="min-h-screen bg-white public-theme overflow-x-hidden">
       <SiteNavbar brandName="Wingman Pro" />
-      <div className="relative overflow-hidden bg-primary py-24 md:py-32">
+      <div className="relative overflow-hidden bg-primary py-14 sm:py-20 md:py-32">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.1),transparent_50%)]"></div>
-        <div className="relative max-w-7xl mx-auto px-6">
-          <div className="text-center text-white space-y-8 animate-slide-up">
-            <h1 className="text-5xl md:text-7xl font-black leading-none text-white drop-shadow-sm">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center text-white space-y-4 sm:space-y-8 animate-slide-up">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-black leading-none text-white drop-shadow-sm text-balance">
               Join the Community
             </h1>
-            <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto font-medium leading-relaxed">
+            <p className="text-base sm:text-xl md:text-2xl text-white/90 max-w-3xl mx-auto font-medium leading-relaxed">
               Discover and join supporter clubs to connect with fellow fans, attend exclusive events, and be part of something special.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 md:p-10 mb-12 border-2 border-border animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <div className="flex flex-col lg:flex-row gap-6 items-center">
-            <div className="flex-1 w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="bg-white rounded-2xl sm:rounded-[2.5rem] shadow-2xl p-4 sm:p-8 md:p-10 mb-8 sm:mb-12 border-2 border-border animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-stretch lg:items-center">
+            <div className="flex-1 w-full min-w-0">
               <div className="relative group">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-secondary w-6 h-6 group-focus-within:text-primary transition-colors" />
+                <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-secondary w-5 h-5 sm:w-6 sm:h-6 group-focus-within:text-primary transition-colors" />
                 <Input
                   placeholder="Search clubs by name, description, or location..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 h-14 text-lg border-2 rounded-2xl focus-visible:ring-primary/20 transition-all"
+                  className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg border-2 rounded-2xl focus-visible:ring-primary/20 transition-all"
                 />
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-4 w-full lg:w-auto">
+            <div className="flex flex-wrap gap-3 sm:gap-4 w-full lg:w-auto">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-44 h-14 border-2 rounded-2xl font-bold">
+                <SelectTrigger className="w-full min-[420px]:flex-1 sm:flex-none sm:w-44 h-12 sm:h-14 border-2 rounded-2xl font-bold">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -904,7 +904,7 @@ function ClubsPageContent() {
               </Select>
 
               <Select value={priceFilter} onValueChange={setPriceFilter}>
-                <SelectTrigger className="w-full sm:w-44 h-14 border-2 rounded-2xl font-bold">
+                <SelectTrigger className="w-full min-[420px]:flex-1 sm:flex-none sm:w-44 h-12 sm:h-14 border-2 rounded-2xl font-bold">
                   <Tag className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Price" />
                 </SelectTrigger>
@@ -945,8 +945,8 @@ function ClubsPageContent() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider sm:tracking-widest">
               Showing {filteredClubs.length} of {clubs.length} clubs
             </div>
             {searchTerm && (
@@ -960,8 +960,8 @@ function ClubsPageContent() {
         {viewMode === "grid" ? (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             {filteredClubs.map((club) => (
-              <Card key={club._id} className="group hover:shadow-2xl transition-all duration-500 overflow-hidden border-2 rounded-[2.5rem] shadow-xl flex flex-col">
-                <div className="bg-primary p-8 text-white relative overflow-hidden">
+              <Card key={club._id} className="group hover:shadow-2xl transition-all duration-500 overflow-hidden border-2 rounded-[1.75rem] sm:rounded-[2.5rem] shadow-xl flex flex-col min-w-0">
+                <div className="bg-primary p-5 sm:p-8 text-white relative overflow-hidden">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent_50%)]"></div>
                   <div className="flex items-start justify-between mb-6 relative z-10">
                     <div className="flex items-center gap-4">
@@ -982,7 +982,7 @@ function ClubsPageContent() {
                     </Button>
                   </div>
 
-                  <h3 className="text-2xl font-black tracking-tight mb-3 relative z-10 group-hover:translate-x-1 transition-transform">{club.name}</h3>
+                  <h3 className="text-xl sm:text-2xl font-black tracking-tight mb-3 relative z-10 group-hover:translate-x-1 transition-transform break-words">{club.name}</h3>
 
                   {club.description && (
                     <p className="relative z-10 line-clamp-2 text-sm font-medium text-white/90">
@@ -991,7 +991,7 @@ function ClubsPageContent() {
                   )}
                 </div>
 
-                <CardContent className="p-8 space-y-6 flex-1 flex flex-col">
+                <CardContent className="p-5 sm:p-8 space-y-6 flex-1 flex flex-col min-w-0">
                   <div className="grid gap-3">
                     {club.address && (
                       <div className="flex items-center gap-3 text-sm font-bold text-muted-foreground">
@@ -1032,8 +1032,8 @@ function ClubsPageContent() {
                             "border-2 rounded-2xl p-4 transition-all duration-300",
                             isJoined ? "border-primary bg-primary/10 shadow-sm" : isLimitReached ? "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40" : "border-border hover:border-primary hover:bg-secondary-purple/50"
                           )}>
-                            <div className="flex items-center justify-between mb-2">
-                              <h5 className="font-black text-sm flex items-center gap-2">
+                            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between mb-2">
+                              <h5 className="font-black text-sm flex flex-wrap items-center gap-2 min-w-0">
                                 {plan.name}
                                 {isJoined && (
                                   <Badge className="bg-primary text-white border-0 text-[9px] h-4">
@@ -1051,7 +1051,7 @@ function ClubsPageContent() {
                                   </Badge>
                                 )}
                               </h5>
-                              <span className="text-lg font-black text-primary">
+                              <span className="text-base sm:text-lg font-black text-primary shrink-0">
                                 {formatPrice(calculateTransactionFees(plan.price, club.platformFeePercent).finalAmount, plan.currency)}
                               </span>
                             </div>
@@ -1136,24 +1136,24 @@ function ClubsPageContent() {
         ) : (
           <div className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             {filteredClubs.map((club) => (
-              <Card key={club._id} className="group hover:shadow-xl transition-all duration-300 border-2 rounded-[2rem] overflow-hidden shadow-lg">
-                <CardContent className="p-8">
-                  <div className="flex flex-col md:flex-row items-start justify-between gap-8">
+              <Card key={club._id} className="group hover:shadow-xl transition-all duration-300 border-2 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden shadow-lg min-w-0">
+                <CardContent className="p-5 sm:p-8">
+                  <div className="flex flex-col md:flex-row items-start justify-between gap-5 sm:gap-8">
                     <div className="flex flex-col md:flex-row items-start gap-6 flex-1">
                       <div className="bg-primary rounded-[1.5rem] p-5 shadow-lg group-hover:scale-105 transition-transform duration-500 ring-4 ring-primary/20">
                         <Building2 className="w-10 h-10 text-white" />
                       </div>
 
                       <div className="flex-1 space-y-4">
-                        <div className="flex flex-wrap items-center gap-4">
-                          <h3 className="text-3xl font-black tracking-tight">{club.name}</h3>
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0">
+                          <h3 className="text-xl sm:text-3xl font-black tracking-tight break-words">{club.name}</h3>
                           <Badge className={cn("px-3 py-1 text-[10px] font-bold capitalize tracking-wider", getStatusColor(club.status))}>
                             {club.status}
                           </Badge>
                         </div>
 
                         {club.description && (
-                          <p className="text-muted-foreground text-lg leading-relaxed line-clamp-2 max-w-2xl font-medium">
+                          <p className="text-muted-foreground text-base sm:text-lg leading-relaxed line-clamp-2 max-w-2xl font-medium">
                             {club.description}
                           </p>
                         )}
@@ -1186,11 +1186,11 @@ function ClubsPageContent() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full md:w-auto mt-2 md:mt-0">
                       <Button
                         variant="outline"
                         size="lg"
-                        className="flex-1 md:w-full h-14 border-2 rounded-2xl font-bold shadow-sm"
+                        className="w-full sm:flex-1 md:w-full h-12 sm:h-14 border-2 rounded-2xl font-bold shadow-sm"
                         onClick={() => handleViewClubDetails(club)}
                       >
                         <Eye className="w-5 h-5 mr-2" />
@@ -1223,7 +1223,7 @@ function ClubsPageContent() {
                               onClick={() => handleJoinClub(club, firstPlan)}
                               disabled={isDisabled}
                               className={cn(
-                                "flex-1 md:w-full h-14 rounded-2xl font-black shadow-xl transition-all active:scale-95",
+                                "w-full sm:flex-1 md:w-full h-12 sm:h-14 rounded-2xl font-black shadow-xl transition-all active:scale-95",
                                 isJoined ? "bg-muted text-muted-foreground cursor-not-allowed" : isLimitReached ? "bg-secondary/30 text-secondary cursor-not-allowed" : "bg-primary text-white"
                               )}
                             >
@@ -1252,12 +1252,12 @@ function ClubsPageContent() {
         )}
 
         {filteredClubs.length === 0 && (
-          <div className="text-center py-24 bg-white/50 backdrop-blur-sm rounded-[3rem] border-2 border-dashed border-border animate-scale-in">
-            <div className="bg-white rounded-[2rem] p-8 w-32 h-32 mx-auto mb-8 flex items-center justify-center shadow-xl shadow-slate-200/50 dark:shadow-none ring-1 ring-border/20">
-              <Building2 className="w-16 h-16 text-secondary" />
+          <div className="text-center py-16 sm:py-24 bg-white/50 backdrop-blur-sm rounded-3xl sm:rounded-[3rem] border-2 border-dashed border-border animate-scale-in px-4">
+            <div className="bg-white rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-8 w-20 h-20 sm:w-32 sm:h-32 mx-auto mb-6 sm:mb-8 flex items-center justify-center shadow-xl shadow-slate-200/50 dark:shadow-none ring-1 ring-border/20">
+              <Building2 className="w-10 h-10 sm:w-16 sm:h-16 text-secondary" />
             </div>
-            <h3 className="text-3xl font-black tracking-tight mb-4">No clubs found</h3>
-            <p className="text-muted-foreground text-lg mb-10 max-w-md mx-auto font-medium">
+            <h3 className="text-2xl sm:text-3xl font-black tracking-tight mb-4">No clubs found</h3>
+            <p className="text-muted-foreground text-base sm:text-lg mb-8 sm:mb-10 max-w-md mx-auto font-medium">
               We couldn't find any clubs matching your criteria. Try adjusting your search or clearing the filters.
             </p>
             <Button size="lg" className="h-14 px-10 rounded-2xl font-black shadow-xl" onClick={() => {
@@ -1272,16 +1272,16 @@ function ClubsPageContent() {
       </div>
 
       <Dialog open={showClubDetails} onOpenChange={setShowClubDetails}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1rem)] p-4 sm:p-6">
           {selectedClub && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <div className="bg-primary rounded-lg p-2">
+                <DialogTitle className="flex items-start gap-3 pr-6">
+                  <div className="bg-primary rounded-lg p-2 shrink-0">
                     <Building2 className="w-6 h-6 text-white" />
                   </div>
-                  <div>
-                    <div className="text-2xl font-bold">{selectedClub.name}</div>
+                  <div className="min-w-0">
+                    <div className="text-xl sm:text-2xl font-bold break-words">{selectedClub.name}</div>
                     <Badge className={cn("mt-2 capitalize", getStatusColor(selectedClub.status))}>
                       {selectedClub.status}
                     </Badge>
@@ -1312,8 +1312,8 @@ function ClubsPageContent() {
                           isJoined ? "border-primary bg-primary/10" : isLimitReached ? "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40" : "hover:border-primary"
                         )}>
                           <CardHeader>
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-lg flex items-center gap-2">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <CardTitle className="text-lg flex flex-wrap items-center gap-2 min-w-0">
                                 {plan.name}
                                 {isJoined && (
                                   <Badge className="bg-primary text-primary-foreground border-0">
@@ -1332,8 +1332,8 @@ function ClubsPageContent() {
                                   </Badge>
                                 )}
                               </CardTitle>
-                              <div className="text-right space-y-1">
-                                <div className="text-2xl font-bold text-primary">
+                              <div className="text-left sm:text-right space-y-1 shrink-0">
+                                <div className="text-xl sm:text-2xl font-bold text-primary">
                                   {formatPrice(calculateTransactionFees(plan.price, selectedClub.platformFeePercent).finalAmount, plan.currency)}
                                 </div>
                                 <div className="text-xs text-muted-foreground/70">all-inclusive</div>
@@ -1596,12 +1596,14 @@ function ClubsPageContent() {
 
       <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
         <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:p-0 sm:max-w-2xl">
-          <DialogHeader className="shrink-0 px-6 pt-6">
-            <DialogTitle className="flex items-center gap-2">
-              <div className="bg-primary rounded-lg p-2">
+          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-6 pr-12">
+            <DialogTitle className="flex items-start gap-2 text-left">
+              <div className="bg-primary rounded-lg p-2 shrink-0">
                 <Users className="w-5 h-5 text-white" />
               </div>
-              {selectedPlan?.price ? `Register & Pay — Join ${selectedClub?.name}` : `Register & Join — ${selectedClub?.name}`}
+              <span className="break-words">
+                {selectedPlan?.price ? `Register & Pay — Join ${selectedClub?.name}` : `Register & Join — ${selectedClub?.name}`}
+              </span>
             </DialogTitle>
             <DialogDescription className="space-y-1">
               {selectedPlan?.price ? (
@@ -1620,7 +1622,7 @@ function ClubsPageContent() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-6">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6">
             <form onSubmit={handleRegistration} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -1712,7 +1714,7 @@ function ClubsPageContent() {
                   </>
                 )}
 
-                <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
+                <div className="sm:col-span-2 grid grid-cols-1 min-[420px]:grid-cols-[7rem_1fr] gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="countryCode">Country Code</Label>
                     <CountryCodeSelect
