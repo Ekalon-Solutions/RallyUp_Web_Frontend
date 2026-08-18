@@ -123,26 +123,15 @@ export function useClubFeatures(
     setLoading(true);
     setLoadFailed(false);
 
-    let cancelled = false;
-    const requestId = requestIdRef.current;
-
-    const run = async () => {
-      const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
-      if (isOffline) {
-        await loadFromCacheWithFallback(clubId);
-        if (!cancelled && requestId === requestIdRef.current) setLoading(false);
-        return;
-      }
-      // Online: fetch first. Seeding from cache here re-locked pages after a
-      // club switch whenever the new club's cache was stale or fully-locked.
-      await load();
-    };
-
-    void run();
-    return () => {
-      cancelled = true;
-      ++requestIdRef.current;
-    };
+    // Always attempt the real fetch rather than pre-gating on navigator.onLine —
+    // that flag can report offline while the network genuinely works (VPNs,
+    // some proxies, sandboxed/headless environments), and there's no listener
+    // to retry once it flips back. Skipping the fetch on a false "offline"
+    // reading applied lockedSafeConfig() — every flag disabled — with no
+    // recovery until the club changed or the page reloaded. load() already
+    // falls back to cache on a genuine fetch failure, so a truly offline user
+    // ends up in the same place either way.
+    void load();
   }, [clubId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Socket.io real-time config sync
