@@ -785,8 +785,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     if (!isAdminRole) return false
     const key = ADMIN_NAV_FEATURE_MAP[href]
     if (!key) return false
-    if (!clubFeatures) return !clubFeaturesLoading
-    return !isFeatureEnabled(clubFeatures, key)
+    return !isClubFeatureEnabled(key)
   }
 
   // SERVICE WORKER: listen for CONFIG_SYNC messages from the background push handler.
@@ -875,8 +874,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       nav = nav.filter((item) => {
         const key = ADMIN_NAV_FEATURE_MAP[item.href]
         if (!key) return true
-        if (!clubFeatures) return clubFeaturesLoading
-        return isFeatureEnabled(clubFeatures, key)
+        return isClubFeatureEnabled(key)
       })
     }
 
