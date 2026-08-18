@@ -847,19 +847,22 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       case 'admin': {
         const contexts = (user as any).clubAdminContexts as AdminClubContext[] | undefined
         if (contexts && contexts.length > 0) {
+          // Matches getModuleAccess() in lib/adminPermissions.ts: once an admin
+          // has per-club contexts, a club with no matching context (or no matrix
+          // entry for a module) denies rather than falling open — nav visibility
+          // must agree with the actual page-level gate, or a tab shows that then
+          // locks/404s when clicked.
           const ctx = contexts.find(
             (c) => c?.clubId && String(c.clubId) === String(clubId)
           )
-          if (ctx) {
-            const matrix: Record<string, { view: boolean; edit: boolean }> =
-              (ctx as any).permissionsMatrix || (ctx as any).permissions?._matrix || {}
-            nav = adminNavigation.filter((item) => {
-              const moduleId = NAV_HREF_TO_PERMISSION_MODULE[item.href]
-              if (!moduleId) return true
-              return Boolean(matrix[moduleId]?.view)
-            })
-            break
-          }
+          const matrix: Record<string, { view: boolean; edit: boolean }> =
+            (ctx as any)?.permissionsMatrix || (ctx as any)?.permissions?._matrix || {}
+          nav = adminNavigation.filter((item) => {
+            const moduleId = NAV_HREF_TO_PERMISSION_MODULE[item.href]
+            if (!moduleId) return true
+            return Boolean(matrix[moduleId]?.view)
+          })
+          break
         }
         nav = adminNavigation
         break
