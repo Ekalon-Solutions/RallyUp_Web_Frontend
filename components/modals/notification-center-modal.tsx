@@ -21,7 +21,7 @@ type NotificationsResponse = {
 
 export function NotificationCenterModal() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, activeClubId } = useAuth()
   const [open, setOpen] = useState(false)
 
   const [unreadCount, setUnreadCount] = useState(0)
@@ -32,19 +32,19 @@ export function NotificationCenterModal() {
   const fetchUnreadCount = useCallback(async () => {
     try {
       setLoadingCount(true)
-      const res = await apiClient.getUnreadNotificationsCount()
+      const res = await apiClient.getUnreadNotificationsCount(activeClubId ?? undefined)
       if (res.success && res.data) {
         setUnreadCount(res.data.unreadCount || 0)
       }
     } finally {
       setLoadingCount(false)
     }
-  }, [])
+  }, [activeClubId])
 
   const fetchNotifications = useCallback(async () => {
     try {
       setLoadingList(true)
-      const res = await apiClient.getMyNotifications({ page: 1, limit: 30 })
+      const res = await apiClient.getMyNotifications({ page: 1, limit: 30, clubId: activeClubId ?? undefined })
       const data = (res.success ? res.data : null) as unknown as NotificationsResponse | null
       if (data?.notifications) {
         let list = data.notifications
@@ -81,7 +81,7 @@ export function NotificationCenterModal() {
     } finally {
       setLoadingList(false)
     }
-  }, [user?.role])
+  }, [user?.role, activeClubId])
 
   useEffect(() => {
     fetchUnreadCount()

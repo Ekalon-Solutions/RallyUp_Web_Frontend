@@ -1939,6 +1939,7 @@ class ApiClient {
     page?: number;
     limit?: number;
     unreadOnly?: boolean;
+    clubId?: string;
   }): Promise<ApiResponse<{
     notifications: InAppNotification[];
     pagination: { page: number; limit: number; total: number; pages: number };
@@ -1946,8 +1947,8 @@ class ApiClient {
     return this.get('/notifications', { params });
   }
 
-  async getUnreadNotificationsCount(): Promise<ApiResponse<{ unreadCount: number }>> {
-    return this.get('/notifications/unread-count');
+  async getUnreadNotificationsCount(clubId?: string): Promise<ApiResponse<{ unreadCount: number }>> {
+    return this.get('/notifications/unread-count', { params: clubId ? { clubId } : undefined });
   }
 
   async markInAppNotificationRead(notificationId: string): Promise<ApiResponse<{ success: boolean }>> {

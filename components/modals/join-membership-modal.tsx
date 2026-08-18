@@ -264,6 +264,7 @@ export function JoinMembershipModal({
   const [pendingRegistrationData, setPendingRegistrationData] = useState<typeof registrationData | null>(null)
   const [razorpayOpen, setRazorpayOpen] = useState(false)
   const [loginModalOpen, setLoginModalOpen] = useState(false)
+  const [resumePurchaseAfterLogin, setResumePurchaseAfterLogin] = useState(false)
 
   const isLoggedIn = Boolean(user?._id && typeof window !== "undefined" && localStorage.getItem("token"))
 
@@ -346,6 +347,12 @@ export function JoinMembershipModal({
   }, [isLoggedIn, currentMembership, open])
 
   useEffect(() => {
+    if (!resumePurchaseAfterLogin || !isLoggedIn) return
+    setResumePurchaseAfterLogin(false)
+    handleSubscribeOrUpgrade()
+  }, [resumePurchaseAfterLogin, isLoggedIn])
+
+  useEffect(() => {
     if (!open) return
     if (mode === "upgrade" && currentPlanId) {
       const upgradeCandidates = plans.filter((plan) => {
@@ -388,6 +395,7 @@ export function JoinMembershipModal({
       setReferralName(null)
       setPendingPayment(null)
       setPendingRegistrationData(null)
+      setResumePurchaseAfterLogin(false)
     } else if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search)
       const urlEmail = params.get("email")
@@ -858,6 +866,7 @@ export function JoinMembershipModal({
       if (checkResponse.ok && checkData.planValid) {
         toast.info("An account with this email or phone already exists. Please log in to continue.")
         setIsProcessing(false)
+        setResumePurchaseAfterLogin(true)
         setLoginModalOpen(true)
         return
       }
