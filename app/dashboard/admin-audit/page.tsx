@@ -85,7 +85,7 @@ import { CONSTRAINT_KEYS, CONSTRAINT_LABELS } from "@/lib/billingConstraints"
 
 type AuditEntry = {
   _id: string
-  club: { _id: string; name: string; slug: string } | string
+  club: { _id: string; name: string; slug: string } | string | null
   actorId: string
   actorType: "system_owner" | "admin"
   actorName?: string
@@ -101,7 +101,7 @@ type AuditEntry = {
 
 type AdminActionEntry = {
   _id: string
-  club: { _id: string; name: string; slug: string } | string
+  club: { _id: string; name: string; slug: string } | string | null
   actorId: string
   actorType: "admin" | "super_admin" | "system_owner" | "user"
   actorName?: string
@@ -164,7 +164,7 @@ const REASON_LABELS: Record<string, string> = {
 
 type LimitIncreaseRequest = {
   _id: string
-  clubId: { _id: string; name: string; slug: string }
+  clubId: { _id: string; name: string; slug: string } | null
   featureKey: string
   currentLimit: number
   requestedLimit: number
@@ -180,7 +180,7 @@ function limitRequestToAuditEntry(req: LimitIncreaseRequest): AuditEntry {
   return {
     _id: `limit-${req._id}`,
     club: req.clubId,
-    actorId: typeof req.clubId === "object" ? req.clubId._id : String(req.clubId),
+    actorId: getClubId(req.clubId) ?? String(req.clubId),
     actorType: "admin",
     featureKey: req.featureKey as AuditEntry["featureKey"],
     oldValue: String(req.currentLimit),
@@ -281,9 +281,14 @@ function renderValue(raw: string): { text: string; isOn: boolean; isOff: boolean
   }
 }
 
-function getClubName(entry: { club: { _id: string; name: string; slug: string } | string }): string {
+function getClubName(entry: { club: { _id: string; name: string; slug: string } | string | null }): string {
   if (typeof entry.club === "object" && entry.club?.name) return entry.club.name
   return "—"
+}
+
+function getClubId(club: { _id: string } | string | null | undefined): string | null {
+  if (typeof club === "string") return club
+  return club?._id ?? null
 }
 
 function formatTs(iso: string): string {
@@ -467,7 +472,7 @@ function FeatureAuditDetailSheet({ entry, open, onClose }: {
 }) {
   if (!entry) return null
   const clubName = typeof entry.club === "object" && entry.club?.name ? entry.club.name : "—"
-  const clubId = typeof entry.club === "object" ? entry.club._id : typeof entry.club === "string" ? entry.club : "—"
+  const clubId = getClubId(entry.club) ?? "—"
   const formatFull = (iso: string) =>
     new Date(iso).toLocaleString("en-GB", {
       weekday: "long", day: "2-digit", month: "long", year: "numeric",
@@ -580,7 +585,7 @@ function AdminActionDetailSheet({ entry, open, onClose }: {
 }) {
   if (!entry) return null
   const clubName = typeof entry.club === "object" && (entry.club as any)?.name ? (entry.club as any).name : "—"
-  const clubId = typeof entry.club === "object" ? (entry.club as any)._id : typeof entry.club === "string" ? entry.club : "—"
+  const clubId = getClubId(entry.club) ?? "—"
   const risk = RISK_CONFIG[entry.riskLevel] ?? RISK_CONFIG.low
   const formatFull = (iso: string) =>
     new Date(iso).toLocaleString("en-GB", {
@@ -731,7 +736,7 @@ function FeatureChangesTab() {
     return {
       total: pagination.total,
       todayCount: entries.filter(e => e.createdAt.slice(0, 10) === today).length,
-      uniqueClubs: new Set(entries.map(e => typeof e.club === "object" ? e.club._id : e.club).filter(Boolean)).size,
+      uniqueClubs: new Set(entries.map(e => getClubId(e.club)).filter(Boolean)).size,
       securityAlerts: entries.filter(e => e.featureKey === "wa_marketing" && renderValue(e.newValue).isOn).length,
     }
   }, [entries, pagination.total])
@@ -1026,7 +1031,7 @@ function UpgradeInquiriesTab() {
     return {
       total: pagination.total,
       todayCount: entries.filter(e => e.createdAt.slice(0, 10) === today).length,
-      uniqueClubs: new Set(entries.map(e => typeof e.club === "object" ? e.club._id : e.club).filter(Boolean)).size,
+      uniqueClubs: new Set(entries.map(e => getClubId(e.club)).filter(Boolean)).size,
       topFeature,
     }
   }, [entries, pagination.total])
@@ -1269,7 +1274,7 @@ function AdminActionsTab() {
       total: pagination.total,
       todayCount: entries.filter(e => e.createdAt.slice(0, 10) === today).length,
       highRisk: entries.filter(e => e.riskLevel === "high").length,
-      uniqueClubs: new Set(entries.map(e => typeof e.club === "object" ? (e.club as any)._id : e.club).filter(Boolean)).size,
+      uniqueClubs: new Set(entries.map(e => getClubId(e.club)).filter(Boolean)).size,
     }
   }, [entries, pagination.total])
 

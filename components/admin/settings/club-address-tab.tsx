@@ -117,16 +117,9 @@ export function ClubAddressTab() {
 
       const payload = unwrap<{
         pickupAddresses?: ClubPickupAddress[]
-        contactDefaults?: { name?: string; email?: string; phone?: string }
       }>(pickupRes)
       const list = Array.isArray(payload?.pickupAddresses) ? payload.pickupAddresses : []
       setAddresses(list)
-      setForm((prev) => ({
-        ...prev,
-        name: payload?.contactDefaults?.name || prev.name,
-        email: payload?.contactDefaults?.email || prev.email,
-        phone: payload?.contactDefaults?.phone || prev.phone,
-      }))
       setShowForm(list.length === 0)
     } catch {
       toast.error("Failed to load addresses")
@@ -204,13 +197,7 @@ export function ClubAddressTab() {
         return
       }
       toast.success("Pickup address added and registered with Shiprocket")
-      setForm((prev) => ({
-        ...emptyPickupForm,
-        name: prev.name,
-        email: prev.email,
-        phone: prev.phone,
-        country: prev.country || "India",
-      }))
+      setForm(emptyPickupForm)
       setShowForm(false)
       const pickupRes = await apiClient.getClubPickupAddresses(clubId)
       if (pickupRes.success) {

@@ -246,6 +246,11 @@ export function CreateMerchandiseModal({
       return
     }
 
+    if (!editMerchandise && pickupLocations.length === 0) {
+      toast.error('Add a pickup address in Admin Settings → Address before creating merchandise.')
+      return
+    }
+
     if (!name.trim() || !description.trim() || !price.trim() || !stockQuantity.trim()) {
       toast.error('Please fill in all required fields')
       return
@@ -550,7 +555,7 @@ export function CreateMerchandiseModal({
 
               <div className="space-y-2">
                 <Label htmlFor="pickupLocation">Pickup Location</Label>
-                <Select value={pickupLocation} onValueChange={setPickupLocation}>
+                <Select value={pickupLocation} onValueChange={setPickupLocation} disabled={pickupLocations.length === 0}>
                   <SelectTrigger id="pickupLocation">
                     <SelectValue placeholder="Default (Primary)" />
                   </SelectTrigger>
@@ -562,10 +567,10 @@ export function CreateMerchandiseModal({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
+                <p className={pickupLocations.length > 0 ? "text-xs text-muted-foreground" : "text-xs text-destructive"}>
                   {pickupLocations.length > 0
                     ? "Pickup address added in Admin Settings. Used to ship this product."
-                    : "Add pickup addresses in Admin Settings → Address to populate this list."}
+                    : "No pickup address configured. Add one in Admin Settings → Address before creating merchandise."}
                 </p>
               </div>
             </CardContent>
@@ -703,7 +708,7 @@ export function CreateMerchandiseModal({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || (!editMerchandise && pickupLocations.length === 0)}>
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
