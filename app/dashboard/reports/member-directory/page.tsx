@@ -51,6 +51,7 @@ function renderStatusBadge(status: string) {
 interface MemberDirectoryRow extends Record<string, unknown> {
   id: string
   userMembershipId: string
+  clubMemberId: string
   memberName: string
   email: string
   phoneNumber: string
@@ -225,6 +226,12 @@ export default function MemberDirectoryReportPage() {
       header: "Member ID",
       accessor: "userMembershipId",
       sortable: true,
+      width: "w-36",
+    },
+    {
+      key: "clubMemberId",
+      header: "Club Membership ID",
+      accessor: "clubMemberId",
       width: "w-36",
     },
     {
