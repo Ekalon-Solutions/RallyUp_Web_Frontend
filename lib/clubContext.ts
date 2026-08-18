@@ -35,6 +35,26 @@ export function buildAccessibleClubs(user: unknown): AccessibleClub[] {
     }
   }
 
+  // Fallback: an admin's real access is granted via clubAdminContexts (and,
+  // for super admins, superAdminClubIds). `clubs` is normally kept in sync
+  // with these, but if it's ever stale/empty (legacy data, a deleted club
+  // filtered out of the populate) an otherwise-valid admin would resolve to
+  // zero accessible clubs and every club-scoped feature/nav check downstream
+  // would silently stay unresolved. Fold those sources in as IDs so access
+  // isn't lost even without a display name.
+  if (isAdmin) {
+    const contexts = Array.isArray(userAny.clubAdminContexts) ? userAny.clubAdminContexts : []
+    for (const ctx of contexts) {
+      const id = normalizeClubId((ctx as { clubId?: unknown })?.clubId)
+      push(id, "Unknown Club")
+    }
+    if (userAny.role === "super_admin" && Array.isArray(userAny.superAdminClubIds)) {
+      for (const id of userAny.superAdminClubIds as unknown[]) {
+        push(normalizeClubId(id), "Unknown Club")
+      }
+    }
+  }
+
   const memberships = Array.isArray(userAny.memberships)
     ? (userAny.memberships as unknown[]).filter(
         (m) =>
