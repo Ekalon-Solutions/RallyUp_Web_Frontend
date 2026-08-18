@@ -106,7 +106,7 @@ type AdminActionEntry = {
   actorType: "admin" | "super_admin" | "system_owner" | "user"
   actorName?: string
   targetId?: string
-  targetType?: "admin" | "user" | "refund" | "order" | "event" | "merchandise"
+  targetType?: "admin" | "user" | "refund" | "order" | "event" | "merchandise" | "pickup_address"
   action: string
   oldState: string
   newState: string
@@ -249,6 +249,8 @@ const ACTION_LABELS: Record<string, string> = {
   MERCHANDISE_DELETED:               "Merchandise Deleted",
   MERCHANDISE_AVAILABILITY_TOGGLED:  "Merchandise Availability Changed",
   MERCHANDISE_SETTINGS_UPDATED:      "Store Settings Updated",
+  PICKUP_ADDRESS_CREATED:            "Pickup Address Added",
+  PICKUP_ADDRESS_UPDATED:            "Default Pickup Address Changed",
   FULFILLMENT_TRIGGERED:             "Fulfillment Triggered",
   SHIPMENT_CANCELLED:                "Shipment Cancelled",
   NOTIFICATION_TEMPLATE_UPDATED:    "Template Updated",
@@ -1226,6 +1228,7 @@ const ACTION_TYPES = [
   "EVENT_STATUS_TOGGLED", "EVENT_IMAGE_UPDATED", "EVENT_IMAGE_DELETED",
   "EVENT_REGISTRATION_CANCELLED", "MERCHANDISE_CREATED", "MERCHANDISE_UPDATED",
   "MERCHANDISE_DELETED", "MERCHANDISE_AVAILABILITY_TOGGLED", "MERCHANDISE_SETTINGS_UPDATED",
+  "PICKUP_ADDRESS_CREATED", "PICKUP_ADDRESS_UPDATED",
   "FULFILLMENT_TRIGGERED", "SHIPMENT_CANCELLED",
   "NOTIFICATION_TEMPLATE_UPDATED", "NOTIFICATION_TEMPLATE_RESET",
   "NOTIFICATION_TEMPLATE_GLOBAL_RESET", "HIGH_RISK_ACTION",

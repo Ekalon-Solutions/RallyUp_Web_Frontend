@@ -54,6 +54,8 @@ const ACTION_LABELS: Record<string, string> = {
   MERCHANDISE_DELETED: "Merchandise deleted",
   MERCHANDISE_AVAILABILITY_TOGGLED: "Merchandise availability changed",
   MERCHANDISE_SETTINGS_UPDATED: "Store settings updated",
+  PICKUP_ADDRESS_CREATED: "Pickup address added",
+  PICKUP_ADDRESS_UPDATED: "Default pickup address changed",
   FULFILLMENT_TRIGGERED: "Fulfillment triggered",
   SHIPMENT_CANCELLED: "Shipment cancelled",
   NOTIFICATION_TEMPLATE_UPDATED: "Notification template updated",
