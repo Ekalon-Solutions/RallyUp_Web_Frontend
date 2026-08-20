@@ -1322,6 +1322,20 @@ class ApiClient {
     return null;
   }
 
+  // Stable per-browser id for voting on public polls while logged out.
+  // Shaped like a Mongo ObjectId so the backend can store it directly as a voter id.
+  private getOrCreateGuestId(): string {
+    if (typeof window === 'undefined') return '';
+    const KEY = 'rallyup_guest_id';
+    const existing = localStorage.getItem(KEY);
+    if (existing && /^[a-f0-9]{24}$/i.test(existing)) return existing;
+    const bytes = new Uint8Array(12);
+    window.crypto.getRandomValues(bytes);
+    const id = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    localStorage.setItem(KEY, id);
+    return id;
+  }
+
   async get<T = any>(endpoint: string, options?: { params?: Record<string, any> }): Promise<ApiResponse<T>> {
     let url = endpoint;
     if (options?.params) {
@@ -5454,7 +5468,8 @@ class ApiClient {
       pages: number;
     };
   }>> {
-    return this.get('/polls/public', { params });
+    const guestId = this.getToken() ? undefined : this.getOrCreateGuestId();
+    return this.get('/polls/public', { params: { ...params, guestId } });
   }
 
   async getPolls(params?: {
@@ -5582,23 +5597,26 @@ class ApiClient {
   }
 
   async voteOnPoll(pollId: string, optionId: string): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    const guestId = this.getToken() ? undefined : this.getOrCreateGuestId();
     return this.request(`/polls/${pollId}/vote`, {
       method: 'POST',
-      body: JSON.stringify({ optionId }),
+      body: JSON.stringify({ optionId, guestId }),
     });
   }
 
   async removeVoteFromPoll(pollId: string, optionId: string): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    const guestId = this.getToken() ? undefined : this.getOrCreateGuestId();
     return this.request(`/polls/${pollId}/vote`, {
       method: 'DELETE',
-      body: JSON.stringify({ optionId }),
+      body: JSON.stringify({ optionId, guestId }),
     });
   }
 
   async changeVoteInPoll(pollId: string, oldOptionId: string, newOptionId: string): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    const guestId = this.getToken() ? undefined : this.getOrCreateGuestId();
     return this.request(`/polls/${pollId}/vote`, {
       method: 'PUT',
-      body: JSON.stringify({ oldOptionId, newOptionId }),
+      body: JSON.stringify({ oldOptionId, newOptionId, guestId }),
     });
   }
 

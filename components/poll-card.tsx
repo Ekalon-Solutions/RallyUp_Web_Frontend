@@ -36,8 +36,9 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
 
   const isPollActive = poll.status === 'active'
   const hasUserVoted = poll.userVotes && poll.userVotes.length > 0
-  const canVote = isPollActive && user && !hasUserVoted
-  const canChangeVote = isPollActive && user && hasUserVoted
+  const canParticipate = Boolean(user) || poll.isPublic
+  const canVote = isPollActive && canParticipate && !hasUserVoted
+  const canChangeVote = isPollActive && canParticipate && hasUserVoted
 
   // Sync selectedOptions with poll.userVotes when poll data changes
   useEffect(() => {
@@ -49,7 +50,7 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
   }, [poll.userVotes])
 
   const handleOptionSelect = (optionId: string) => {
-    if (!isPollActive || !user) return
+    if (!isPollActive || !canParticipate) return
 
     if (poll.allowMultipleVotes) {
       // Toggle option in multiple selection
@@ -72,7 +73,7 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
   }
 
   const handleVote = async () => {
-    if (!user) return
+    if (!canParticipate) return
 
     setIsVoting(true)
     try {
@@ -174,7 +175,7 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
   }
 
   const handleRemoveVote = async (optionId: string) => {
-    if (!user) return
+    if (!canParticipate) return
 
     setIsVoting(true)
     try {
