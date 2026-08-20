@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { apiClient, News, Event, Chant, Album } from "@/lib/api"
+import { apiClient, News, Event, Chant, Album, Poll } from "@/lib/api"
 import { formatDisplayDate, slugify } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import {
@@ -35,6 +35,7 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { ClubGallerySection } from "@/components/club-public/club-gallery-section"
+import { PollCard } from "@/components/poll-card"
 import type { JoinablePlan } from "@/components/modals/join-membership-modal"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
@@ -56,6 +57,7 @@ import {
   MapPin,
   Clock,
   Images,
+  Vote,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -213,6 +215,7 @@ export default function PublicClubPage() {
   const [events, setEvents] = useState<Event[]>([])
   const [chants, setChants] = useState<Chant[]>([])
   const [galleryAlbums, setGalleryAlbums] = useState<Album[]>([])
+  const [polls, setPolls] = useState<Poll[]>([])
   const [merchandise, setMerchandise] = useState<any[]>([])
   const [loadingContent, setLoadingContent] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("")
@@ -345,6 +348,7 @@ export default function PublicClubPage() {
           (storeEnabled && "store") ||
           (websiteSetup.sections?.gallery && "gallery") ||
           (websiteSetup.sections?.chants && "chants") ||
+          (websiteSetup.sections?.polls && "polls") ||
           ""
 
         if (firstTab) {
@@ -392,6 +396,7 @@ export default function PublicClubPage() {
       if (storeEnabled) requests.store = apiClient.getPublicMerchandise({ clubId, limit: 12 })
       if (sections.chants) requests.chants = apiClient.getPublicChants({ clubId, limit: 20 })
       if (sections.gallery) requests.gallery = apiClient.getPublicGalleryAlbums(clubId)
+      if (sections.polls) requests.polls = apiClient.getPublicPolls({ clubId, limit: 20 })
 
       const entries = Object.entries(requests)
       if (entries.length === 0) return
@@ -433,6 +438,11 @@ export default function PublicClubPage() {
         if (key === "gallery") {
           const albums = normalizeAlbums((res.data as { albums?: Album[] })?.albums)
           setGalleryAlbums(albums)
+        }
+
+        if (key === "polls") {
+          const pollsData = (res.data as any)?.polls || []
+          setPolls(pollsData)
         }
       })
     } catch (error) {
@@ -558,7 +568,8 @@ export default function PublicClubPage() {
     websiteSetup.sections.chants ||
     websiteSetup.sections.gallery ||
     websiteSetup.sections.store ||
-    websiteSetup.sections.merchandise
+    websiteSetup.sections.merchandise ||
+    websiteSetup.sections.polls
   )
 
   return (
@@ -638,6 +649,21 @@ export default function PublicClubPage() {
                 >
                   <Music className="h-4 w-4" />
                   <span>Club Chants</span>
+                </button>
+              )}
+              {websiteSetup.sections.polls && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("polls")}
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ${
+                    activeTab === "polls"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  style={activeTab === "polls" ? { color: primaryColor } : undefined}
+                >
+                  <Vote className="h-4 w-4" />
+                  <span>Polls</span>
                 </button>
               )}
             </nav>
@@ -751,6 +777,18 @@ export default function PublicClubPage() {
                       >
                         <Music className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
                         Chants
+                      </TabsTrigger>
+                    )}
+                    {websiteSetup.sections.polls && (
+                      <TabsTrigger
+                        value="polls"
+                        className="text-sm sm:text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-3 sm:px-4 py-2 sm:py-3 shrink-0 flex-none whitespace-nowrap"
+                        style={{
+                          color: activeTab === "polls" ? primaryColor : undefined,
+                        }}
+                      >
+                        <Vote className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                        Polls
                       </TabsTrigger>
                     )}
                   </TabsList>
@@ -1143,6 +1181,39 @@ export default function PublicClubPage() {
                             <div className="text-center py-12">
                               <Music className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                               <p className="text-lg text-muted-foreground">No chants available yet.</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
+
+                  {websiteSetup.sections.polls && (
+                    <TabsContent value="polls" className="mt-8">
+                      <Card className="border-2 shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <Vote className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: primaryColor }} />
+                            </div>
+                            Polls
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {loadingContent ? (
+                            <div className="flex items-center justify-center py-12">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                            </div>
+                          ) : polls.length > 0 ? (
+                            <div className="grid gap-6 md:grid-cols-2 min-w-0">
+                              {polls.map((poll) => (
+                                <PollCard key={poll._id} poll={poll} showResults />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-12">
+                              <Vote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                              <p className="text-lg text-muted-foreground">No polls available yet.</p>
                             </div>
                           )}
                         </CardContent>

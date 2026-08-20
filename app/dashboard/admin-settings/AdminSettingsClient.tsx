@@ -19,6 +19,9 @@ import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { useAdminModulePermission } from "@/hooks/useAdminModulePermission"
 
+const TAB_TRIGGER_CLASS =
+  "flex items-center gap-2 shrink-0 flex-none whitespace-nowrap min-w-max"
+
 export default function AdminSettingsClient() {
   const clubId = useRequiredClubId()
   const [activeTab, setActiveTab] = useState("website")
@@ -78,46 +81,46 @@ export default function AdminSettingsClient() {
               params.set("tab", nextTab)
               router.replace(`${pathname}?${params.toString()}`)
             }}
-            className="space-y-4"
+            className="space-y-4 min-w-0"
           >
-            <TabsList className="flex overflow-auto justify-start sm:justify-between w-full">
-              <TabsTrigger value="website" className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
+            <TabsList className="flex w-full max-w-full sm:w-full min-w-0 h-auto flex-nowrap justify-start gap-1 overflow-x-auto overscroll-x-contain touch-pan-x [scrollbar-width:thin]">
+              <TabsTrigger value="website" className={TAB_TRIGGER_CLASS}>
+                <Globe className="h-4 w-4 shrink-0" />
                 Website
               </TabsTrigger>
-              <TabsTrigger value="design" className="flex items-center gap-2">
-                <Palette className="h-4 w-4" />
+              <TabsTrigger value="design" className={TAB_TRIGGER_CLASS}>
+                <Palette className="h-4 w-4 shrink-0" />
                 Design
               </TabsTrigger>
-              <TabsTrigger value="app" className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
+              <TabsTrigger value="app" className={TAB_TRIGGER_CLASS}>
+                <Bell className="h-4 w-4 shrink-0" />
                 Notifications
               </TabsTrigger>
-              <TabsTrigger value="address" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
+              <TabsTrigger value="address" className={TAB_TRIGGER_CLASS}>
+                <MapPin className="h-4 w-4 shrink-0" />
                 Club Address
               </TabsTrigger>
-              <TabsTrigger value="limits" className="flex items-center gap-2">
-                <Zap className="h-4 w-4" />
+              <TabsTrigger value="limits" className={TAB_TRIGGER_CLASS}>
+                <Zap className="h-4 w-4 shrink-0" />
                 Feature Limits
               </TabsTrigger>
-              <TabsTrigger value="help" className="flex items-center gap-2">
-                <CircleHelp className="h-4 w-4" />
+              <TabsTrigger value="help" className={TAB_TRIGGER_CLASS}>
+                <CircleHelp className="h-4 w-4 shrink-0" />
                 Help
               </TabsTrigger>
-              <TabsTrigger value="guide" className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
+              <TabsTrigger value="guide" className={TAB_TRIGGER_CLASS}>
+                <BookOpen className="h-4 w-4 shrink-0" />
                 Get Started
               </TabsTrigger>
               {showRefundTab && (
-                <TabsTrigger value="refund" className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4" />
+                <TabsTrigger value="refund" className={TAB_TRIGGER_CLASS}>
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
                   Refund Policy
                 </TabsTrigger>
               )}
               {showMarketingTab && (
-                <TabsTrigger value="marketing" className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
+                <TabsTrigger value="marketing" className={TAB_TRIGGER_CLASS}>
+                  <MessageSquare className="h-4 w-4 shrink-0" />
                   WhatsApp Marketing
                 </TabsTrigger>
               )}

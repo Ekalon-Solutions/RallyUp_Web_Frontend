@@ -35,6 +35,12 @@ export const WEBSITE_SECTION_OPTIONS: readonly WebsiteSectionOption[] = [
     keys: ["events"],
   },
   {
+    id: "polls",
+    label: "Polls",
+    description: "Show community polls on the public site.",
+    keys: ["polls"],
+  },
+  {
     id: "chants",
     label: "Club Chants",
     description: "Show supporter chants & songs.",
