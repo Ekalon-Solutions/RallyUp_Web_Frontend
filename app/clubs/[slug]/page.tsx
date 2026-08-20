@@ -1207,7 +1207,15 @@ export default function PublicClubPage() {
                           ) : polls.length > 0 ? (
                             <div className="grid gap-6 md:grid-cols-2 min-w-0">
                               {polls.map((poll) => (
-                                <PollCard key={poll._id} poll={poll} showResults />
+                                <PollCard
+                                  key={poll._id}
+                                  poll={poll}
+                                  onVote={(updatedPoll) => {
+                                    if (updatedPoll) {
+                                      setPolls((prev) => prev.map((p) => (p._id === updatedPoll._id ? updatedPoll : p)))
+                                    }
+                                  }}
+                                />
                               ))}
                             </div>
                           ) : (
