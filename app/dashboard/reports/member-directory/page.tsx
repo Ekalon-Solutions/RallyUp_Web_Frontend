@@ -36,8 +36,6 @@ function renderStatusBadge(status: string) {
       return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0">Active</Badge>
     case "expired":
       return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0">Expired</Badge>
-    case "cancelled":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0">Cancelled</Badge>
     case "pending":
     case "suspended":
       return <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-300 border-0">{status}</Badge>
@@ -90,7 +88,6 @@ export default function MemberDirectoryReportPage() {
     totalMembers: 0,
     activeMembers: 0,
     expiredMembers: 0,
-    cancelledMembers: 0,
     pendingMembers: 0,
   })
   const [plans, setPlans] = useState<PlanOption[]>([])
@@ -142,7 +139,6 @@ export default function MemberDirectoryReportPage() {
             totalMembers: Number(res.data.summary.totalMembers) || 0,
             activeMembers: Number(res.data.summary.activeMembers) || 0,
             expiredMembers: Number(res.data.summary.expiredMembers) || 0,
-            cancelledMembers: Number(res.data.summary.cancelledMembers) || 0,
             pendingMembers: Number(res.data.summary.pendingMembers) || 0,
           })
           if (res.data.summary.plans) {
@@ -351,16 +347,11 @@ export default function MemberDirectoryReportPage() {
       label: "Expired Members",
       value: summaryData.expiredMembers.toLocaleString(),
     },
-    {
-      label: "Cancelled Members",
-      value: summaryData.cancelledMembers.toLocaleString(),
-    },
   ]
 
   const statusOptions = [
     { value: "active", label: "Active" },
     { value: "expired", label: "Expired" },
-    { value: "cancelled", label: "Cancelled" },
     { value: "pending", label: "Pending" },
     { value: "suspended", label: "Suspended" },
   ]

@@ -9,11 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Ticket, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
-import config from "@/lib/config"
+import { apiClient, type Event } from "@/lib/api"
 import { toDatetimeLocalString } from "@/lib/timezone"
 import { formatDisplayDate } from "@/lib/utils"
+
+type CouponEligibility = 'all' | 'members-only' | 'new-users' | 'specific-events' | 'membership-renewal'
+type ConfigurableCouponEligibility = Exclude<CouponEligibility, 'new-users'>
 
 interface Coupon {
   _id: string
@@ -26,8 +30,8 @@ interface Coupon {
   currentUsage: number
   startTime: string
   endTime: string
-  eligibility: 'all' | 'members-only' | 'new-users' | 'specific-events' | 'membership-renewal'
-  applicableEvents?: string[]
+  eligibility: CouponEligibility
+  applicableEvents?: Array<string | { _id: string }>
   minPurchaseAmount?: number
   isActive: boolean
   isAutoApply: boolean
@@ -45,6 +49,8 @@ interface CreateCouponModalProps {
 
 export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, clubId }: CreateCouponModalProps) {
   const [loading, setLoading] = useState(false)
+  const [eventsLoading, setEventsLoading] = useState(false)
+  const [events, setEvents] = useState<Event[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     name: "",
@@ -55,7 +61,8 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
     maxUsage: "",
     startTime: "",
     endTime: "",
-    eligibility: "all" as "all" | "members-only" | "new-users" | "specific-events" | "membership-renewal",
+    eligibility: "all" as CouponEligibility,
+    applicableEvents: [] as string[],
     minPurchaseAmount: "",
     isAutoApply: false,
   })
@@ -75,6 +82,9 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
           startTime: editCoupon.startTime.slice(0, 16),
           endTime: editCoupon.endTime.slice(0, 16),
           eligibility: editCoupon.eligibility,
+          applicableEvents: (editCoupon.applicableEvents || []).map((event) =>
+            typeof event === "string" ? event : event._id
+          ),
           minPurchaseAmount: editCoupon.minPurchaseAmount?.toString() || "",
           isAutoApply: editCoupon.isAutoApply || false,
         })
@@ -93,12 +103,47 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
           startTime: toDatetimeLocalString(now),
           endTime: toDatetimeLocalString(endDate),
           eligibility: "all",
+          applicableEvents: [],
           minPurchaseAmount: "",
           isAutoApply: false,
         })
       }
     }
   }, [isOpen, editCoupon])
+
+  useEffect(() => {
+    if (!isOpen || !clubId || formData.eligibility !== "specific-events") {
+      setEvents([])
+      setEventsLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setEventsLoading(true)
+    apiClient.getEventsByClub(clubId)
+      .then((response) => {
+        if (cancelled) return
+        if (response.success && response.data) {
+          setEvents(response.data)
+        } else {
+          setEvents([])
+          toast.error(response.error || "Failed to load club events")
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEvents([])
+          toast.error("Failed to load club events")
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setEventsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, clubId, formData.eligibility])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -146,6 +191,10 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
       newErrors.endTime = "End time must be after start time"
     }
 
+    if (formData.eligibility === "specific-events" && formData.applicableEvents.length === 0) {
+      newErrors.applicableEvents = "Select at least one event"
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -176,6 +225,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
         startTime: new Date(formData.startTime).toISOString(),
         endTime: new Date(formData.endTime).toISOString(),
         eligibility: formData.eligibility,
+        applicableEvents: formData.eligibility === "specific-events" ? formData.applicableEvents : [],
         minPurchaseAmount: formData.minPurchaseAmount ? parseFloat(formData.minPurchaseAmount) : undefined,
         isAutoApply: formData.isAutoApply,
       }
@@ -183,29 +233,16 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
         couponData.clubId = clubId
       }
 
-      const token = localStorage.getItem("token")
-      const baseUrl = editCoupon
-        ? `${config.apiBaseUrl}/coupons/${editCoupon._id}`
-        : `${config.apiBaseUrl}/coupons`
-      const url = clubId && editCoupon ? `${baseUrl}?clubId=${encodeURIComponent(clubId)}` : baseUrl
+      const response = editCoupon
+        ? await apiClient.updateCoupon(editCoupon._id, couponData, clubId)
+        : await apiClient.createCoupon(couponData as { clubId: string; [key: string]: unknown })
 
-      const response = await fetch(url, {
-        method: editCoupon ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(couponData),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
+      if (response.success) {
         toast.success(editCoupon ? "Coupon updated successfully!" : "Coupon created successfully!")
         onSuccess()
         onClose()
       } else {
-        toast.error(data.message || "Failed to save coupon")
+        toast.error(response.error || response.message || "Failed to save coupon")
       }
     } catch (error) {
       // console.error("Error saving coupon:", error)
@@ -230,6 +267,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
       startTime: toDatetimeLocalString(now),
       endTime: toDatetimeLocalString(endDate),
       eligibility: "all",
+      applicableEvents: [],
       minPurchaseAmount: "",
       isAutoApply: false,
     })
@@ -457,9 +495,13 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
             </Label>
             <Select
               value={formData.eligibility}
-              onValueChange={(value: "all" | "members-only" | "new-users" | "specific-events" | "membership-renewal") =>
+              onValueChange={(value: ConfigurableCouponEligibility) => {
                 setFormData({ ...formData, eligibility: value })
-              }
+                if (errors.applicableEvents) {
+                  const { applicableEvents, ...rest } = errors
+                  setErrors(rest)
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select coupon eligibility" />
@@ -467,12 +509,58 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
               <SelectContent>
                 <SelectItem value="all">All Users</SelectItem>
                 <SelectItem value="members-only">Members Only</SelectItem>
-                <SelectItem value="new-users">New Users Only</SelectItem>
                 <SelectItem value="membership-renewal">Membership Renewal</SelectItem>
                 <SelectItem value="specific-events">Specific Events</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {formData.eligibility === "specific-events" && (
+            <div className="space-y-2">
+              <Label>
+                Applicable Events <span className="text-red-500">*</span>
+              </Label>
+              <div className={`max-h-52 space-y-2 overflow-y-auto rounded-md border p-3 ${errors.applicableEvents ? "border-red-500" : ""}`}>
+                {eventsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading events...</p>
+                ) : events.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No events found for this club.</p>
+                ) : (
+                  events.map((event) => (
+                    <label
+                      key={event._id}
+                      className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"
+                    >
+                      <Checkbox
+                        className="mt-1"
+                        checked={formData.applicableEvents.includes(event._id)}
+                        onCheckedChange={(checked) => {
+                          const applicableEvents = checked
+                            ? [...formData.applicableEvents, event._id]
+                            : formData.applicableEvents.filter((id) => id !== event._id)
+                          setFormData({ ...formData, applicableEvents })
+                          if (errors.applicableEvents) {
+                            const { applicableEvents: _applicableEvents, ...rest } = errors
+                            setErrors(rest)
+                          }
+                        }}
+                      />
+                      <span>
+                        <span className="block text-sm font-medium">{event.title}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {formatDisplayDate(event.startTime)}{event.venue ? ` · ${event.venue}` : ""}
+                        </span>
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+              {errors.applicableEvents && <p className="text-red-500 text-sm">{errors.applicableEvents}</p>}
+              <p className="text-xs text-muted-foreground">
+                The coupon will be accepted only during checkout for the selected events.
+              </p>
+            </div>
+          )}
 
           {/* Minimum Purchase Amount (Optional) */}
           <div className="space-y-2">

@@ -28,6 +28,7 @@ Events in RallyUp can support either single-pricing tier schemas or a multi-dime
 2. **Availability Check**: Checks standard `tier.allocation - tier.sold` or queries joint allocations via `getJointScreeningClubNames()`.
 3. **Discounts**:
    - Applies validated coupon discounts (`setCouponDiscount`).
+   - Event-specific coupons carry an explicit list of club event IDs and are rejected when checkout does not supply a matching event ID.
    - Resolves points loyalty deduction (`validatePointsRedemptionInput`).
 4. **Fees Calculation**: Calculates dynamic PG charges using `resolveCheckoutCharge(...)`.
 5. **Razorpay Gate**: Submits a `POST /api/razorpay/create-order`, launches Razorpay client window, and confirms the signature on `/verify-payment` before routing to `/purchase/success`. `modal.ondismiss` is **not** treated as a cancel: VPA, netbanking, wallets, and pay-later close the sheet while payment is still running. `resolveRazorpayDismiss` waits for the tab to return, polls `/razorpay/check-order`, and only then cancels a pending booking.
@@ -37,4 +38,5 @@ Events in RallyUp can support either single-pricing tier schemas or a multi-dime
 - **Integer Rounding**: Razorpay accepts amounts in paise (multiply by 100). The frontend must round to the smallest currency unit to prevent float inaccuracies when validating transactions.
 - **Joint Screening Split**: Ensure each partner club has at least 1 seat assigned if per-club allocations are enabled, and make sure home/guest clubs do not duplicate.
 - **Public Event Hydration**: When the event detail page combines the public list and detail responses, preserve list-enriched club fields such as `platformFeePercent`; checkout uses that value for the platform fee.
+- **Coupon Event Scope**: The coupon admin requires at least one event for `specific-events`; the API also verifies every selected event belongs to the coupon's club. The retired `new-users` option is hidden and rejected for newly configured coupons.
 - **Redirect-method dismiss**: Never cancel a pending registration from `ondismiss` until `/razorpay/check-order` says the order was never paid. A late `handler` and a recovered dismiss share a settled flag so the booking is not confirmed twice.

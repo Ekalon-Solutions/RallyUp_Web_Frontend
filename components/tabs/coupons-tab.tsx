@@ -322,7 +322,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="members-only">Members Only</SelectItem>
-                <SelectItem value="new-users">New Users</SelectItem>
                 <SelectItem value="membership-renewal">Membership Renewal</SelectItem>
                 <SelectItem value="specific-events">Specific Events</SelectItem>
               </SelectContent>
