@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,18 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+
+  useEffect(() => {
+    if (isLoading) return
+    if (typeof window === "undefined") return
+    const redirect = new URLSearchParams(window.location.search).get("redirect")
+    if (!redirect?.startsWith("/") || redirect.startsWith("//")) return
+    if (isAuthenticated) {
+      router.replace(redirect)
+      return
+    }
+    setLoginOpen(true)
+  }, [isAuthenticated, isLoading, router])
 
   const handleLoginClick = () => {
     // If user is already authenticated, redirect to appropriate page

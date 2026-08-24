@@ -21,7 +21,7 @@ interface AuthContextType {
   userRole: string | undefined;
   activeClubId: string | null;
   setActiveClubId: (clubId: string | null) => void;
-  login: (email: string, phoneNumber: string, countryCode: string, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, phoneNumber: string, countryCode: string, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string; navigated?: boolean }>;
   switchRole: (accountType: 'user' | 'admin' | 'system_owner', accountId: string, targetClubId?: string) => Promise<{ success: boolean; error?: string }>;
   register: (userData: any, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -337,7 +337,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return 5;
   };
 
-  const login = async (email: string, phoneNumber: string, countryCode: string, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, phoneNumber: string, countryCode: string, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string; navigated?: boolean }> => {
     try {
       const loginData: any = {};
       if (email && email.trim()) {
@@ -420,7 +420,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.log(`Auto-switching login to highest role: ${highestAccount.role} (${highestAccount.accountId})`);
               const switchRes = await switchRole(highestAccount.accountType, highestAccount.accountId);
               if (switchRes.success) {
-                return { success: true };
+                return { success: true, navigated: true };
               }
             }
           }

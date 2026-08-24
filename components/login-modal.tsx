@@ -18,6 +18,13 @@ import { COUNTRY_DIAL_CODES } from "@/lib/countryCodes"
 // Extend window object for global variables
 type Tab = "user" | "admin"
 
+function getSafeRedirectPath(): string | null {
+  if (typeof window === "undefined") return null
+  const raw = new URLSearchParams(window.location.search).get("redirect")
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) return null
+  return raw
+}
+
 const validateEmail = (email: string) => {
   if (!email) return ""
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "" : "Please enter a valid email address"
@@ -51,14 +58,16 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
   const { login, isAuthenticated, checkAuth } = useAuth()
   const router = useRouter()
 
-  const finishLogin = async () => {
+  const finishLogin = async (alreadyNavigated = false) => {
     onOpenChange(false)
+    if (alreadyNavigated) return
     if (onSuccess) {
       await checkAuth()
       onSuccess()
-    } else {
-      window.location.href = "/splash"
+      return
     }
+    const redirect = getSafeRedirectPath()
+    window.location.href = redirect || "/splash"
   }
 
   const [tab, setTab] = useState<Tab>("user")
@@ -209,7 +218,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
         const backendResult = await login(email, phone, countryCode)
         if (backendResult?.success) {
           toast.success("Signed in successfully!")
-          await finishLogin()
+          await finishLogin(backendResult.navigated)
         } else {
           toast.error(backendResult?.error || "Login failed")
         }

@@ -727,7 +727,8 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   // don't wrap themselves rendered the full chrome for logged-out visitors.
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.replace('/')
+      const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token")
+      if (!hasToken) router.replace('/')
     }
   }, [authLoading, isAuthenticated, router])
 

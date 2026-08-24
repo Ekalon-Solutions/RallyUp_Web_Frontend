@@ -28,7 +28,8 @@ export function ProtectedRoute({
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        router.push("/");
+        const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
+        if (!hasToken) router.push("/");
         return;
       }
 
