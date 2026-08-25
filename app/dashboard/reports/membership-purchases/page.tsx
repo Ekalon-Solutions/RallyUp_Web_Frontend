@@ -33,6 +33,8 @@ function renderStatusBadge(status: string) {
     case "active":
     case "paid":
       return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
+    case "free":
+      return <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Free</Badge>
     case "expired":
     case "pending":
       return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
@@ -257,12 +259,7 @@ export default function MembershipPurchaseReportPage() {
     {
       key: "paymentStatus",
       header: "Payment Status",
-      accessor: (row) =>
-        row.paymentStatus?.toLowerCase() === 'cancelled'
-          ? renderStatusBadge(row.paymentStatus)
-          : row.amount === 0
-          ? <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Free</Badge>
-          : renderStatusBadge(row.paymentStatus),
+      accessor: (row) => renderStatusBadge(row.paymentStatus),
       width: "w-32",
     },
     {
