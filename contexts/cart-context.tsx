@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { analytics } from '../lib/analytics'
 
 export interface CartItem {
   _id: string
@@ -52,6 +53,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
 
   const addToCart = (newItem: Omit<CartItem, 'quantity'>) => {
+    analytics.logEvent('add_to_cart', {
+      item_id: newItem._id,
+      item_name: newItem.name,
+      price: newItem.price,
+      club_id: newItem.club?._id,
+    });
     setItems(prevItems => {
       const existingItem = prevItems.find(item => item._id === newItem._id)
       
@@ -73,6 +80,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const removeFromCart = (itemId: string) => {
+    analytics.logEvent('remove_from_cart', { item_id: itemId });
     setItems(prevItems => prevItems.filter(item => item._id !== itemId))
   }
 
@@ -97,6 +105,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const clearCart = () => {
+    analytics.logEvent('clear_cart', {});
     setItems([])
   }
 

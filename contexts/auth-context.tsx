@@ -9,6 +9,7 @@ import {
   setAuthSessionCookie,
   syncAuthSessionCookieFromStorage,
 } from '../lib/auth-session-cookie';
+import { analytics } from '../lib/analytics';
 
 interface AuthContextType {
   user: User | Admin | SystemOwner | null;
@@ -143,6 +144,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (user) {
+      const uid = (user as any)._id || (user as any).id || (user as any).accountId;
+      analytics.setUserProfile({
+        id: uid ? String(uid) : undefined,
+        role: (user as any).role,
+        clubId: activeClubId || undefined,
+      });
+    } else {
+      analytics.setUserId(null);
+    }
+  }, [user, activeClubId]);
+
   const setActiveClubId = (clubId: string | null) => {
     setActiveClubIdState(clubId);
     if (clubId) {
@@ -150,6 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         window.sessionStorage.setItem('selectedClubId', clubId);
       }
+      analytics.logEvent('club_switched', { club_id: clubId });
     } else {
       localStorage.removeItem('activeClubId');
       if (typeof window !== 'undefined') {
@@ -420,12 +435,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.log(`Auto-switching login to highest role: ${highestAccount.role} (${highestAccount.accountId})`);
               const switchRes = await switchRole(highestAccount.accountType, highestAccount.accountId);
               if (switchRes.success) {
+                analytics.logLogin(email ? 'email' : 'phone', highestAccount.role);
                 return { success: true, navigated: true };
               }
             }
           }
         } catch (_) {}
 
+        analytics.logLogin(email ? 'email' : 'phone', (hydrated as any)?.role || 'member');
         return { success: true };
       } else {
         const errorMessage = response?.error || response?.message ||
@@ -477,6 +494,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         clearAllFeatureCaches();
+        analytics.logEvent('role_switched', {
+          target_role: accountType,
+          account_id: accountId,
+        });
 
         const targetPath = isSystemOwner
           ? '/dashboard/club-management'
@@ -531,6 +552,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           fallbackUserData: createdUserData
         });
         setUser(hydrated);
+        analytics.logSignUp('form', userType);
         return { success: true };
       } else {
         // console.error('Registration failed:', response.error);
@@ -543,6 +565,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    analytics.logLogout();
     const isVendorUser = user?.role === 'vendor' || (user as any)?.isVendor;
     localStorage.removeItem('token');
     localStorage.removeItem('userType');
