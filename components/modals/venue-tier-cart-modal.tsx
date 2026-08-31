@@ -987,8 +987,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         body: JSON.stringify({
           amount: amountToCharge,
           currency: event.currency ?? "INR",
-          orderId: `EVT-${Date.now()}`,
-          orderNumber: `EVT-${Date.now()}`,
+          orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
+          orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
         }),
       })
       if (!orderRes.ok) throw new Error("Failed to create payment order")
@@ -1199,8 +1199,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         body: JSON.stringify({
           amount: amountToCharge,
           currency: event.currency ?? "INR",
-          orderId: `EVT-${Date.now()}`,
-          orderNumber: `EVT-${Date.now()}`,
+          orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
+          orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
         }),
       })
       if (!orderRes.ok) throw new Error("Failed to create payment order")

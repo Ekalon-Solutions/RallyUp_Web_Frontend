@@ -529,8 +529,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         body: JSON.stringify({
           amount: amountToCharge,
           currency: event.currency || 'INR',
-          orderId: `EVT-${Date.now()}`,
-          orderNumber: `EVT-${Date.now()}`,
+          orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
+          orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
         }),
       })
 
