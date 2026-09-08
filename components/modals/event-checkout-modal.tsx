@@ -24,6 +24,7 @@ import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/points-redemption"
 import { useRouter } from "next/navigation"
 import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
+import { analytics } from "@/lib/analytics"
 
 declare global {
   interface Window {
@@ -686,6 +687,26 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                 })
 
             if (registerResponse.success) {
+              const ticketCount = attendees?.length || 1
+              analytics.logEvent('ticket_purchased', {
+                event_id: event?._id,
+                event_name: event?.name,
+                ticket_count: ticketCount,
+                value: amountCharged,
+                currency: 'INR',
+              })
+              analytics.logEvent('purchase', {
+                transaction_id: paymentId,
+                value: amountCharged,
+                currency: 'INR',
+                items: [{
+                  item_id: event?._id,
+                  item_name: event?.name,
+                  price: amountCharged,
+                  quantity: ticketCount,
+                }],
+              })
+
               toast.success("Payment successful! You are now registered for the event.")
               setRazorpayOpen(false)
               onSuccess()

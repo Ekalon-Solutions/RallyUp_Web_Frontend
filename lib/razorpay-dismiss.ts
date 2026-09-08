@@ -79,13 +79,12 @@ export async function resolveRazorpayDismiss(orderId?: string): Promise<Razorpay
 
     try {
       const res = await apiClient.checkRazorpayOrder(orderId)
-      lastError = false
-      const body = res.data
+      const body = res.data as any
 
       const payment = {
-        razorpay_payment_id: body.razorpay_payment_id || '',
-        razorpay_order_id: body.razorpay_order_id || orderId,
-        razorpay_signature: body.razorpay_signature || '',
+        razorpay_payment_id: body?.razorpay_payment_id || '',
+        razorpay_order_id: body?.razorpay_order_id || orderId,
+        razorpay_signature: body?.razorpay_signature || '',
       }
       if (
         body?.success &&

@@ -95,19 +95,19 @@ export function normalizeResolvedClubFeatures(
     ? (raw as any).data
     : raw
   if (!payload || !payload.clubId) return null;
-  raw = payload
+  const target = payload as any;
   return {
-    clubId: String(raw.clubId),
-    features_schema_version: raw.features_schema_version ?? 0,
-    billing_tier: raw.billing_tier ?? 'free',
-    billing_status: raw.billing_status ?? 'active',
-    billing_trial_ends_at: raw.billing_trial_ends_at,
-    feature_constraints: raw.feature_constraints ?? {},
-    flags: Array.isArray(raw.flags) ? raw.flags : [],
-    experimental_flags: raw.experimental_flags ?? {},
-    platformFeePercent: raw.platformFeePercent ?? 5,
-    estimated_monthly_usd: raw.estimated_monthly_usd ?? 0,
-    synced_at: raw.synced_at ?? new Date().toISOString(),
+    clubId: String(target.clubId),
+    features_schema_version: target.features_schema_version ?? 0,
+    billing_tier: target.billing_tier ?? 'free',
+    billing_status: target.billing_status ?? 'active',
+    billing_trial_ends_at: target.billing_trial_ends_at,
+    feature_constraints: target.feature_constraints ?? {},
+    flags: Array.isArray(target.flags) ? target.flags : [],
+    experimental_flags: target.experimental_flags ?? {},
+    platformFeePercent: target.platformFeePercent ?? 5,
+    estimated_monthly_usd: target.estimated_monthly_usd ?? 0,
+    synced_at: target.synced_at ?? new Date().toISOString(),
   };
 }
 

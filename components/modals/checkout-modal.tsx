@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
 import { toast } from "sonner"
+import { analytics } from "@/lib/analytics"
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -736,6 +737,26 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       }
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
         paymentStatus: 'paid', paymentId, razorpayOrderId, razorpaySignature
+      })
+
+      const purchaseValue = createdOrder?.finalAmount ?? createdOrder?.totalAmount ?? 0
+      analytics.logEvent('purchase_merchandise', {
+        order_id: orderId,
+        payment_id: paymentId,
+        value: purchaseValue,
+        currency: 'INR',
+        item_count: items.reduce((sum, item) => sum + item.quantity, 0),
+      })
+      analytics.logEvent('purchase', {
+        transaction_id: orderId,
+        value: purchaseValue,
+        currency: 'INR',
+        items: items.map(item => ({
+          item_id: item._id,
+          item_name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
       })
 
       toast.success('Payment successful! Order confirmed.')

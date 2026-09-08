@@ -15,6 +15,7 @@ import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 import { useCart } from "@/contexts/cart-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { analytics } from "@/lib/analytics"
 import { 
   ShoppingBag, 
   Search, 
@@ -200,6 +201,19 @@ export default function MerchandisePage() {
   }
 
   const handleBuyNow = (item: Merchandise, quantity: number = 1) => {
+    analytics.logEvent('add_to_cart', {
+      item_id: item._id,
+      item_name: item.name,
+      price: item.price,
+      quantity,
+      currency: item.currency || 'INR',
+      club_id: item.club?._id,
+    })
+    analytics.logEvent('begin_checkout', {
+      value: (item.price || 0) * quantity,
+      currency: item.currency || 'INR',
+      items: [{ item_id: item._id, item_name: item.name, price: item.price, quantity }],
+    })
     setDirectCheckoutItems([{
       _id: item._id,
       name: item.name,
