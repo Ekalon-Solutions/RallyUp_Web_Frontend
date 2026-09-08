@@ -297,12 +297,14 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       ticket_count: count,
       value: amount,
       currency: 'INR',
+      coupon: localCouponCode || undefined,
       club_id: clubId,
     })
     analytics.logEvent('purchase', {
       transaction_id: paymentId || orderId || event?._id,
       value: amount,
       currency: 'INR',
+      coupon: localCouponCode || undefined,
       items: [{
         item_id: event?._id,
         item_name: eventName,
@@ -657,6 +659,11 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         setCouponDiscount(res.data.coupon.discount)
         setCouponName(res.data.coupon.name)
         setCouponApplied(true)
+        analytics.logEvent('coupon_applied', {
+          coupon_code: localCouponCode.trim().toUpperCase(),
+          context: 'event_tickets',
+          discount: res.data.coupon.discount || 0,
+        })
         toast.success("Coupon applied!")
       } else {
         toast.error(res.error ?? "Invalid coupon")

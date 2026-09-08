@@ -498,6 +498,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       )
       if (response.success && response.data?.coupon) {
         setAppliedCoupon(response.data.coupon)
+        analytics.logEvent('coupon_applied', {
+          coupon_code: couponCode.trim(),
+          context: 'merchandise',
+          discount: response.data.coupon.discount || 0,
+        })
         toast.success("Coupon applied successfully!")
       } else {
         setAppliedCoupon(null)
@@ -745,12 +750,14 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         payment_id: paymentId,
         value: purchaseValue,
         currency: 'INR',
+        coupon: appliedCoupon?.code || undefined,
         item_count: items.reduce((sum, item) => sum + item.quantity, 0),
       })
       analytics.logEvent('purchase', {
         transaction_id: orderId,
         value: purchaseValue,
         currency: 'INR',
+        coupon: appliedCoupon?.code || undefined,
         items: items.map(item => ({
           item_id: item._id,
           item_name: item.name,
