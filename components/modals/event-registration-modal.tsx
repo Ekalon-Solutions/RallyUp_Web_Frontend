@@ -14,6 +14,7 @@ import { apiClient, Event } from "@/lib/api"
 import { formatLocalDate } from "@/lib/timezone"
 import { useAuth } from "@/contexts/auth-context"
 import { getBookingWindowClosedLabel, isBookingWindowOpen } from "@/lib/event-display-price"
+import { analytics } from "@/lib/analytics"
 
 interface EventRegistrationModalProps {
   isOpen: boolean
@@ -134,6 +135,16 @@ export function EventRegistrationModal({
       )
 
       if (response.success) {
+        const eventName = event.title || (event as any).name || 'Event Ticket'
+        const clubId = (event as any).clubId || (event as any).club?._id
+        analytics.logEvent('ticket_purchased', {
+          event_id: event._id,
+          event_name: eventName,
+          ticket_count: attendees.length,
+          value: 0,
+          currency: 'INR',
+          club_id: clubId,
+        })
         toast.success("Successfully registered for event!")
         onSuccess()
         onClose()

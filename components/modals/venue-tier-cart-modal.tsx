@@ -22,6 +22,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { resolveCheckoutCharge } from "@/lib/transactionFees"
 import { PriceBreakdown } from "@/components/checkout/price-breakdown"
 import { useRouter } from "next/navigation"
+import { analytics } from "@/lib/analytics"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-checkout-line"
 import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
@@ -286,6 +287,30 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setSimpleAttendees([{ name, phone, phoneCode, open: true }])
     }
   }, [isOpen, isAuthenticated, user])
+
+  const logTicketAnalytics = (paymentId: string | undefined, orderId: string | undefined, amount: number, count: number) => {
+    const eventName = event?.title || (event as any)?.name || 'Event Ticket'
+    const clubId = (event as any)?.clubId || (event as any)?.club?._id
+    analytics.logEvent('ticket_purchased', {
+      event_id: event?._id,
+      event_name: eventName,
+      ticket_count: count,
+      value: amount,
+      currency: 'INR',
+      club_id: clubId,
+    })
+    analytics.logEvent('purchase', {
+      transaction_id: paymentId || orderId || event?._id,
+      value: amount,
+      currency: 'INR',
+      items: [{
+        item_id: event?._id,
+        item_name: eventName,
+        price: amount,
+        quantity: count,
+      }],
+    })
+  }
 
   useEffect(() => {
     if (!event?.venues || !hasVenueTierMatrix(event)) return
@@ -969,6 +994,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           waitlistToken: waitlistToken || undefined,
         })
         if (res.success) {
+          logTicketAnalytics(undefined, undefined, 0, ticketCount)
           toast.success("Tickets booked!")
           onSuccess()
           onClose()
@@ -1060,6 +1086,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               waitlistToken: waitlistToken || undefined,
             })
             if (res.success) {
+              logTicketAnalytics(paymentId, orderId, amountToCharge, ticketCount)
               toast.success("Payment successful! Tickets confirmed.")
               setRazorpayOpen(false)
               onSuccess()
@@ -1181,6 +1208,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           attributed_club: attributedClub || undefined,
         })
         if (res.success) {
+          logTicketAnalytics(undefined, undefined, 0, ticketCount)
           toast.success("Successfully registered for event!")
           onSuccess()
           onClose()
@@ -1287,6 +1315,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             })
 
             if (res.success) {
+              logTicketAnalytics(paymentId, orderId, amountCharged, ticketCount)
               toast.success("Payment successful! You are now registered for the event.")
               setRazorpayOpen(false)
               onSuccess()
@@ -1422,6 +1451,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           attributed_club: attributedClub || undefined,
         })
         if (res.success) {
+          logTicketAnalytics(undefined, undefined, 0, bookingAttendees.length)
           toast.success("Tickets booked!")
           onSuccess()
           onClose()
@@ -1520,6 +1550,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               attributed_club: attributedClub || undefined,
             })
             if (res.success) {
+              logTicketAnalytics(paymentId, orderId, amountToCharge, bookingAttendees.length)
               toast.success("Payment successful! Tickets confirmed.")
               setRazorpayOpen(false)
               onSuccess()
@@ -1646,6 +1677,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           attributed_club: attributedClub || undefined,
         })
         if (res.success) {
+          logTicketAnalytics(undefined, undefined, 0, bookingAttendees.length)
           toast.success("Tickets booked!")
           onSuccess()
           onClose()
@@ -1743,6 +1775,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               attributed_club: attributedClub || undefined,
             })
             if (res.success) {
+              logTicketAnalytics(paymentId, orderId, amountToCharge, bookingAttendees.length)
               toast.success("Payment successful! Tickets confirmed.")
               setRazorpayOpen(false)
               onSuccess()
