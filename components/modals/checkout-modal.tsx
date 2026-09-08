@@ -498,11 +498,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       )
       if (response.success && response.data?.coupon) {
         setAppliedCoupon(response.data.coupon)
-        analytics.logEvent('coupon_applied', {
-          coupon_code: couponCode.trim(),
-          context: 'merchandise',
-          discount: response.data.coupon.discount || 0,
-        })
         toast.success("Coupon applied successfully!")
       } else {
         setAppliedCoupon(null)

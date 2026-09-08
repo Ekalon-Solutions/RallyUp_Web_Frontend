@@ -659,11 +659,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         setCouponDiscount(res.data.coupon.discount)
         setCouponName(res.data.coupon.name)
         setCouponApplied(true)
-        analytics.logEvent('coupon_applied', {
-          coupon_code: localCouponCode.trim().toUpperCase(),
-          context: 'event_tickets',
-          discount: res.data.coupon.discount || 0,
-        })
         toast.success("Coupon applied!")
       } else {
         toast.error(res.error ?? "Invalid coupon")

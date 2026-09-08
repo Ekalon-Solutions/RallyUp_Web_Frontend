@@ -199,6 +199,13 @@ export function PaymentSimulationModal({
   }
 
   const initiatePayment = async () => {
+    if (total <= 0) {
+      toast.success(`Order ${orderNumber} placed successfully!`)
+      onPaymentSuccess(orderId, 'free_order', 'free_order', 'free_order', activeCouponCode)
+      onClose()
+      return
+    }
+
     if (!scriptLoaded || typeof window === 'undefined' || !window.Razorpay) {
       toast.error("Payment system is still loading. Please wait.")
       return
