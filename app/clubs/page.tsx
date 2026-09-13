@@ -342,9 +342,10 @@ function ClubsPageContent() {
         if (!coupon) return
         setAppliedCoupon({
           ...coupon,
+          code: coupon.code ?? '',
           discount: Math.min(coupon.discount, selectedPlan.price),
         })
-        setCouponCode(coupon.code)
+        setCouponCode(coupon.code ?? '')
         setIsAutoAppliedCoupon(true)
       } catch {
         // Manual coupon entry remains available when auto-apply is unavailable.
@@ -1985,7 +1986,7 @@ function ClubsPageContent() {
                       {appliedCoupon && (
                         <>
                           <div className="flex justify-between gap-4 text-green-700">
-                            <span>Coupon ({appliedCoupon.code}):</span>
+                            <span>{appliedCoupon.code ? `Coupon (${appliedCoupon.code}):` : `${appliedCoupon.name}:`}</span>
                             <span>-{formatPrice(Math.min(appliedCoupon.discount, selectedPlan.price), selectedPlan.currency)}</span>
                           </div>
                           <div className="flex justify-between gap-4 border-t pt-2 font-semibold">

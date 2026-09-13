@@ -317,7 +317,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         const autoC = res.data.coupon
         setCouponDiscount(autoC.discount)
         setCouponName(autoC.name)
-        setLocalCouponCode(autoC.code)
+        setLocalCouponCode(autoC.code ?? '')
         setCouponApplied(true)
         setIsAutoApplied(true)
       } else {
@@ -971,7 +971,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 font-medium">
                           <Tag className="w-4 h-4" />
-                          <span>Coupon ({localCouponCode}){couponName ? ` — ${couponName}` : ''}</span>
+                          <span>{localCouponCode ? `Coupon (${localCouponCode})${couponName ? ` — ${couponName}` : ''}` : (couponName || 'Member discount')}</span>
                         </div>
                         {isAutoApplied && (
                           <div className="flex items-center gap-2 flex-wrap mt-0.5">

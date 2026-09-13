@@ -13,7 +13,8 @@ import { JoinMembershipModal, JoinablePlan } from "@/components/modals/join-memb
 import { LoginModal } from "@/components/login-modal"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { ArrowLeft, Calendar, Clock, CreditCard, Search } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, Calendar, Clock, CreditCard, Search } from "lucide-react"
+import { PlanDetailsModal } from "@/components/modals/plan-details-modal"
 
 interface Club {
   _id: string
@@ -70,6 +71,7 @@ export default function ClubMembershipPlansPage() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
   const [showJoinModal, setShowJoinModal] = useState(false)
+  const [detailsPlan, setDetailsPlan] = useState<JoinablePlan | null>(null)
   const [isAppRedirect, setIsAppRedirect] = useState(false)
 
   useEffect(() => {
@@ -302,6 +304,15 @@ export default function ClubMembershipPlansPage() {
                     >
                       {cta.label}
                     </Button>
+                    <button
+                      type="button"
+                      onClick={() => setDetailsPlan(plan)}
+                      className="inline-flex items-center justify-center gap-1 text-sm font-semibold hover:underline"
+                      style={{ color: primaryColor }}
+                    >
+                      Know More About The Plan
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </button>
                   </CardContent>
                 </Card>
               )
@@ -309,6 +320,13 @@ export default function ClubMembershipPlansPage() {
           </div>
         )}
       </div>
+
+      <PlanDetailsModal
+        open={Boolean(detailsPlan)}
+        onOpenChange={(open) => { if (!open) setDetailsPlan(null) }}
+        plan={detailsPlan}
+        displayPrice={detailsPlan ? getPlanCharge(detailsPlan).finalAmount : undefined}
+      />
 
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} onSuccess={() => {}} />
 
