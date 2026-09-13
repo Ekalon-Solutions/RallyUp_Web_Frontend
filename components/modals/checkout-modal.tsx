@@ -227,7 +227,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       if (res.success && res.data?.coupon) {
         const autoC = res.data.coupon
         setAppliedCoupon({
-          code: autoC.code,
+          code: autoC.code ?? '',
           name: autoC.name,
           discountType: autoC.discountType,
           discountValue: autoC.discountValue,
@@ -1528,7 +1528,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                               )}
                             </div>
                             <div className="text-sm text-green-700">
-                              Code: <code className="font-mono font-semibold">{appliedCoupon.code}</code>
+                              {appliedCoupon.code
+                                ? <>Code: <code className="font-mono font-semibold">{appliedCoupon.code}</code></>
+                                : "Included with your membership plan"}
                             </div>
                           </div>
                         </div>
@@ -1655,7 +1657,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5 font-medium">
                             <Tag className="w-4 h-4" />
-                            <span>Coupon ({appliedCoupon.code})</span>
+                            <span>{appliedCoupon.code ? `Coupon (${appliedCoupon.code})` : appliedCoupon.name}</span>
                           </div>
                           {isAutoApplied && (
                             <div className="flex items-center gap-2 flex-wrap mt-0.5">

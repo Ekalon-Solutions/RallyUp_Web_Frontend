@@ -4,145 +4,41 @@ import React, { Suspense, useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
-import {
-  Upload,
-  Download,
-  Share2,
-  QrCode,
-  CreditCard,
-  Settings,
-  Eye,
-  Plus,
-  Edit,
-  Trash2,
-  RefreshCw,
-  Palette,
-  Image,
-} from "lucide-react"
+import { CreditCard, Edit, Eye, Plus, RefreshCw, Trash2 } from "lucide-react"
 import { MembershipCard } from "@/components/membership-card"
+import { MembershipCardEditor, CardEditorResult } from "@/components/admin/membership-card-editor"
 import { apiClient, PublicMembershipCardDisplay, CreateMembershipCardRequest } from "@/lib/api"
-import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
-import { getBaseUrl, getApiUrl } from "@/lib/config"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
 import { LockedFeaturePage } from "@/components/feature-gate"
-import { LOGO_SIZES, hasScalableLogo } from "@/lib/membershipCardLogo"
 import { MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE } from "@/lib/membershipCardProfile"
-
+import {
+  CARD_STYLE_COLORS,
+  CARD_STYLE_OPTIONS,
+  CardStyleKey,
+  normalizeCardCustomization,
+} from "@/lib/membershipCardFields"
 
 function MembershipCardsPage() {
-  const CARD_STYLE_COLORS: Record<
-    "default" | "premium" | "vintage" | "modern" | "elite" | "emerald",
-    { primaryColor: string; secondaryColor: string }
-  > =
-    { default: { primaryColor: '#2563eb', secondaryColor: '#1e40af' },
-      premium: { primaryColor: '#fbbf24', secondaryColor: '#dc2626' },
-      vintage: { primaryColor: '#b45309', secondaryColor: '#7c2d12' },
-      modern: { primaryColor: '#1e293b', secondaryColor: '#581c87' },
-      elite: { primaryColor: '#111827', secondaryColor: '#000000' },
-      emerald: { primaryColor: '#10b981', secondaryColor: '#0d9488' }
-    }
-
-  const FONT_FAMILIES = [
-    { label: "Inter (Default)", value: "Inter" },
-    { label: "Roboto", value: "Roboto" },
-    { label: "Open Sans", value: "Open Sans" },
-    { label: "Montserrat", value: "Montserrat" },
-    { label: "Poppins", value: "Poppins" },
-    { label: "Lato", value: "Lato" },
-    { label: "Oswald", value: "Oswald" },
-    { label: "Bebas Neue", value: "Bebas Neue" },
-    { label: "Teko", value: "Teko" },
-    { label: "Anton", value: "Anton" },
-    { label: "Exo 2", value: "Exo 2" },
-    { label: "Barlow", value: "Barlow" },
-    { label: "Archivo Black", value: "Archivo Black" },
-    { label: "Titillium Web", value: "Titillium Web" },
-    { label: "Merriweather", value: "Merriweather" },
-    { label: "Playfair Display", value: "Playfair Display" },
-    { label: "Lora", value: "Lora" },
-    { label: "Roboto Slab", value: "Roboto Slab" },
-    { label: "Bitter", value: "Bitter" },
-  ];
-
   const { activeClubId } = useAuth()
   const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    return searchParams.get("planId") ? "create" : "preview"
-  })
-  const [customization, setCustomization] = useState<{
-    cardStyle: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
-    showLogo: boolean;
-    showUserProfile: boolean;
-    primaryColor: string;
-    secondaryColor: string;
-    fontFamily: string;
-    logoSize: 'small' | 'medium' | 'large';
-    idPrefix: string;
-  }>({
-    cardStyle: 'default',
-    showLogo: true,
-    showUserProfile: false,
-    primaryColor: CARD_STYLE_COLORS['default'].primaryColor,
-    secondaryColor: CARD_STYLE_COLORS['default'].secondaryColor,
-    fontFamily: 'Inter',
-    logoSize: 'medium',
-    idPrefix: 'UM'
-  })
 
   const [cards, setCards] = useState<PublicMembershipCardDisplay[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [customLogoPreview, setCustomLogoPreview] = useState<string | null>(null)
-  const [customLogoFile, setCustomLogoFile] = useState<File | null>(null)
   const [membershipPlans, setMembershipPlans] = useState<any[]>([])
-  const effectiveClubId = activeClubId ?? null
   const [selectedPlanId, setSelectedPlanId] = useState<string>("")
+  const [newCardStyle, setNewCardStyle] = useState<CardStyleKey>("default")
   const [isCreating, setIsCreating] = useState(false)
   const [editingCard, setEditingCard] = useState<PublicMembershipCardDisplay | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-
-  const normalizeCustomization = (
-    value?: Partial<NonNullable<PublicMembershipCardDisplay["card"]["customization"]>>
-  ): NonNullable<PublicMembershipCardDisplay["card"]["customization"]> => ({
-    primaryColor: value?.primaryColor ?? CARD_STYLE_COLORS.default.primaryColor,
-    secondaryColor: value?.secondaryColor ?? CARD_STYLE_COLORS.default.secondaryColor,
-    fontFamily: value?.fontFamily ?? "Inter",
-    logoSize: value?.logoSize ?? "medium",
-    showLogo: value?.showLogo ?? true,
-    showUserProfile: value?.showUserProfile ?? false,
-    idPrefix: value?.idPrefix ?? "UM",
-    ...(value?.customLogo ? { customLogo: value.customLogo } : {}),
-  })
-
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result);
-        } else {
-          reject(new Error('Failed to convert file to base64'));
-        }
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
-  };
+  const effectiveClubId = activeClubId ?? null
 
   const fetchCards = useCallback(async (targetClubId: string) => {
     try {
@@ -189,35 +85,37 @@ function MembershipCardsPage() {
     }
   }, [])
 
+  const fetchPlans = useCallback(async (targetClubId: string) => {
+    const plansResponse = await apiClient.getMembershipPlans(targetClubId)
+    if (plansResponse.success && plansResponse.data) {
+      const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : ((plansResponse.data as any)?.data || [])
+      setMembershipPlans(plansData)
+      return plansData as any[]
+    }
+    setMembershipPlans([])
+    return []
+  }, [])
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         setLoading(true)
         setError(null)
         setEditingCard(null)
-        let currentClubId = activeClubId
 
-        if (!currentClubId) {
+        if (!activeClubId) {
           setError("No club selected. Please select a club to continue.")
           setLoading(false)
           return
         }
 
-        // Fetch membership plans for selected club
-        const plansResponse = await apiClient.getMembershipPlans(currentClubId)
-        if (plansResponse.success && plansResponse.data) {
-          const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : ((plansResponse.data as any)?.data || [])
-          setMembershipPlans(plansData)
-          const urlPlanId = searchParams.get("planId")
-          if (urlPlanId && plansData.some((p: any) => p._id === urlPlanId)) {
-            setSelectedPlanId(urlPlanId)
-            setActiveTab("create")
-          }
-        } else {
-          setMembershipPlans([])
+        const plansData = await fetchPlans(activeClubId)
+        const urlPlanId = searchParams.get("planId")
+        if (urlPlanId && plansData.some((p: any) => p._id === urlPlanId)) {
+          setSelectedPlanId(urlPlanId)
         }
-        // Fetch cards
-        await fetchCards(currentClubId)
+
+        await fetchCards(activeClubId)
       } catch (err: any) {
         const errorMessage = err?.message || 'Network error or server unavailable'
         const errorDetails = err?.response?.data || {}
@@ -232,59 +130,7 @@ function MembershipCardsPage() {
     }
 
     fetchInitialData()
-  }, [fetchCards, activeClubId])
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
-      const url = URL.createObjectURL(file)
-      setPreviewUrl(url)
-    }
-  }
-
-  const handleCustomLogoChange = (file: File | null) => {
-    if (file) {
-      setCustomLogoFile(file)
-      const url = URL.createObjectURL(file)
-      setCustomLogoPreview(url)
-    } else {
-      setCustomLogoFile(null)
-      setCustomLogoPreview(null)
-    }
-  }
-
-  const handleRemoveCustomLogo = () => {
-    setCustomLogoFile(null)
-    setCustomLogoPreview(null)
-    if (editingCard) {
-      setEditingCard(prev => prev ? {
-        ...prev,
-        card: {
-          ...prev.card,
-          customization: prev.card.customization
-            ? { ...prev.card.customization, customLogo: undefined }
-            : undefined
-        }
-      } : null)
-    }
-  }
-
-  const handleSaveCustomization = async () => {
-    try {
-      toast.success("Card customization saved successfully")
-    } catch (error) {
-      toast.error("Failed to save customization")
-    }
-  }
-
-  const handleExportCards = async () => {
-    try {
-      toast.success("Cards exported successfully")
-    } catch (error) {
-      toast.error("Failed to export cards")
-    }
-  }
+  }, [fetchCards, fetchPlans, activeClubId, searchParams])
 
   const handleCreateCard = async () => {
     if (!effectiveClubId || !selectedPlanId) {
@@ -292,44 +138,22 @@ function MembershipCardsPage() {
       return
     }
 
+    const planName = membershipPlans.find(p => p._id === selectedPlanId)?.name || 'Unknown Plan'
+
     try {
       setIsCreating(true)
 
-      let customLogoUrl: string | undefined
-      if (selectedFile) {
-        const formData = new FormData()
-        formData.append('image', selectedFile)
-        const uploadResponse = await fetch(getApiUrl('/upload/logo'), {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-          body: formData
-        })
-        if (!uploadResponse.ok) {
-          const errData = await uploadResponse.json().catch(() => ({}))
-          throw new Error(errData?.message || 'Logo upload failed')
-        }
-        const uploadData = await uploadResponse.json()
-        customLogoUrl = uploadData.url?.startsWith('http') ? uploadData.url : `${getBaseUrl()}${uploadData.url || ''}`
-      }
-
+      const styleColors = CARD_STYLE_COLORS[newCardStyle] ?? CARD_STYLE_COLORS.default
       const cardData: CreateMembershipCardRequest = {
         membershipPlanId: selectedPlanId,
         clubId: effectiveClubId,
-        cardStyle: customization.cardStyle,
+        cardStyle: newCardStyle,
         accessLevel: 'basic',
-        customization: {
-          primaryColor: customization.primaryColor,
-          secondaryColor: customization.secondaryColor,
-          fontFamily: customization.fontFamily,
-          logoSize: customization.logoSize,
-          showLogo: customization.showLogo,
-          showUserProfile: customization.showUserProfile,
-          idPrefix: customization.idPrefix,
-          customLogo: customLogoUrl
-        }
+        customization: normalizeCardCustomization({
+          primaryColor: styleColors.primaryColor,
+          secondaryColor: styleColors.secondaryColor,
+        }),
       }
-
-      const planName = membershipPlans.find(p => p._id === selectedPlanId)?.name || 'Unknown Plan'
 
       const response = await apiClient.createMembershipCard(cardData)
 
@@ -344,8 +168,6 @@ function MembershipCardsPage() {
           description: `Membership card for plan "${planName}" has been created.`,
         })
         setSelectedPlanId("")
-        setPreviewUrl(null)
-        setSelectedFile(null)
         if (effectiveClubId) {
           await fetchCards(effectiveClubId)
         }
@@ -360,14 +182,11 @@ function MembershipCardsPage() {
         })
       }
     } catch (error: any) {
-      const planName = membershipPlans.find(p => p._id === selectedPlanId)?.name || 'Unknown Plan'
       const errorMessage = error?.message || 'Network error or server unavailable'
       const errorDetails = error?.response?.data || {}
       const statusCode = error?.response?.status || 'Unknown'
-      const validationErrors = errorDetails.errors || []
-      const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
       toast.error("Error Creating Membership Card", {
-        description: `Failed to create membership card for plan "${planName}" (Plan ID: ${selectedPlanId}) due to: ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
+        description: `Failed to create membership card for plan "${planName}" (Plan ID: ${selectedPlanId}) due to: ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
       })
     } finally {
       setIsCreating(false)
@@ -375,17 +194,21 @@ function MembershipCardsPage() {
   }
 
   const handleDeleteCard = async (cardId: string) => {
-    try {
-      const cardToDelete = cards.find(c => c.card._id === cardId)
-      const planName = cardToDelete?.membershipPlan?.name || 'Unknown Plan'
-      const cardNumber = cardToDelete?.card?.cardNumber || 'Unknown'
+    const cardToDelete = cards.find(c => c.card._id === cardId)
+    const planName = cardToDelete?.membershipPlan?.name || 'Unknown Plan'
+    const cardNumber = cardToDelete?.card?.cardNumber || 'Unknown'
 
+    // Deleting a template card discards its whole design, and there is no undo.
+    if (!window.confirm(`Delete the membership card for "${planName}"? This cannot be undone.`)) return
+
+    try {
       const response = await apiClient.deleteMembershipCard(cardId)
 
       if (response.success) {
         setCards(prev => prev.filter(card => card.card._id !== cardId))
+        if (editingCard?.card._id === cardId) setEditingCard(null)
         toast.success("Membership Card Deleted Successfully", {
-          description: `Membership card for plan "${planName}" (Card number: ${cardNumber}) has been deleted successfully. The card is no longer available.`,
+          description: `Membership card for plan "${planName}" (Card number: ${cardNumber}) has been deleted successfully.`,
         })
       } else {
         const errorDetails = (response as any).errorDetails || {}
@@ -394,13 +217,9 @@ function MembershipCardsPage() {
         throw new Error(`Failed to delete card: ${errorMessage} (Status: ${statusCode})`)
       }
     } catch (error: any) {
-      const cardToDelete = cards.find(c => c.card._id === cardId)
-      const planName = cardToDelete?.membershipPlan?.name || 'Unknown Plan'
       const errorMessage = error?.message || 'Network error or server unavailable'
-      const errorDetails = error?.response?.data || {}
-      const statusCode = error?.response?.status || 'Unknown'
       toast.error("Failed to Delete Membership Card", {
-        description: `Failed to delete membership card for plan "${planName}" (Card ID: ${cardId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
+        description: `Failed to delete membership card for plan "${planName}" (Card ID: ${cardId}): ${errorMessage}. Please try again.`,
       })
     }
   }
@@ -409,370 +228,58 @@ function MembershipCardsPage() {
     if (!effectiveClubId) return
     try {
       setLoading(true)
-      const plansResponse = await apiClient.getMembershipPlans(effectiveClubId)
-      if (plansResponse.success && plansResponse.data) {
-        const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : ((plansResponse.data as any)?.data || [])
-        setMembershipPlans(plansData)
-      }
-
-      const cardsResponse = await apiClient.getClubMembershipCards(effectiveClubId, { isTemplate: true, limit: 100 })
-      if (cardsResponse.success && cardsResponse.data) {
-        let cardsData: any[] = []
-        if (Array.isArray(cardsResponse.data)) {
-          cardsData = cardsResponse.data
-        } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
-          cardsData = cardsResponse.data.data
-        }
-
-        const validCards = cardsData.filter(card =>
-          card &&
-          card.card &&
-          card.card._id &&
-          typeof card.card._id === 'string' &&
-          card.card.cardStyle &&
-          card.club &&
-          card.membershipPlan
-        )
-
-        setCards(validCards)
-      } else {
-        const errorDetails = (cardsResponse as any).errorDetails || {}
-        const errorMessage = cardsResponse.error || 'Unknown error occurred'
-        const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
-        toast.error("Error Refreshing Membership Cards", {
-          description: `Failed to refresh membership cards for club (ID: ${effectiveClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
-        })
-      }
+      await fetchPlans(effectiveClubId)
+      await fetchCards(effectiveClubId)
     } catch (err: any) {
       const errorMessage = err?.message || 'Network error or server unavailable'
-      const errorDetails = err?.response?.data || {}
-      const statusCode = err?.response?.status || 'Unknown'
       toast.error("Error Refreshing Data", {
-        description: `Failed to refresh membership cards and plans for club (ID: ${effectiveClubId || 'Unknown'}) due to: ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
+        description: `Failed to refresh membership cards and plans for club (ID: ${effectiveClubId}) due to: ${errorMessage}. Please check your connection and try again.`,
       })
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRegenerateQR = async (cardId: string) => {
-    try {
-      const cardToUpdate = cards.find(c => c.card._id === cardId)
-      const planName = cardToUpdate?.membershipPlan?.name || 'Unknown Plan'
-      const cardNumber = cardToUpdate?.card?.cardNumber || 'Unknown'
-
-      const response = await apiClient.regenerateQRCode(cardId)
-
-      if (response.success) {
-        setCards(prev => prev.map(card =>
-          card.card._id === cardId
-            ? { ...card, card: { ...card.card, qrCode: response.data?.qrCode } }
-            : card
-        ))
-        toast.success("QR Code Regenerated Successfully", {
-          description: `QR code for membership card "${cardNumber}" (Plan: "${planName}") has been regenerated successfully. The new QR code is now active.`,
-        })
-      } else {
-        const errorDetails = (response as any).errorDetails || {}
-        const errorMessage = response.error || 'Unknown error occurred'
-        const statusCode = errorDetails.statusCode || (response as any).statusCode || 'Unknown'
-        throw new Error(`Failed to regenerate QR code: ${errorMessage} (Status: ${statusCode})`)
-      }
-    } catch (error: any) {
-      const cardToUpdate = cards.find(c => c.card._id === cardId)
-      const planName = cardToUpdate?.membershipPlan?.name || 'Unknown Plan'
-      const errorMessage = error?.message || 'Network error or server unavailable'
-      const errorDetails = error?.response?.data || {}
-      const statusCode = error?.response?.status || 'Unknown'
-      toast.error("Failed to Regenerate QR Code", {
-        description: `Failed to regenerate QR code for membership card (Card ID: ${cardId}, Plan: "${planName}"): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
-      })
-    }
-  }
-
   const handleEditCard = (card: PublicMembershipCardDisplay) => {
-    const fallbackStyleColors = CARD_STYLE_COLORS[card.card.cardStyle ?? "default"] || CARD_STYLE_COLORS.default;
-    const fullCustomization = normalizeCustomization(card.card.customization);
-    const cardCopy = {
+    setEditingCard({
       ...card,
       card: {
         ...card.card,
-        status: (card.card.status ?? "active") as "active" | "expired" | "transferred",
-        accessLevel: (card.card.accessLevel ?? "basic") as "basic" | "premium" | "vip",
-        cardStyle: (card.card.cardStyle ?? "default") as "default" | "premium" | "vintage" | "modern" | "elite" | "emerald",
-        customization: {
-          ...fullCustomization,
-          primaryColor: fullCustomization.primaryColor ?? fallbackStyleColors.primaryColor,
-          secondaryColor: fullCustomization.secondaryColor ?? fallbackStyleColors.secondaryColor,
-        }
-      }
-    };
-    setCustomLogoFile(null);
-    setCustomLogoPreview(null);
-    setEditingCard(cardCopy);
+        cardStyle: (card.card.cardStyle ?? "default") as CardStyleKey,
+        customization: normalizeCardCustomization(card.card.customization),
+      },
+    })
   }
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async ({ cardStyle, customization }: CardEditorResult) => {
     if (!editingCard) return
 
-    try {
-      setIsEditing(true)
+    const planName = editingCard.membershipPlan?.name || 'Unknown Plan'
+    const cardNumber = editingCard.card.cardNumber || 'Unknown'
+    const updateData = { cardStyle, customization }
 
-      let customLogoUrl = editingCard.card.customization?.customLogo
+    const response = await apiClient.updateMembershipCard(editingCard.card._id, updateData)
+    const updated = response.data
 
-      if (customLogoFile) {
-        try {
-          const formData = new FormData()
-          formData.append('image', customLogoFile)
-
-          const uploadResponse = await fetch(getApiUrl('/upload/logo'), {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: formData
-          })
-
-          if (!uploadResponse.ok) {
-            throw new Error('Upload failed')
-          }
-
-          const uploadData = await uploadResponse.json()
-          customLogoUrl = uploadData.url?.startsWith('http') ? uploadData.url : `${getBaseUrl()}${uploadData.url}`
-
-          setEditingCard(prev => prev ? {
-            ...prev,
-            card: {
-              ...prev.card,
-              customization: prev.card.customization
-                ? { ...prev.card.customization, customLogo: customLogoUrl }
-                : undefined
-            }
-          } : null)
-        } catch (error) {
-          toast.error("Failed to upload logo file")
-          return
-        }
-      }
-
-      const baseCustomization = normalizeCustomization(editingCard.card.customization)
-      const updatedCustomization = {
-        primaryColor: baseCustomization.primaryColor,
-        secondaryColor: baseCustomization.secondaryColor,
-        fontFamily: baseCustomization.fontFamily,
-        logoSize: baseCustomization.logoSize,
-        showLogo: baseCustomization.showLogo,
-        showUserProfile: baseCustomization.showUserProfile,
-        idPrefix: baseCustomization.idPrefix,
-        ...(baseCustomization.customLogo !== undefined && { customLogo: baseCustomization.customLogo }),
-        ...(customLogoUrl !== undefined && { customLogo: customLogoUrl }),
-      }
-
-      const updateData = {
-        status: editingCard.card.status ?? "active",
-        accessLevel: editingCard.card.accessLevel ?? "basic",
-        cardStyle: editingCard.card.cardStyle ?? "default",
-        customization: updatedCustomization
-      }
-
-      const planName = editingCard.membershipPlan?.name || 'Unknown Plan'
-      const cardNumber = editingCard.card.cardNumber || 'Unknown'
-
-      const response = await apiClient.updateMembershipCard(editingCard.card._id, updateData)
-
-      const updated = response.data
-      if (response.success && updated) {
-        setCards(prev => prev.map(card => {
-          if (card.card._id === editingCard.card._id) {
-            if (updated.card && updated.membershipPlan) {
-              return updated
-            }
-            return {
-              ...card,
-              card: {
-                ...card.card,
-                ...updateData
-              }
-            }
-          }
-          return card
-        }))
-
-        const statusText = updateData.status ? ` Status: ${updateData.status}.` : ''
-        const accessLevelText = updateData.accessLevel ? ` Access level: ${updateData.accessLevel}.` : ''
-        toast.success("Membership Card Updated Successfully", {
-          description: `Membership card "${cardNumber}" for plan "${planName}" has been updated successfully.${statusText}${accessLevelText} All changes have been saved.`,
-        })
-
-        setEditingCard(null)
-      } else {
-        const errorDetails = (response as any).errorDetails || {}
-        const errorMessage = response.error || 'Unknown error occurred'
-        const statusCode = errorDetails.statusCode || (response as any).statusCode || 'Unknown'
-        const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
-        const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-        throw new Error(`Failed to update card: ${errorMessage} (Status: ${statusCode})${validationMsg}`)
-      }
-    } catch (error: any) {
-      const planName = editingCard?.membershipPlan?.name || 'Unknown Plan'
-      const cardNumber = editingCard?.card?.cardNumber || 'Unknown'
-      const errorMessage = error?.message || 'Network error or server unavailable'
-      const errorDetails = error?.response?.data || {}
-      const statusCode = error?.response?.status || 'Unknown'
-      const validationErrors = errorDetails.errors || []
+    if (!response.success) {
+      const errorDetails = (response as any).errorDetails || {}
+      const errorMessage = response.error || 'Unknown error occurred'
+      const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
       const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-      toast.error("Failed to Update Membership Card", {
-        description: `Failed to update membership card "${cardNumber}" for plan "${planName}" (Card ID: ${editingCard?.card._id}): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your changes and try again.`,
-      })
-    } finally {
-      setIsEditing(false)
+      throw new Error(`${errorMessage}.${validationMsg}`)
     }
-  }
 
-  const handleCancelEdit = () => {
+    setCards(prev => prev.map(card => {
+      if (card.card._id !== editingCard.card._id) return card
+      if (updated?.card && updated?.membershipPlan) return updated
+      return { ...card, card: { ...card.card, ...updateData } }
+    }))
+
+    toast.success("Membership Card Updated Successfully", {
+      description: `Membership card "${cardNumber}" for plan "${planName}" has been updated successfully.`,
+    })
     setEditingCard(null)
-    setCustomLogoFile(null)
-    setCustomLogoPreview(null)
   }
-
-  const handlePrimaryColorChange = useCallback((newColor: string) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      const base = normalizeCustomization(prev.card.customization)
-      return {
-        ...prev,
-        card: {
-          ...prev.card,
-          customization: { ...base, primaryColor: newColor }
-        }
-      }
-    })
-  }, [])
-
-  const handleSecondaryColorChange = useCallback((newColor: string) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      const base = normalizeCustomization(prev.card.customization)
-      return {
-        ...prev,
-        card: {
-          ...prev.card,
-          customization: { ...base, secondaryColor: newColor }
-        }
-      }
-    })
-  }, [])
-
-  const handleStatusChange = useCallback((value: string) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      return {
-        ...prev,
-        card: { ...prev.card, status: value as 'active' | 'expired' | 'transferred' }
-      }
-    })
-  }, [])
-
-  const handleAccessLevelChange = useCallback((value: string) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      return {
-        ...prev,
-        card: { ...prev.card, accessLevel: value as 'basic' | 'premium' | 'vip' }
-      }
-    })
-  }, [])
-
-  const handleCardStyleChange = useCallback((value: string) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      const styleValue = value as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald'
-      const styleColors = CARD_STYLE_COLORS[styleValue] ?? CARD_STYLE_COLORS.default
-      const existingCustomization = normalizeCustomization(prev.card.customization)
-      return {
-        ...prev,
-        card: {
-          ...prev.card,
-          cardStyle: styleValue,
-          customization: {
-            ...existingCustomization,
-            primaryColor: styleColors.primaryColor,
-            secondaryColor: styleColors.secondaryColor,
-          }
-        }
-      }
-    })
-  }, [CARD_STYLE_COLORS, normalizeCustomization])
-
-  const handleFontFamilyChange = useCallback((value: string) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      const base = normalizeCustomization(prev.card.customization)
-      return {
-        ...prev,
-        card: {
-          ...prev.card,
-          customization: { ...base, fontFamily: value }
-        }
-      }
-    })
-  }, [])
-
-  const handleLogoSizeChange = useCallback((value: string) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      const base = normalizeCustomization(prev.card.customization)
-      return {
-        ...prev,
-        card: {
-          ...prev.card,
-          customization: { ...base, logoSize: value as "small" | "medium" | "large" }
-        }
-      }
-    })
-  }, [])
-
-  const handleShowLogoChange = useCallback((checked: boolean) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      const base = normalizeCustomization(prev.card.customization)
-      return {
-        ...prev,
-        card: {
-          ...prev.card,
-          customization: { ...base, showLogo: checked }
-        }
-      }
-    })
-  }, [])
-
-  const handleShowUserProfileChange = useCallback((checked: boolean) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      const base = normalizeCustomization(prev.card.customization)
-      return {
-        ...prev,
-        card: {
-          ...prev.card,
-          customization: { ...base, showUserProfile: checked }
-        }
-      }
-    })
-  }, [])
-
-  const handleIdPrefixChange = useCallback((value: string) => {
-    setEditingCard(prev => {
-      if (!prev) return null
-      const base = normalizeCustomization(prev.card.customization)
-      return {
-        ...prev,
-        card: {
-          ...prev.card,
-          customization: { ...base, idPrefix: value.toUpperCase().replace(/[^A-Z0-9_-]/g, '') }
-        }
-      }
-    })
-  }, [])
 
   const getPreviewProfilePicture = (showUserProfile?: boolean) =>
     showUserProfile ? MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE : undefined
@@ -796,15 +303,16 @@ function MembershipCardsPage() {
     return (
       <ProtectedRoute requireAdmin>
         <DashboardLayout>
-          <div className="space-y-6">
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         </DashboardLayout>
       </ProtectedRoute>
     )
   }
+
+  const planIdsWithCards = cards.map(c => c.membershipPlan?._id).filter(Boolean)
+  const selectedPlanHasCard = !!selectedPlanId && planIdsWithCards.includes(selectedPlanId)
 
   return (
     <ProtectedRoute requireAdmin>
@@ -815,214 +323,30 @@ function MembershipCardsPage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Membership Cards</h1>
               <p className="text-muted-foreground text-sm sm:text-base">Create and customize membership cards for your plans</p>
             </div>
-            <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2 w-full sm:w-auto">
-              <RefreshCw className="w-4 h-4" />
-              Refresh
-            </Button>
+            {!editingCard && (
+              <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2 w-full sm:w-auto">
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </Button>
+            )}
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="preview">Live Preview</TabsTrigger>
-              <TabsTrigger value="create">Create Card</TabsTrigger>
-              <TabsTrigger value="manage">Manage Cards</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="preview" className="space-y-6">
+          {editingCard ? (
+            <MembershipCardEditor
+              key={editingCard.card._id}
+              card={editingCard}
+              onCancel={() => setEditingCard(null)}
+              onSave={handleSaveEdit}
+            />
+          ) : (
+            <>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Eye className="w-5 h-5" />
                     Live Preview
                   </CardTitle>
-                  <CardDescription>
-                    {editingCard ?
-                      `Previewing edits for ${editingCard.membershipPlan?.name || 'Unknown Plan'} card` :
-                      "See how your membership cards will look with current settings"
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {cards.length > 0 ? (
-                    <div className="space-y-6">
-                      {/* Currently Editing Card Preview */}
-                      {editingCard && (
-                        <div className="text-center">
-                          <h4 className="font-medium mb-3 text-foreground">Currently Editing</h4>
-                          <div className="flex justify-center">
-                            <div className="w-full max-w-xs">
-                              <MembershipCard
-                                cardData={editingCard}
-                                cardStyle={editingCard.card.cardStyle}
-                                showLogo={editingCard.card.customization?.showLogo ?? true}
-                                userName="John Doe"
-                                membershipId={editingCard.card.membershipId ? editingCard.card.membershipId.replace(/^[^-]+/, editingCard.card.customization?.idPrefix || 'UM') : `${editingCard.card.customization?.idPrefix || 'UM'}-2026-123456`}
-                                profilePicture={getPreviewProfilePicture(editingCard.card.customization?.showUserProfile)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* All Created Cards */}
-                      <div>
-                        <h4 className="font-medium mb-3 text-foreground">All Your Cards</h4>
-                        {cards.length === 0 ? (
-                          <div className="text-center text-muted-foreground py-8">
-                            <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                            <p>No valid membership cards found</p>
-                            <p className="text-sm">Create your first membership card to see a preview</p>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-                            {cards.map((card, index) => (
-                              <div key={card?.card?._id || index} className="text-center">
-                                <p className="text-sm text-muted-foreground mb-2">{card?.membershipPlan?.name || 'Unknown Plan'}</p>
-                                <div className="w-full max-w-xs mx-auto">
-                                  <MembershipCard
-                                    cardData={card}
-                                    cardStyle={card?.card?.cardStyle || 'default'}
-                                    showLogo={card?.card?.customization?.showLogo ?? true}
-                                    userName="John Doe"
-                                    membershipId={card?.card?.membershipId ?? 'Membership ID'}
-                                    profilePicture={getPreviewProfilePicture(card?.card?.customization?.showUserProfile)}
-                                  />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No membership cards found</p>
-                      <p className="text-sm">Create your first membership card to see a preview</p>
-                      {membershipPlans.length > 0 && (
-                        <div className="mt-4">
-                          <p className="text-sm text-blue-600 dark:text-blue-400">
-                            Available plans: {membershipPlans.map(p => p.name).join(', ')}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Go to the "Create Card" tab to create a membership card for one of these plans
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="create" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Plus className="w-5 h-4" />
-                    Create New Membership Card
-                  </CardTitle>
-                  <CardDescription>
-                    Create a new membership card for a membership plan
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {membershipPlans.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">
-                      <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No membership plans found</p>
-                      <p className="text-sm">Create membership plans first</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <p className="text-sm text-blue-800 dark:text-blue-200">
-                          <strong>Note:</strong> Each membership plan can only have one template card.
-                          If you get an error saying "A template card already exists for this membership plan",
-                          it means a card has already been created for that plan.
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="planId">Membership Plan</Label>
-                          <Select
-                            value={selectedPlanId}
-                            onValueChange={setSelectedPlanId}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a plan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {membershipPlans.map((plan) => (
-                                <SelectItem key={plan._id} value={plan._id}>
-                                  {plan.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="createCardStyle">Card Style</Label>
-                          <Select
-                            value={customization.cardStyle}
-                            onValueChange={(v) => setCustomization(prev => ({
-                              ...prev,
-                              cardStyle: v as typeof prev.cardStyle,
-                              primaryColor: (CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS] ?? CARD_STYLE_COLORS.default).primaryColor,
-                              secondaryColor: (CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS] ?? CARD_STYLE_COLORS.default).secondaryColor,
-                              fontFamily: prev.fontFamily,
-                              logoSize: prev.logoSize,
-                              showLogo: prev.showLogo,
-                              showUserProfile: prev.showUserProfile
-                            }))}
-                          >
-                            <SelectTrigger id="createCardStyle">
-                              <SelectValue placeholder="Select style" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="default">Classic Blue</SelectItem>
-                              <SelectItem value="premium">Premium Gold</SelectItem>
-                              <SelectItem value="vintage">Vintage Amber</SelectItem>
-                              <SelectItem value="modern">Modern Purple</SelectItem>
-                              <SelectItem value="elite">Elite Black</SelectItem>
-                              <SelectItem value="emerald">Emerald Green</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {membershipPlans.length > 0 && (() => {
-                    const planIdsWithCards = cards.map(c => c.membershipPlan?._id).filter(Boolean);
-                    const selectedPlanHasCard = selectedPlanId && planIdsWithCards.includes(selectedPlanId);
-                    return (
-                      <div className="flex flex-col items-end gap-2">
-                        {selectedPlanHasCard && (
-                          <p className="text-sm text-amber-600 dark:text-amber-400">
-                            This plan already has a membership card. Only one card can be created per plan.
-                          </p>
-                        )}
-                        <Button
-                          onClick={handleCreateCard}
-                          disabled={!effectiveClubId || !selectedPlanId || isCreating || !!selectedPlanHasCard}
-                        >
-                          {isCreating ? "Creating..." : "Create Membership Card"}
-                        </Button>
-                      </div>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="manage" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Manage Membership Cards</CardTitle>
-                  <CardDescription>
-                    View, edit, and manage all membership cards
-                  </CardDescription>
+                  <CardDescription>See how your membership cards will look with current settings</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {error ? (
@@ -1033,363 +357,124 @@ function MembershipCardsPage() {
                     <div className="text-center text-muted-foreground py-8">
                       <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>No membership cards found</p>
+                      <p className="text-sm">Create your first membership card to see a preview</p>
+                      {membershipPlans.length > 0 && (
+                        <p className="text-sm text-blue-600 dark:text-blue-400 mt-4">
+                          Available plans: {membershipPlans.map(p => p.name).join(', ')}
+                        </p>
+                      )}
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {cards.map((card) => {
-                        if (!card || !card.card) {
-                          return null
-                        }
-
-                        return (
-                          <div key={card.card._id} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex items-center space-x-4">
-                              <div className="w-16 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center">
-                                <CreditCard className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <p className="font-medium">{card.membershipPlan?.name || 'No Plan Name'}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {card.card.cardNumber}
-                                </p>
-                                <div className="flex items-center space-x-2 mt-1">
-                                  <Badge variant={card.card.status === 'active' ? 'default' : 'secondary'}>
-                                    {card.card.status}
-                                  </Badge>
-                                  <span className="text-xs text-muted-foreground">
-                                    Expires: {formatDisplayDate(card.card.expiryDate)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleRegenerateQR(card.card._id)}
-                              >
-                                <RefreshCw className="w-4 h-4" />
+                    <div>
+                      <h4 className="font-medium mb-3 text-foreground">All Your Cards</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                        {cards.map((card) => (
+                          <div key={card.card._id} className="space-y-2">
+                            <MembershipCard
+                              cardData={card}
+                              cardStyle={card.card.cardStyle || 'default'}
+                              showLogo={card.card.customization?.showLogo ?? true}
+                              userName="John Doe"
+                              membershipId={card.card.membershipId ?? 'Membership ID'}
+                              profilePicture={getPreviewProfilePicture(card.card.customization?.showUserProfile)}
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button variant="outline" size="sm" onClick={() => handleEditCard(card)}>
+                                <Edit className="w-3.5 h-3.5 mr-1.5" />
+                                Edit
                               </Button>
                               <Button
-                                size="sm"
                                 variant="outline"
-                                onClick={() => handleEditCard(card)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
                                 size="sm"
-                                variant="destructive"
                                 onClick={() => handleDeleteCard(card.card._id)}
+                                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                Delete
                               </Button>
                             </div>
                           </div>
-                        )
-                      }).filter(Boolean)}
+                        ))}
+                      </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
 
-        {/* Edit Card Modal */}
-        {editingCard && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-background border rounded-lg w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center mb-4 p-6 pb-4">
-                <h3 className="text-lg font-semibold text-foreground">Edit Membership Card</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCancelEdit}
-                  className="h-8 w-8 p-0"
-                >
-                  <span className="sr-only">Close</span>
-                  ×
-                </Button>
-              </div>
-
-              <div key={editingCard.card._id} className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1 min-h-0">
-                {/* Left Column - Settings */}
-                <div className="flex-shrink-0 lg:w-[380px] xl:w-[420px] space-y-4 overflow-y-auto">
-                  <div>
-                    <Label htmlFor="idPrefix">Card ID Prefix</Label>
-                    <Input
-                      id="idPrefix"
-                      type="text"
-                      placeholder="UM"
-                      maxLength={10}
-                      value={normalizeCustomization(editingCard.card.customization).idPrefix}
-                      onChange={(e) => handleIdPrefixChange(e.target.value)}
-                      className="h-10 w-full font-mono uppercase"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Prefix for member IDs (e.g. {normalizeCustomization(editingCard.card.customization).idPrefix || 'UM'}-{new Date().getFullYear()}-XXXXXX)
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="status">Status</Label>
-                    <Select
-                      value={editingCard.card.status ?? "active"}
-                      onValueChange={handleStatusChange}
-                    >
-                      <SelectTrigger id="status">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="expired">Expired</SelectItem>
-                        <SelectItem value="transferred">Transferred</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="accessLevel">Access Level</Label>
-                    <Select
-                      value={editingCard.card.accessLevel ?? "basic"}
-                      onValueChange={handleAccessLevelChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="basic">Basic</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
-                        <SelectItem value="vip">VIP</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="editCardStyle">Card Style</Label>
-                    <Select
-                      value={editingCard.card.cardStyle ?? "default"}
-                      onValueChange={handleCardStyleChange}
-                    >
-                      <SelectTrigger id="editCardStyle">
-                        <SelectValue placeholder="Select style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Classic Blue</SelectItem>
-                        <SelectItem value="premium">Premium Gold</SelectItem>
-                        <SelectItem value="vintage">Vintage Amber</SelectItem>
-                        <SelectItem value="modern">Modern Purple</SelectItem>
-                        <SelectItem value="elite">Elite Black</SelectItem>
-                        <SelectItem value="emerald">Emerald Green</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="primaryColor">Primary Color</Label>
-                    <Input
-                      id="primaryColor"
-                      type="color"
-                      value={normalizeCustomization(editingCard.card.customization).primaryColor}
-                      onChange={(e) => handlePrimaryColorChange(e.target.value)}
-                      className="h-10 w-full cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="secondaryColor">Secondary Color</Label>
-                    <Input
-                      id="secondaryColor"
-                      type="color"
-                      value={normalizeCustomization(editingCard.card.customization).secondaryColor}
-                      onChange={(e) => handleSecondaryColorChange(e.target.value)}
-                      className="h-10 w-full cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="fontFamily">Font Family</Label>
-                    <Select
-                      value={editingCard.card.customization?.fontFamily || 'Inter'}
-                      onValueChange={handleFontFamilyChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue asChild>
-                          <span style={{ fontFamily: `'${editingCard.card.customization?.fontFamily || 'Inter'}', sans-serif` }}>
-                            {editingCard.card.customization?.fontFamily || 'Inter'}
-                          </span>
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FONT_FAMILIES.map((font) => (
-                          <SelectItem key={font.value} value={font.value}>
-                            <span style={{ fontFamily: `'${font.value}', sans-serif` }}>{font.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {(() => {
-                    // Edge case: with no custom logo and no club logo there is
-                    // nothing to scale, so disable the toggle rather than let the
-                    // admin scale the "missing image" placeholder.
-                    const logoAvailable = hasScalableLogo({
-                      customLogo: customLogoPreview || editingCard.card.customization?.customLogo,
-                      clubLogo: editingCard.club?.logo,
-                    })
-                    return (
-                      <div>
-                        <Label htmlFor="logoSize">Logo Size</Label>
-                        <ToggleGroup
-                          id="logoSize"
-                          type="single"
-                          variant="outline"
-                          value={editingCard.card.customization?.logoSize || 'medium'}
-                          onValueChange={(value) => { if (value) handleLogoSizeChange(value) }}
-                          disabled={!logoAvailable}
-                          className="mt-1 justify-start"
-                        >
-                          {LOGO_SIZES.map((size) => (
-                            <ToggleGroupItem
-                              key={size.value}
-                              value={size.value}
-                              aria-label={`${size.label} logo`}
-                              className="flex-1"
-                            >
-                              {size.label}
-                            </ToggleGroupItem>
-                          ))}
-                        </ToggleGroup>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {logoAvailable
-                            ? "Large increases the logo to 150% of the default size."
-                            : "Upload a custom logo (or set a club logo) to adjust logo size."}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5" />
+                    Create New Membership Card
+                  </CardTitle>
+                  <CardDescription>Create a new membership card for a membership plan</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {membershipPlans.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No membership plans found</p>
+                      <p className="text-sm">Create membership plans first</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          <strong>Note:</strong> Each membership plan can only have one template card.
+                          If you get an error saying "A template card already exists for this membership plan",
+                          it means a card has already been created for that plan.
                         </p>
                       </div>
-                    )
-                  })()}
 
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="showLogo"
-                      checked={editingCard.card.customization?.showLogo ?? true}
-                      onCheckedChange={handleShowLogoChange}
-                    />
-                    <Label htmlFor="showLogo">Show Club Logo</Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="showUserProfile"
-                      checked={editingCard.card.customization?.showUserProfile ?? false}
-                      onCheckedChange={handleShowUserProfileChange}
-                    />
-                    <Label htmlFor="showUserProfile">Show Member Profile Picture</Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground -mt-2">
-                    When enabled, members with an uploaded profile photo will see it on their card.
-                  </p>
-
-                  {/* Custom Logo Upload */}
-                  <div>
-                    <Label htmlFor="customLogo">Custom Logo</Label>
-                    <div className="mt-2 space-y-3">
-                      <Input
-                        id="customLogo"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleCustomLogoChange(e.target.files?.[0] ?? null)}
-                        className="mt-2"
-                      />
-
-                      {/* Current Logo Display */}
-                      {editingCard.card.customization?.customLogo && (
-                        <div className="mt-3">
-                          <Label className="text-sm text-muted-foreground">Current Logo</Label>
-                          <div className="mt-2 flex items-center space-x-3">
-                            <img
-                              src={editingCard.card.customization.customLogo.startsWith('http') || editingCard.card.customization.customLogo.startsWith('data:')
-                                ? editingCard.card.customization.customLogo
-                                : `${getBaseUrl()}${editingCard.card.customization.customLogo}`}
-                              alt="Current custom logo"
-                              className="w-16 h-16 object-cover rounded border"
-                              onError={(e) => {
-                                const customLogo = editingCard.card.customization?.customLogo;
-                                if (customLogo && !customLogo.startsWith('http') && !customLogo.startsWith('data:')) {
-                                  e.currentTarget.src = `${getBaseUrl()}${customLogo}`;
-                                }
-                              }}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleRemoveCustomLogo}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              Remove
-                            </Button>
-                          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="planId">Membership Plan</Label>
+                          <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                            <SelectTrigger id="planId">
+                              <SelectValue placeholder="Select a Plan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {membershipPlans.map((plan) => (
+                                <SelectItem key={plan._id} value={plan._id}>{plan.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                      )}
-
-                      {/* Logo Preview */}
-                      {customLogoPreview && (
-                        <div className="mt-3">
-                          <Label className="text-sm text-muted-foreground">New Logo Preview</Label>
-                          <div className="mt-2">
-                            <img
-                              src={customLogoPreview}
-                              alt="New logo preview"
-                              className="w-16 h-16 object-cover rounded border"
-                            />
-                          </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="createCardStyle">Card Style</Label>
+                          <Select value={newCardStyle} onValueChange={(v) => setNewCardStyle(v as CardStyleKey)}>
+                            <SelectTrigger id="createCardStyle">
+                              <SelectValue placeholder="Select style" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CARD_STYLE_OPTIONS.map((style) => (
+                                <SelectItem key={style.value} value={style.value}>{style.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                      </div>
 
-                {/* Right Column - Live Preview */}
-                <div className="flex-1 flex items-start justify-center lg:justify-center min-h-[220px] lg:min-h-0 lg:sticky lg:top-0">
-                  <div className="border rounded-lg p-4 bg-muted/20 w-full max-w-xs">
-                    <Label className="text-sm font-medium mb-3 block">Live Preview</Label>
-                    <div className="w-full">
-                      <MembershipCard
-                        cardData={customLogoPreview ? {
-                          ...editingCard,
-                          card: {
-                            ...editingCard.card,
-                            customization: {
-                              ...normalizeCustomization(editingCard.card.customization),
-                              customLogo: customLogoPreview,
-                            }
-                          }
-                        } : editingCard}
-                        cardStyle={editingCard.card.cardStyle}
-                        showLogo={editingCard.card.customization?.showLogo ?? true}
-                        userName="John Doe"
-                        membershipId={editingCard.card.membershipId ? editingCard.card.membershipId.replace(/^[^-]+/, editingCard.card.customization?.idPrefix || 'UM') : `${editingCard.card.customization?.idPrefix || 'UM'}-2026-123456`}
-                        profilePicture={getPreviewProfilePicture(editingCard.card.customization?.showUserProfile)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer - Actions */}
-              <div className="flex flex-col sm:flex-row justify-end gap-2 p-4 sm:p-6 pt-4 border-t bg-muted/20 flex-shrink-0">
-                <Button variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto">
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveEdit} disabled={isEditing} className="w-full sm:w-auto">
-                  {isEditing ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+                      <div className="flex flex-col items-end gap-2">
+                        {selectedPlanHasCard && (
+                          <p className="text-sm text-amber-600 dark:text-amber-400">
+                            This plan already has a membership card. Only one card can be created per plan.
+                          </p>
+                        )}
+                        <Button
+                          onClick={handleCreateCard}
+                          disabled={!effectiveClubId || !selectedPlanId || isCreating || selectedPlanHasCard}
+                        >
+                          {isCreating ? "Creating..." : "Create Membership Card"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
       </DashboardLayout>
     </ProtectedRoute>
   )

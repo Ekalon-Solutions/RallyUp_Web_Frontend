@@ -33,8 +33,20 @@ import { formatDisplayDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 import { LoginModal } from "@/components/login-modal"
 import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
+import { PlanBenefits } from "@/components/membership-plan/plan-benefits"
+import {
+  inputPropsForFieldType,
+  isAttributeEnabled,
+  isAttributeMandatory,
+  isDateFieldType,
+  validateFieldValue,
+  validateIdProofNumber,
+  type PlanAttributeKey,
+  type PlanAttributes,
+  type PublicPlanConfig,
+} from "@/lib/membershipPlanConfig"
 
-export interface JoinablePlan {
+export interface JoinablePlan extends PublicPlanConfig {
   _id: string
   name: string
   description?: string
@@ -49,6 +61,8 @@ export interface JoinablePlan {
     enabled: boolean
     points: number
   }
+  /** Admin-configured checkout fields. Absent = collect every field. */
+  attributes?: PlanAttributes
 }
 
 interface JoinMembershipModalProps {
@@ -232,6 +246,8 @@ export function JoinMembershipModal({
   const [isProcessing, setIsProcessing] = useState(false)
   const [registrationData, setRegistrationData] = useState({ ...EMPTY_REGISTRATION })
   const [registrationErrors, setRegistrationErrors] = useState({ phoneNumber: "" })
+  // Answers to the selected plan's admin-defined custom fields, keyed by label.
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({})
   const [referralPhone, setReferralPhone] = useState("")
   const [referralStatus, setReferralStatus] = useState<ReferralStatus>("idle")
   const [referralName, setReferralName] = useState<string | null>(null)
@@ -459,6 +475,61 @@ export function JoinMembershipModal({
   const selectedPlan = plans.find((p) => p._id === selectedPlanId) ?? plans[0]
   const validReferral = referralStatus === "found" ? referralPhone.replace(/\D/g, "") : undefined
 
+  // Which fields this plan collects, and which are required. A plan with no
+  // attributes config predates the feature and collects everything.
+  const planAttributes = selectedPlan?.attributes
+  const showField = (key: PlanAttributeKey) => isAttributeEnabled(planAttributes, key)
+  const fieldRequired = (key: PlanAttributeKey) => isAttributeMandatory(planAttributes, key)
+  const idProofTypes = planAttributes?.idProofTypes ?? []
+  const planCustomFields = planAttributes?.customFields ?? []
+  const selectedIdProof = idProofTypes.find((t) => t.label === registrationData.id_proof_type)
+
+  // The stored "Aadhar" default may not be one of the types this plan allows.
+  useEffect(() => {
+    if (!idProofTypes.length) return
+    if (idProofTypes.some((t) => t.label === registrationData.id_proof_type)) return
+    setRegistrationData((prev) => ({ ...prev, id_proof_type: idProofTypes[0].label }))
+  }, [selectedPlan?._id, idProofTypes.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Switching plans clears answers to the previous plan's custom fields.
+  useEffect(() => {
+    setCustomFieldValues({})
+  }, [selectedPlan?._id])
+
+  /** Returns the first unmet plan-attribute requirement, or null. */
+  const validatePlanAttributes = (): string | null => {
+    const labels: Record<string, string> = {
+      username: "Username",
+      date_of_birth: "Date of Birth",
+      gender: "Gender",
+      address_line1: "Address Line 1",
+      address_line2: "Address Line 2",
+      city: "City",
+      state_province: "State / Province",
+      zip_code: "ZIP / Postal Code",
+      country: "Country",
+      club_member_id: "Club Membership ID",
+    }
+    for (const [key, label] of Object.entries(labels)) {
+      if (!fieldRequired(key as PlanAttributeKey)) continue
+      if (!String((registrationData as any)[key] ?? "").trim()) return `${label} is required.`
+    }
+    if (showField("id_proof")) {
+      if (fieldRequired("id_proof") && !registrationData.id_proof_number.trim()) {
+        return "ID Proof Number is required."
+      }
+      const idError = validateIdProofNumber(registrationData.id_proof_number, selectedIdProof)
+      if (idError) return idError
+    }
+    for (const field of planCustomFields) {
+      const value = String(customFieldValues[field.label] ?? "").trim()
+      if (field.mandatory && !value) return `${field.label} is required.`
+      const typeError = validateFieldValue(field.type, value, field.label)
+      if (typeError) return typeError
+    }
+    return null
+  }
+
   const isCurrentPlan = (plan: JoinablePlan) =>
     currentPlanId != null && String(plan._id) === currentPlanId
 
@@ -541,8 +612,8 @@ export function JoinMembershipModal({
         })
         const coupon = response.success ? response.data?.coupon : null
         if (!coupon) return
-        setAppliedCoupon({ ...coupon, discount: Math.min(coupon.discount, chargeAmount) })
-        setCouponCode(coupon.code)
+        setAppliedCoupon({ ...coupon, code: coupon.code ?? '', discount: Math.min(coupon.discount, chargeAmount) })
+        setCouponCode(coupon.code ?? '')
         setIsAutoAppliedCoupon(true)
       } catch {
         // Auto-apply is best effort; manual coupon entry remains available.
@@ -715,7 +786,8 @@ export function JoinMembershipModal({
         validReferral,
         { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
         appliedCoupon?.code,
-        registrationData.club_member_id?.trim() || undefined
+        registrationData.club_member_id?.trim() || undefined,
+        customFieldValues
       )
 
       if (!pendingRes.success) {
@@ -768,6 +840,7 @@ export function JoinMembershipModal({
               { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
               appliedCoupon?.code,
               registrationSnapshot?.club_member_id?.trim() || registrationData.club_member_id?.trim() || undefined,
+              customFieldValues,
             )
 
             if (!subscribeRes.success) {
@@ -840,6 +913,12 @@ export function JoinMembershipModal({
       return
     }
 
+    const attributeError = validatePlanAttributes()
+    if (attributeError) {
+      toast.error(attributeError)
+      return
+    }
+
     const salesState = getPlanSalesState(selectedPlan)
     if (!salesState.isOpen) {
       toast.error(salesState.closed ? "Membership Closed" : "Membership sales are not open yet for this plan")
@@ -895,7 +974,8 @@ export function JoinMembershipModal({
             validReferral,
             { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
             appliedCoupon?.code,
-            registrationData.club_member_id?.trim() || undefined
+            registrationData.club_member_id?.trim() || undefined,
+            customFieldValues
           )
           if (!subscribeRes.success) {
             toast.error(subscribeRes.error || "Failed to activate discounted membership")
@@ -922,7 +1002,7 @@ export function JoinMembershipModal({
         const subscribeRes = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
           tshirtSize: registrationData.tshirtSize,
           tshirtColor: registrationData.tshirtColor,
-        }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined)
+        }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined, customFieldValues)
         if (subscribeRes.success) {
           toast.success("Successfully joined the club!")
           onOpenChange(false)
@@ -950,6 +1030,12 @@ export function JoinMembershipModal({
     }
     if (isAdmin) {
       toast.error("Admin accounts cannot purchase memberships. Please log in as a member.")
+      return
+    }
+
+    const attributeError = validatePlanAttributes()
+    if (attributeError) {
+      toast.error(attributeError)
       return
     }
 
@@ -982,7 +1068,7 @@ export function JoinMembershipModal({
       const response = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
         tshirtSize: registrationData.tshirtSize,
         tshirtColor: registrationData.tshirtColor,
-      }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined)
+      }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined, customFieldValues)
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
         toast.success(upgraded ? "Membership upgraded successfully!" : "Membership activated successfully!")
@@ -1018,7 +1104,8 @@ export function JoinMembershipModal({
           tshirtColor: pendingRegistrationData?.tshirtColor ?? registrationData.tshirtColor,
         },
         pendingPayment.couponCode,
-        pendingRegistrationData?.club_member_id ?? registrationData.club_member_id
+        pendingRegistrationData?.club_member_id ?? registrationData.club_member_id,
+        customFieldValues
       )
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
@@ -1128,7 +1215,11 @@ export function JoinMembershipModal({
   }
 
   const renderClubMemberIdField = () => {
-    const isMandatory = isClubMemberIdMandatory(clubTeamId)
+    // The club-level rule overrides the plan config — a club that mandates this
+    // ID always collects it, even if the plan turned the field off.
+    const clubMandates = isClubMemberIdMandatory(clubTeamId)
+    if (!showField("club_member_id") && !clubMandates) return null
+    const isMandatory = clubMandates || fieldRequired("club_member_id")
     return (
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor="club_member_id" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>
@@ -1140,9 +1231,38 @@ export function JoinMembershipModal({
           value={registrationData.club_member_id}
           onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
           required={isMandatory}
-          placeholder={isMandatory ? "Arsenal Membership No. (Digital or Red)" : "Optional — as registered on official site"}
+          placeholder={clubMandates ? "Arsenal Membership No. (Digital or Red)" : "Optional — as registered on official site"}
           className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")}
         />
+      </div>
+    )
+  }
+
+  /** Plan-specific fields from the wizard's Attributes Setup → Custom Fields. */
+  const renderCustomFields = () =>
+    planCustomFields.map((field) => (
+      <div key={field.label} className="space-y-2">
+        <Label htmlFor={`custom-${field.label}`} className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>
+          {field.label}{field.mandatory && <span className="text-primary ml-0.5">*</span>}
+        </Label>
+        <Input
+          id={`custom-${field.label}`}
+          {...inputPropsForFieldType(field.type)}
+          value={customFieldValues[field.label] ?? ""}
+          onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [field.label]: e.target.value }))}
+          required={field.mandatory}
+          className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")}
+        />
+      </div>
+    ))
+
+  /** What this plan includes — mirrors the club website's plan details modal. */
+  const renderPlanBenefits = () => {
+    if (!selectedPlan) return null
+    return (
+      <div className={cn("rounded-xl border p-4", isDashboard ? "border-input" : "border-secondary/30")}>
+        <h3 className="mb-1 text-sm font-bold">Membership benefits</h3>
+        <PlanBenefits plan={selectedPlan} />
       </div>
     )
   }
@@ -1280,7 +1400,7 @@ export function JoinMembershipModal({
           {appliedCoupon && (
             <>
               <div className="flex justify-between gap-4 text-green-600">
-                <span>Coupon ({appliedCoupon.code}):</span>
+                <span>{appliedCoupon.code ? `Coupon (${appliedCoupon.code}):` : `${appliedCoupon.name}:`}</span>
                 <span>-{formatPrice(discountedCharge.couponDiscount, selectedPlan.currency)}</span>
               </div>
               <div className={cn("flex justify-between gap-4 border-t pt-1 font-semibold", isDashboard ? "border-border" : "border-slate-200")}>
@@ -1434,10 +1554,12 @@ export function JoinMembershipModal({
               <form onSubmit={handleRegistration} className="space-y-4">
                 {renderPlanSelector()}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Username</Label>
-                    <Input id="username" value={registrationData.username} onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
-                  </div>
+                  {showField("username") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="username" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Username{fieldRequired("username") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <Input id="username" value={registrationData.username} onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })} required={fieldRequired("username")} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="first_name" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>First Name <span className="text-primary ml-0.5">*</span></Label>
                     <Input id="first_name" value={registrationData.first_name} onChange={(e) => setRegistrationData({ ...registrationData, first_name: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
@@ -1446,18 +1568,22 @@ export function JoinMembershipModal({
                     <Label htmlFor="last_name" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Last Name <span className="text-primary ml-0.5">*</span></Label>
                     <Input id="last_name" value={registrationData.last_name} onChange={(e) => setRegistrationData({ ...registrationData, last_name: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="date_of_birth" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Date of Birth <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="date_of_birth" type="date" value={registrationData.date_of_birth} onChange={(e) => setRegistrationData({ ...registrationData, date_of_birth: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gender" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Gender <span className="text-primary ml-0.5">*</span></Label>
-                    <select id="gender" value={registrationData.gender} onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })} required className={cn("w-full h-12 rounded-xl border px-3 focus:outline-none focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="non-binary">Non-binary</option>
-                    </select>
-                  </div>
+                  {showField("date_of_birth") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="date_of_birth" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Date of Birth{fieldRequired("date_of_birth") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <Input id="date_of_birth" type="date" value={registrationData.date_of_birth} onChange={(e) => setRegistrationData({ ...registrationData, date_of_birth: e.target.value })} required={fieldRequired("date_of_birth")} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
+                    </div>
+                  )}
+                  {showField("gender") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="gender" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Gender{fieldRequired("gender") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <select id="gender" value={registrationData.gender} onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })} required={fieldRequired("gender")} className={cn("w-full h-12 rounded-xl border px-3 focus:outline-none focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="non-binary">Non-binary</option>
+                      </select>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="email" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Email Address <span className="text-primary ml-0.5">*</span></Label>
                     <Input id="email" type="email" value={registrationData.email} onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
@@ -1473,48 +1599,65 @@ export function JoinMembershipModal({
                       {registrationErrors.phoneNumber && <p className="text-destructive text-sm">{registrationErrors.phoneNumber}</p>}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address_line1" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Address Line 1 <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="address_line1" value={registrationData.address_line1} onChange={(e) => setRegistrationData({ ...registrationData, address_line1: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address_line2" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Address Line 2</Label>
-                    <Input id="address_line2" value={registrationData.address_line2} onChange={(e) => setRegistrationData({ ...registrationData, address_line2: e.target.value })} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="city" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>City <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="city" value={registrationData.city} onChange={(e) => setRegistrationData({ ...registrationData, city: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state_province" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>State / Province <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="state_province" value={registrationData.state_province} onChange={(e) => setRegistrationData({ ...registrationData, state_province: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="zip_code" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ZIP / Postal Code <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="zip_code" value={registrationData.zip_code} onChange={(e) => setRegistrationData({ ...registrationData, zip_code: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="country" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Country <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="country" value={registrationData.country} onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="id_proof_type" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ID Proof Type</Label>
-                    <select id="id_proof_type" value={registrationData.id_proof_type} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })} className={cn("w-full h-12 rounded-xl border px-3 focus:outline-none focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}>
-                      <option value="Aadhar">Aadhar</option>
-                      <option value="Voter ID">Voter ID</option>
-                      <option value="Passport">Passport</option>
-                      <option value="Driver License">Driver License</option>
-                      <option value="PAN">PAN Card</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="id_proof_number" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ID Proof Number</Label>
-                    <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
-                  </div>
+                  {showField("address_line1") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="address_line1" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Address Line 1{fieldRequired("address_line1") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <Input id="address_line1" value={registrationData.address_line1} onChange={(e) => setRegistrationData({ ...registrationData, address_line1: e.target.value })} required={fieldRequired("address_line1")} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
+                    </div>
+                  )}
+                  {showField("address_line2") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="address_line2" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Address Line 2{fieldRequired("address_line2") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <Input id="address_line2" value={registrationData.address_line2} onChange={(e) => setRegistrationData({ ...registrationData, address_line2: e.target.value })} required={fieldRequired("address_line2")} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
+                    </div>
+                  )}
+                  {showField("city") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="city" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>City{fieldRequired("city") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <Input id="city" value={registrationData.city} onChange={(e) => setRegistrationData({ ...registrationData, city: e.target.value })} required={fieldRequired("city")} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
+                    </div>
+                  )}
+                  {showField("state_province") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="state_province" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>State / Province{fieldRequired("state_province") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <Input id="state_province" value={registrationData.state_province} onChange={(e) => setRegistrationData({ ...registrationData, state_province: e.target.value })} required={fieldRequired("state_province")} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
+                    </div>
+                  )}
+                  {showField("zip_code") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="zip_code" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ZIP / Postal Code{fieldRequired("zip_code") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <Input id="zip_code" value={registrationData.zip_code} onChange={(e) => setRegistrationData({ ...registrationData, zip_code: e.target.value })} required={fieldRequired("zip_code")} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
+                    </div>
+                  )}
+                  {showField("country") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="country" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Country{fieldRequired("country") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <Input id="country" value={registrationData.country} onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })} required={fieldRequired("country")} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
+                    </div>
+                  )}
+                  {/* ID proof types come from the plan's Attributes Setup */}
+                  {showField("id_proof") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="id_proof_type" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ID Proof Type{fieldRequired("id_proof") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <select id="id_proof_type" value={registrationData.id_proof_type} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })} className={cn("w-full h-12 rounded-xl border px-3 focus:outline-none focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}>
+                        {idProofTypes.map((type) => (
+                          <option key={type.label} value={type.label}>{type.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {showField("id_proof") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="id_proof_number" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ID Proof Number{fieldRequired("id_proof") && <span className="text-primary ml-0.5">*</span>}</Label>
+                      <Input id="id_proof_number" {...(selectedIdProof ? inputPropsForFieldType(selectedIdProof.format) : { type: "text" as const })} maxLength={selectedIdProof && !isDateFieldType(selectedIdProof.format) ? selectedIdProof.maxLength : undefined} value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} required={fieldRequired("id_proof")} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
+                    </div>
+                  )}
                   {renderClubMemberIdField()}
+                  {renderCustomFields()}
                   {renderTshirtFields()}
                 </div>
                 {renderTshirtGallery()}
+                {renderPlanBenefits()}
                 {selectedPlan?.referralReward?.enabled && renderReferralField()}
                 {renderCouponField()}
                 {renderPlanSummary()}
@@ -1525,7 +1668,11 @@ export function JoinMembershipModal({
             ) : (
               <div className="space-y-4">
                 {renderPlanSelector()}
-                {renderClubMemberIdField()}
+                {renderPlanBenefits()}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {renderClubMemberIdField()}
+                  {renderCustomFields()}
+                </div>
                 {renderCouponField()}
                 {renderPlanSummary()}
                 {showTshirtFields && (
