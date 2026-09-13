@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiClient } from '@/lib/api';
 import type { ClubFeatureKey, ResolvedClubFeatures } from '@/lib/clubFeatures';
-import { clubFeatureFlags, normalizeResolvedClubFeatures, ADMIN_NAV_FEATURE_MAP } from '@/lib/clubFeatures';
+import {
+  clubFeatureFlags,
+  normalizeResolvedClubFeatures,
+  ADMIN_NAV_FEATURE_MAP,
+  MEMBER_ENTITLEMENTS_CHANGED_EVENT,
+} from '@/lib/clubFeatures';
 import {
   writeFeatureCache,
   readFeatureCache,
@@ -133,6 +138,15 @@ export function useClubFeatures(
     // ends up in the same place either way.
     void load();
   }, [clubId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A plan purchase/upgrade changes what this member is entitled to without
+  // changing club config, so re-resolve on the member's own entitlement event.
+  useEffect(() => {
+    if (!asMember || !clubId || typeof window === 'undefined') return;
+    const onChanged = () => { void load(); };
+    window.addEventListener(MEMBER_ENTITLEMENTS_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(MEMBER_ENTITLEMENTS_CHANGED_EVENT, onChanged);
+  }, [asMember, clubId, load]);
 
   // Socket.io real-time config sync
   useEffect(() => {

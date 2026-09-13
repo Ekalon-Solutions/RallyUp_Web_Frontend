@@ -22,6 +22,8 @@ import { SiteFooter } from "@/components/site-footer"
 import { apiClient } from "@/lib/api"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { useAuth } from "@/contexts/auth-context"
+import type { PlanAttributes, PublicPlanConfig } from "@/lib/membershipPlanConfig"
+import { PlanBenefits, PlanBrochure } from "@/components/membership-plan/plan-benefits"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,7 +37,7 @@ export interface CheckoutClub {
   platformFeePercent?: number
 }
 
-export interface CheckoutPlan {
+export interface CheckoutPlan extends PublicPlanConfig {
   _id: string
   name: string
   description: string
@@ -49,6 +51,8 @@ export interface CheckoutPlan {
     enabled: boolean
     points: number
   }
+  /** Admin-configured checkout fields. Absent = collect every field. */
+  attributes?: PlanAttributes
 }
 
 interface CheckoutLandingProps {
@@ -152,6 +156,16 @@ function PlanSummaryCard({ club, plan, planId, isUserCurrentPlan }: { club: Chec
               <Badge variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-none">Currently Inactive</Badge>
             </div>
           )}
+
+          <Separator className="bg-slate-200" />
+
+          {/* What this plan includes — driven by the plan's Feature Selection */}
+          <div>
+            <h3 className="mb-1 text-sm font-bold text-secondary">Membership benefits</h3>
+            <PlanBenefits plan={plan} />
+          </div>
+
+          <PlanBrochure plan={plan} />
         </CardContent>
       )}
     </Card>

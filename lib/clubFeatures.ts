@@ -123,6 +123,14 @@ export function isFeatureEnabled(
 
 export const CLUB_FEATURE_DISABLED_EVENT = 'rallyup:club-feature-disabled';
 
+/**
+ * Fired when the signed-in member's own entitlements change (plan purchase,
+ * upgrade, downgrade). Club-level config is unchanged, so the socket
+ * `club:config-sync` push never fires for this — member-scoped consumers of
+ * useClubFeatures listen for this instead and re-resolve.
+ */
+export const MEMBER_ENTITLEMENTS_CHANGED_EVENT = 'rallyup:member-entitlements-changed';
+
 export function featureState(
   config: ResolvedClubFeatures | null | undefined,
   key: ClubFeatureKey

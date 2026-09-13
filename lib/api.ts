@@ -1,7 +1,13 @@
 import { getApiUrl } from './config';
 import { triggerBlobDownload } from './utils';
 import { patchEventResponseData } from './eventDisplayAdjustments';
-import { CLUB_FEATURE_DISABLED_EVENT, type ClubFeatureKey } from './clubFeatures';
+import {
+  CLUB_FEATURE_DISABLED_EVENT,
+  MEMBER_ENTITLEMENTS_CHANGED_EVENT,
+  type ClubFeatureKey,
+} from './clubFeatures';
+import type { PlanAttributes, PlanMemberDiscount } from './membershipPlanConfig';
+import type { BackgroundMode, FieldPositions } from './membershipCardFields';
 
 const API_BASE_URL = getApiUrl('');
 
@@ -1007,7 +1013,22 @@ export interface MembershipCard {
     showUserProfile: boolean;
     customLogo?: string;
     idPrefix?: string;
-  };
+  } & MembershipCardImageCustomization;
+}
+
+/**
+ * Image-background card settings. `backgroundMode: 'image'` swaps the gradient
+ * layout for a photo with admin-positioned fields (see lib/membershipCardFields.ts).
+ */
+export interface MembershipCardImageCustomization {
+  backgroundMode?: BackgroundMode;
+  backgroundImage?: string;
+  fontColor?: string;
+  showClubName?: boolean;
+  showStatus?: boolean;
+  showEndDate?: boolean;
+  showMembershipId?: boolean;
+  fieldPositions?: FieldPositions;
 }
 
 export interface PublicClubInfo {
@@ -1059,7 +1080,7 @@ export interface CreateMembershipCardRequest {
     showUserProfile?: boolean;
     customLogo?: string;
     idPrefix?: string;
-  };
+  } & MembershipCardImageCustomization;
 }
 
 export interface UpdateMembershipCardRequest {
@@ -1086,7 +1107,7 @@ export interface UpdateMembershipCardRequest {
     showUserProfile?: boolean;
     customLogo?: string;
     idPrefix?: string;
-  };
+  } & MembershipCardImageCustomization;
 }
 
 export interface RenewMembershipCardRequest {
@@ -1118,6 +1139,11 @@ export interface MembershipPlan {
     enabled: boolean;
     points: number;
   };
+  planFeatures?: Record<string, boolean>;
+  customFeatures?: string[];
+  brochure?: Array<{ url: string; name: string; size: number }>;
+  attributes?: PlanAttributes;
+  memberDiscount?: PlanMemberDiscount;
   isActive: boolean;
   club: string;
   createdAt: string;
@@ -3923,6 +3949,15 @@ class ApiClient {
     });
   }
 
+  async uploadBrochure(file: File): Promise<ApiResponse<{ url: string; name: string; size: number }>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/upload/brochure', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   async createMembershipPlan(data: {
     name: string;
     description: string;
@@ -3933,11 +3968,16 @@ class ApiClient {
     bookingStartDate?: string;
     bookingEndDate?: string;
     duration?: number;
-    features: any;
+    features?: any;
     referralReward?: {
       enabled: boolean;
       points: number;
     };
+    planFeatures?: Record<string, boolean>;
+    customFeatures?: string[];
+    brochure?: Array<{ url: string; name: string; size: number }>;
+    attributes?: PlanAttributes;
+    memberDiscount?: PlanMemberDiscount;
   }): Promise<ApiResponse<{ message: string; membershipPlan: MembershipPlan }>> {
     return this.request('/membership-plans', {
       method: 'POST',
@@ -4014,7 +4054,8 @@ class ApiClient {
     referralPhone?: string,
     merch?: { tshirtSize?: string; tshirtColor?: string },
     couponCode?: string,
-    club_member_id?: string
+    club_member_id?: string,
+    customFieldValues?: Record<string, string>
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -4029,10 +4070,20 @@ class ApiClient {
     if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor;
     if (couponCode) body.couponCode = couponCode;
     if (club_member_id) body.club_member_id = club_member_id;
-    return this.request(`/membership-plans/${planId}/subscribe`, {
+    if (customFieldValues && Object.keys(customFieldValues).length) body.customFieldValues = customFieldValues;
+    const res = await this.request<{
+      message: string;
+      data: { userMembership: any; isUpgrade: boolean };
+    }>(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
     });
+    // Every purchase/upgrade path funnels through here, so this is the one
+    // place that has to tell member-scoped feature consumers to re-resolve.
+    if (res.success && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(MEMBER_ENTITLEMENTS_CHANGED_EVENT));
+    }
+    return res;
   }
 
   async createPendingMembershipPurchase(
@@ -4041,11 +4092,13 @@ class ApiClient {
     referralPhone?: string,
     merchOrCoupon?: { tshirtSize?: string; tshirtColor?: string } | string,
     couponCode?: string,
-    club_member_id?: string
+    club_member_id?: string,
+    customFieldValues?: Record<string, string>
   ): Promise<ApiResponse<{ userMembership: any; status: 'pending' | 'active' }>> {
     const body: any = { razorpayOrderId }
     if (referralPhone) body.referralPhone = referralPhone
     if (club_member_id) body.club_member_id = club_member_id
+    if (customFieldValues && Object.keys(customFieldValues).length) body.customFieldValues = customFieldValues
     if (typeof merchOrCoupon === 'object' && merchOrCoupon !== null) {
       if (merchOrCoupon.tshirtSize) body.tshirtSize = merchOrCoupon.tshirtSize
       if (merchOrCoupon.tshirtColor) body.tshirtColor = merchOrCoupon.tshirtColor
@@ -6266,11 +6319,15 @@ class ApiClient {
     purchaseType?: 'membership';
   }): Promise<ApiResponse<{
     coupon: {
-      code: string;
+      /** Absent for plan-based discounts — there is no code to type in. */
+      code?: string;
       name: string;
       discountType: 'flat' | 'percentage';
       discountValue: number;
       discount: number;
+      /** 'plan' = the member's membership benefit, 'coupon' = club auto-apply code. */
+      source?: 'plan' | 'coupon';
+      planId?: string;
     } | null;
   }>> {
     return this.request('/coupons/highest-eligible', {
@@ -7124,6 +7181,13 @@ class ApiClient {
     }
   ): Promise<ApiResponse<{ result: WhatsAppBulkSendResult }>> {
     return this.post(`/clubs/${clubId}/whatsapp-marketing/bulk/send`, data);
+  }
+
+  /** Uploads a membership-card asset (background image or custom logo) and returns its URL. */
+  async uploadMembershipCardImage(file: File): Promise<ApiResponse<{ url: string; filename: string }>> {
+    const formData = new FormData()
+    formData.append("image", file)
+    return this.request('/upload/logo', { method: 'POST', body: formData })
   }
 
   async uploadWhatsAppHeaderImage(

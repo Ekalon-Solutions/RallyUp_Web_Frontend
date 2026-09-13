@@ -81,8 +81,8 @@ export default function BrowseMembershipPlansPage() {
           purchaseType: 'membership',
         })
         if (res.success && res.data?.coupon) {
-          setAppliedCoupon(res.data.coupon)
-          setCouponCode(res.data.coupon.code)
+          setAppliedCoupon({ ...res.data.coupon, code: res.data.coupon.code ?? '' })
+          setCouponCode(res.data.coupon.code ?? '')
           setIsAutoAppliedCoupon(true)
         }
       } catch {

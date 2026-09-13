@@ -1,11 +1,9 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -17,7 +15,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Plus, CreditCard, Edit, Trash2, Gift, TrendingUp } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -45,36 +42,20 @@ interface MembershipPlan {
 }
 
 export default function MembershipPlansPage() {
+  const router = useRouter()
   const { user, activeClubId } = useAuth()
   const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
   const [plans, setPlans] = useState<MembershipPlan[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
-  const [isCreating, setIsCreating] = useState(false)
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null)
-  const [showEditDialog, setShowEditDialog] = useState(false)
   const [planToDeactivate, setPlanToDeactivate] = useState<MembershipPlan | null>(null)
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false)
   const [isDeactivating, setIsDeactivating] = useState(false)
   const [planToDelete, setPlanToDelete] = useState<MembershipPlan | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
   const [plansWithCards, setPlansWithCards] = useState<Set<string>>(new Set())
   const [activeMembersPerPlan, setActiveMembersPerPlan] = useState<Record<string, number>>({})
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    price: 0,
-    currency: "INR",
-    planStartDate: "",
-    planEndDate: "",
-    bookingStartDate: "",
-    bookingEndDate: "",
-    referralRewardEnabled: false,
-    referralRewardPoints: 0,
-  })
 
   // Use activeClubId from useAuth as the only source of truth for "selected" club
   // When user or activeClubId is set, update UI and/or load plans
@@ -210,121 +191,6 @@ export default function MembershipPlansPage() {
     }
   }
 
-  const handleCreatePlan = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsCreating(true)
-
-    try {
-      if (!activeClubId) {
-        toast.error('Please select a club to create the plan for')
-        setIsCreating(false)
-        return
-      }
-
-      if (!formData.name || formData.name.trim().length === 0) {
-        toast.error('Plan name is required. Please enter a valid plan name before creating the membership plan.')
-        setIsCreating(false)
-        return
-      }
-
-      if (formData.price < 0) {
-        toast.error('Price cannot be negative. Please enter a valid price (0 or greater) for the membership plan.')
-        setIsCreating(false)
-        return
-      }
-
-      if (!formData.planStartDate || !formData.planEndDate) {
-        toast.error('Plan Start Date and Plan End Date are required.')
-        setIsCreating(false)
-        return
-      }
-      if (!formData.bookingEndDate) {
-        toast.error('Booking End Date is required.')
-        setIsCreating(false)
-        return
-      }
-      const start = new Date(formData.planStartDate)
-      const end = new Date(formData.planEndDate)
-      const bookingStart = formData.bookingStartDate ? new Date(formData.bookingStartDate) : null
-      const bookingEnd = new Date(formData.bookingEndDate)
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        toast.error('Please enter valid plan start and end dates.')
-        setIsCreating(false)
-        return
-      }
-      if (bookingStart && isNaN(bookingStart.getTime())) {
-        toast.error('Please enter a valid booking start date.')
-        setIsCreating(false)
-        return
-      }
-      if (isNaN(bookingEnd.getTime())) {
-        toast.error('Please enter a valid booking end date.')
-        setIsCreating(false)
-        return
-      }
-      if (end <= start) {
-        toast.error('Plan End Date must be after Plan Start Date.')
-        setIsCreating(false)
-        return
-      }
-      if (bookingStart && bookingEnd <= bookingStart) {
-        toast.error('Booking End Date must be after Booking Start Date.')
-        setIsCreating(false)
-        return
-      }
-      if (bookingEnd > end) {
-        toast.error('Booking end date cannot be after plan end date')
-        setShowCreateDialog(false)
-        setIsCreating(false)
-        return
-      }
-
-      const payload: any = { ...formData, clubId: activeClubId }
-      if (formData.planStartDate) payload.planStartDate = formData.planStartDate
-      if (formData.planEndDate) payload.planEndDate = formData.planEndDate
-      if (formData.bookingStartDate) payload.bookingStartDate = formData.bookingStartDate
-      if (formData.bookingEndDate) payload.bookingEndDate = formData.bookingEndDate
-      payload.referralReward = {
-        enabled: formData.referralRewardEnabled,
-        points: formData.referralRewardEnabled ? Math.max(0, Math.floor(formData.referralRewardPoints)) : 0,
-      }
-      const response = await apiClient.createMembershipPlan(payload)
-
-      if (response.success) {
-        toast.success(`Membership plan "${formData.name}" created successfully with price ${formData.currency} ${formData.price}.`)
-        setShowCreateDialog(false)
-        setFormData({
-          name: "",
-          description: "",
-          price: 0,
-          currency: "INR",
-          planStartDate: "",
-          planEndDate: "",
-          bookingStartDate: "",
-          bookingEndDate: "",
-          referralRewardEnabled: false,
-          referralRewardPoints: 0,
-        })
-        loadPlans()
-      } else {
-        const errorDetails = response.errorDetails || {}
-        const errorMessage = response.error || 'Unknown error occurred'
-        const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
-        const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-        toast.error(`Failed to create membership plan "${formData.name}": ${errorMessage}.${validationMsg} Please check all required fields and try again.`)
-      }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Network error or server unavailable'
-      const errorDetails = error?.response?.data || {}
-      const statusCode = error?.response?.status || 'Unknown'
-      const validationErrors = errorDetails.errors || []
-      const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-      toast.error(`Failed to create membership plan "${formData.name}" due to: ${errorMessage}. Status: ${statusCode}.${validationMsg} Please check your input and try again.`)
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -398,30 +264,6 @@ export default function MembershipPlansPage() {
     }
   }
 
-  const toDateInputValue = (d: string | Date | undefined) => {
-    if (!d) return ""
-    const date = new Date(d)
-    if (isNaN(date.getTime())) return ""
-    return date.toISOString().slice(0, 10)
-  }
-
-  const handleEditPlan = (plan: MembershipPlan) => {
-    setEditingPlan(plan)
-    setFormData({
-      name: plan.name,
-      description: plan.description,
-      price: plan.price,
-      currency: plan.currency || 'INR',
-      planStartDate: toDateInputValue(plan.planStartDate),
-      planEndDate: toDateInputValue(plan.planEndDate),
-      bookingStartDate: toDateInputValue(plan.bookingStartDate),
-      bookingEndDate: toDateInputValue(plan.bookingEndDate),
-      referralRewardEnabled: plan.referralReward?.enabled ?? false,
-      referralRewardPoints: plan.referralReward?.points ?? 0,
-    })
-    setShowEditDialog(true)
-  }
-
   const handleToggleStatus = async (planId: string, currentStatus: boolean) => {
     try {
       const plan = plans.find(p => p._id === planId)
@@ -451,121 +293,6 @@ export default function MembershipPlansPage() {
       const statusCode = error?.response?.status || 'Unknown'
       const detailsMsg = (errorDetails as any)?.message || (errorDetails as any)?.details || ''
       toast.error(`Failed to ${newStatus} membership plan "${planName}" (ID: ${planId}) due to: ${errorMessage}. Status: ${statusCode}. ${detailsMsg ? `Details: ${detailsMsg}.` : ''} Please check your connection and try again.`)
-    }
-  }
-
-  const handleUpdatePlan = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingPlan) return
-
-    setIsUpdating(true)
-
-    try {
-      if (!formData.name || formData.name.trim().length === 0) {
-        toast.error('Plan name is required. Please enter a valid plan name before updating the membership plan.')
-        setIsUpdating(false)
-        return
-      }
-
-      if (formData.price < 0) {
-        toast.error('Price cannot be negative. Please enter a valid price (0 or greater) for the membership plan.')
-        setIsUpdating(false)
-        return
-      }
-
-      if (!formData.planStartDate || !formData.planEndDate) {
-        toast.error('Plan Start Date and Plan End Date are required.')
-        setIsUpdating(false)
-        return
-      }
-      if (!formData.bookingEndDate) {
-        toast.error('Booking End Date is required.')
-        setIsUpdating(false)
-        return
-      }
-      const start = new Date(formData.planStartDate)
-      const end = new Date(formData.planEndDate)
-      const bookingStart = formData.bookingStartDate ? new Date(formData.bookingStartDate) : null
-      const bookingEnd = new Date(formData.bookingEndDate)
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        toast.error('Please enter valid plan start and end dates.')
-        setIsUpdating(false)
-        return
-      }
-      if (bookingStart && isNaN(bookingStart.getTime())) {
-        toast.error('Please enter a valid booking start date.')
-        setIsUpdating(false)
-        return
-      }
-      if (isNaN(bookingEnd.getTime())) {
-        toast.error('Please enter a valid booking end date.')
-        setIsUpdating(false)
-        return
-      }
-      if (end <= start) {
-        toast.error('Plan End Date must be after Plan Start Date.')
-        setIsUpdating(false)
-        return
-      }
-      if (bookingStart && bookingEnd <= bookingStart) {
-        toast.error('Booking End Date must be after Booking Start Date.')
-        setIsUpdating(false)
-        return
-      }
-      if (bookingEnd > end) {
-        toast.error('Booking end date cannot be after plan end date')
-        setShowEditDialog(false)
-        setEditingPlan(null)
-        setIsUpdating(false)
-        return
-      }
-
-      const updatePayload: any = { ...formData, clubId: activeClubId }
-      if (formData.planStartDate) updatePayload.planStartDate = formData.planStartDate
-      if (formData.planEndDate) updatePayload.planEndDate = formData.planEndDate
-      if (formData.bookingStartDate) updatePayload.bookingStartDate = formData.bookingStartDate
-      if (formData.bookingEndDate) updatePayload.bookingEndDate = formData.bookingEndDate
-      updatePayload.referralReward = {
-        enabled: formData.referralRewardEnabled,
-        points: formData.referralRewardEnabled ? Math.max(0, Math.floor(formData.referralRewardPoints)) : 0,
-      }
-      const response = await apiClient.updateMembershipPlan(editingPlan._id, updatePayload)
-
-      if (response.success) {
-        toast.success(`Membership plan "${formData.name}" updated successfully with new price ${formData.currency} ${formData.price}.`)
-        setShowEditDialog(false)
-        setEditingPlan(null)
-        setFormData({
-          name: "",
-          description: "",
-          price: 0,
-          currency: "INR",
-          planStartDate: "",
-          planEndDate: "",
-          bookingStartDate: "",
-          bookingEndDate: "",
-          referralRewardEnabled: false,
-          referralRewardPoints: 0,
-        })
-        await loadPlans()
-      } else {
-        const errorDetails = (response as any).errorDetails || {}
-        const errorMessage = response.error || 'Unknown error occurred'
-        const statusCode = (errorDetails as any).statusCode || (response as any).statusCode || 'Unknown'
-        const validationErrors = (errorDetails as any).errors || (errorDetails as any).validationErrors || []
-        const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-        const detailsMsg = (errorDetails as any).message || (errorDetails as any).details || ''
-        toast.error(`Failed to update membership plan "${formData.name}" (ID: ${editingPlan._id}): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${detailsMsg ? `Details: ${detailsMsg}.` : ''} Please check all fields and try again.`)
-      }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Network error or server unavailable'
-      const errorDetails = error?.response?.data || {}
-      const statusCode = error?.response?.status || 'Unknown'
-      const validationErrors = errorDetails.errors || []
-      const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-      toast.error(`Failed to update membership plan "${formData.name}" (ID: ${editingPlan._id}) due to: ${errorMessage}. Status: ${statusCode}.${validationMsg} Please check your input and try again.`)
-    } finally {
-      setIsUpdating(false)
     }
   }
 
@@ -620,358 +347,10 @@ export default function MembershipPlansPage() {
               <Button variant="outline" onClick={loadPlans} className="w-full sm:w-auto">
                 Refresh
               </Button>
-              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 w-4 h-4" />
-                    Create Plan
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 sm:p-0 gap-0 overflow-hidden">
-                  <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
-                    <DialogTitle>Create New Membership Plan</DialogTitle>
-                    <DialogDescription>
-                      Create a new membership plan with pricing and booking dates
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleCreatePlan} className="flex flex-col min-h-0 flex-1">
-                    <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Plan Name</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="price">Price</Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Input
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="currency">Currency</Label>
-                      <select
-                        id="currency"
-                        value={formData.currency}
-                        onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
-                      >
-                        <option value="INR">INR</option>
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="AUD">AUD</option>
-                        <option value="CAD">CAD</option>
-                        <option value="CHF">CHF</option>
-                        <option value="CNY">CNY</option>
-                        <option value="HKD">HKD</option>
-                        <option value="JPY">JPY</option>
-                        <option value="NZD">NZD</option>
-                        <option value="NOK">NOK</option>
-                        <option value="SEK">SEK</option>
-                        <option value="SGD">SGD</option>
-                        <option value="ZAR">ZAR</option>
-                        <option value="BRL">BRL</option>
-                        <option value="MXN">MXN</option>
-                        <option value="TRY">TRY</option>
-                        <option value="DKK">DKK</option>
-                        <option value="ILS">ILS</option>
-                        <option value="PLN">PLN</option>
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="planStartDate">Plan Start Date</Label>
-                        <Input
-                          id="planStartDate"
-                          type="date"
-                          value={formData.planStartDate}
-                          onChange={(e) => setFormData({ ...formData, planStartDate: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="planEndDate">Plan End Date</Label>
-                        <Input
-                          id="planEndDate"
-                          type="date"
-                          value={formData.planEndDate}
-                          onChange={(e) => setFormData({ ...formData, planEndDate: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="bookingStartDate">Booking Start Date</Label>
-                        <Input
-                          id="bookingStartDate"
-                          type="date"
-                          value={formData.bookingStartDate}
-                          onChange={(e) => setFormData({ ...formData, bookingStartDate: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bookingEndDate">Booking End Date</Label>
-                        <Input
-                          id="bookingEndDate"
-                          type="date"
-                          value={formData.bookingEndDate}
-                          onChange={(e) => setFormData({ ...formData, bookingEndDate: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-                    {formData.planStartDate && formData.planEndDate && (
-                      <p className="text-sm text-muted-foreground">
-                        Plan period: {new Date(formData.planStartDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – {new Date(formData.planEndDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </p>
-                    )}
-
-                    <div className="border-t pt-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-foreground flex items-center gap-1.5">
-                            <Gift className="w-4 h-4" />
-                            Referral Rewards
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">Award points to members who refer new sign-ups on this plan</p>
-                        </div>
-                        <Switch
-                          checked={formData.referralRewardEnabled}
-                          onCheckedChange={(v) => setFormData({ ...formData, referralRewardEnabled: v })}
-                        />
-                      </div>
-                      {formData.referralRewardEnabled && (
-                        <div className="space-y-2 pl-4 border-l-2 border-muted">
-                          <Label htmlFor="create-referralPoints">Points per successful referral</Label>
-                          <Input
-                            id="create-referralPoints"
-                            type="number"
-                            min={0}
-                            step={1}
-                            placeholder="e.g. 100"
-                            value={formData.referralRewardPoints}
-                            onChange={(e) => setFormData({ ...formData, referralRewardPoints: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
-                          />
-                          <p className="text-xs text-muted-foreground">Positive integer only. Awarded each time a new member subscribes using a referrer's number.</p>
-                        </div>
-                      )}
-                    </div>
-                    </div>
-
-                    <div className="shrink-0 flex flex-col-reverse sm:flex-row gap-2 px-6 py-4 border-t bg-background">
-                      <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)} className="sm:flex-initial">
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={isCreating} className="flex-1">
-                        {isCreating ? "Creating..." : "Create Plan"}
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-              <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 sm:p-0 gap-0 overflow-hidden">
-                  <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
-                    <DialogTitle>Edit Membership Plan</DialogTitle>
-                    <DialogDescription>
-                      Update the membership plan details
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleUpdatePlan} className="flex flex-col min-h-0 flex-1">
-                    <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-name">Plan Name</Label>
-                        <Input
-                          id="edit-name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-price">Price</Label>
-                        <Input
-                          id="edit-price"
-                          type="number"
-                          value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-description">Description</Label>
-                      <Input
-                        id="edit-description"
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-currency">Currency</Label>
-                      <select
-                        id="edit-currency"
-                        value={formData.currency}
-                        onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
-                      >
-                        <option value="INR">INR</option>
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="AUD">AUD</option>
-                        <option value="CAD">CAD</option>
-                        <option value="CHF">CHF</option>
-                        <option value="CNY">CNY</option>
-                        <option value="HKD">HKD</option>
-                        <option value="JPY">JPY</option>
-                        <option value="NZD">NZD</option>
-                        <option value="NOK">NOK</option>
-                        <option value="SEK">SEK</option>
-                        <option value="SGD">SGD</option>
-                        <option value="ZAR">ZAR</option>
-                        <option value="BRL">BRL</option>
-                        <option value="MXN">MXN</option>
-                        <option value="TRY">TRY</option>
-                        <option value="DKK">DKK</option>
-                        <option value="ILS">ILS</option>
-                        <option value="PLN">PLN</option>
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-planStartDate">Plan Start Date</Label>
-                        <Input
-                          id="edit-planStartDate"
-                          type="date"
-                          value={formData.planStartDate}
-                          disabled
-                          className="opacity-90 cursor-not-allowed"
-                          aria-describedby="edit-planStartDate-hint"
-                        />
-                        <p id="edit-planStartDate-hint" className="text-xs text-muted-foreground">
-                          Start date cannot be changed after the plan is created.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-planEndDate">Plan End Date</Label>
-                        <Input
-                          id="edit-planEndDate"
-                          type="date"
-                          value={formData.planEndDate}
-                          onChange={(e) => setFormData({ ...formData, planEndDate: e.target.value })}
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Changing the end date updates all members on this plan and applies before renewal notifications.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-bookingStartDate">Booking Start Date</Label>
-                        <Input
-                          id="edit-bookingStartDate"
-                          type="date"
-                          value={formData.bookingStartDate}
-                          onChange={(e) => setFormData({ ...formData, bookingStartDate: e.target.value })}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Before this date, the plan cannot be purchased. Leave blank for no start restriction.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-bookingEndDate">
-                          Booking End Date <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="edit-bookingEndDate"
-                          type="date"
-                          value={formData.bookingEndDate}
-                          onChange={(e) => setFormData({ ...formData, bookingEndDate: e.target.value })}
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          After this date, the plan shows as &quot;Membership Closed&quot; and cannot be purchased.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="border-t pt-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-foreground flex items-center gap-1.5">
-                            <Gift className="w-4 h-4" />
-                            Referral Rewards
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">Award points to members who refer new sign-ups on this plan</p>
-                        </div>
-                        <Switch
-                          checked={formData.referralRewardEnabled}
-                          onCheckedChange={(v) => setFormData({ ...formData, referralRewardEnabled: v })}
-                        />
-                      </div>
-                      {formData.referralRewardEnabled && (
-                        <div className="space-y-2 pl-4 border-l-2 border-muted">
-                          <Label htmlFor="edit-referralPoints">Points per successful referral</Label>
-                          <Input
-                            id="edit-referralPoints"
-                            type="number"
-                            min={0}
-                            step={1}
-                            placeholder="e.g. 100"
-                            value={formData.referralRewardPoints}
-                            onChange={(e) => setFormData({ ...formData, referralRewardPoints: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
-                          />
-                          <p className="text-xs text-muted-foreground">Positive integer only. Awarded each time a new member subscribes using a referrer's number.</p>
-                        </div>
-                      )}
-                    </div>
-                    </div>
-
-                    <div className="shrink-0 flex flex-col-reverse sm:flex-row gap-2 px-6 py-4 border-t bg-background">
-                      <Button type="button" variant="outline" onClick={() => {
-                        setShowEditDialog(false)
-                        setEditingPlan(null)
-                      }} className="sm:flex-initial">
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={isUpdating} className="flex-1">
-                        {isUpdating ? "Updating..." : "Update Plan"}
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={() => router.push("/dashboard/membership-plans/create")}>
+                <Plus className="mr-2 w-4 h-4" />
+                Create Plan
+              </Button>
 
               <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
                 <AlertDialogContent>
@@ -1123,7 +502,7 @@ export default function MembershipPlansPage() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => handleEditPlan(plan)}
+                        onClick={() => router.push(`/dashboard/membership-plans/create?planId=${plan._id}`)}
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
@@ -1194,7 +573,7 @@ export default function MembershipPlansPage() {
                 <p className="text-muted-foreground mb-4">
                   Create your first membership plan to start offering different tiers to your members
                 </p>
-                <Button onClick={() => setShowCreateDialog(true)}>
+                <Button onClick={() => router.push("/dashboard/membership-plans/create")}>
                   <Plus className="mr-2 w-4 h-4" />
                   Create First Plan
                 </Button>

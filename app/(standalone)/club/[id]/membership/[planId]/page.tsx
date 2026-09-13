@@ -290,6 +290,10 @@ export default async function MembershipCheckoutPage({
           duration: (planResult as any).duration,
           planStartDate: (planResult as any).planStartDate,
           planEndDate: (planResult as any).planEndDate,
+          attributes: (planResult as any).attributes,
+          planFeatures: (planResult as any).planFeatures,
+          customFeatures: (planResult as any).customFeatures,
+          brochure: (planResult as any).brochure,
         }
       : undefined
 

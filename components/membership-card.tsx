@@ -10,6 +10,16 @@ import { toast } from 'sonner';
 import { getBaseUrl } from '@/lib/config';
 import { getLogoDimensionPx } from '@/lib/membershipCardLogo';
 import { hasCustomProfilePicture, resolveProfilePictureUrl } from '@/lib/membershipCardProfile';
+import {
+  CARD_BG_HEIGHT,
+  CARD_BG_WIDTH,
+  CARD_FIELD_LABELS,
+  CardFieldKey,
+  FieldPosition,
+  dragPositionPercent,
+  getFieldPosition,
+  resolveCardAssetUrl,
+} from '@/lib/membershipCardFields';
 
 const CARD_FONTS_URL =
   "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=Bitter:wght@400;600;700&family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Lora:wght@400;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Slab:wght@400;600;700&family=Teko:wght@400;500;600;700&family=Titillium+Web:wght@400;600;700&display=swap"
@@ -21,6 +31,8 @@ interface MembershipCardProps {
   userName?: string;
   membershipId?: string | null;
   profilePicture?: string | null;
+  /** Admin editor only: makes image-background fields draggable. */
+  onFieldMove?: (field: CardFieldKey, position: FieldPosition) => void;
 }
 
 export function MembershipCard({ 
@@ -30,6 +42,7 @@ export function MembershipCard({
   userName = 'Member Name',
   membershipId,
   profilePicture,
+  onFieldMove,
 }: MembershipCardProps) {
   const { card, club, membershipPlan } = cardData;
   const effectiveCardStyle = card.cardStyle || cardStyle;
@@ -37,6 +50,7 @@ export function MembershipCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0, scale: 1 });
   const [isHovered, setIsHovered] = useState(false);
+  const boxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const linkId = "membership-card-fonts"
@@ -169,6 +183,173 @@ export function MembershipCard({
     setIsHovered(true);
   };
 
+  // ---------------------------------------------------------------------------
+  // Image background mode: the admin positions every field on the card itself,
+  // so the layout comes from customization.fieldPositions instead of flexbox.
+  // ---------------------------------------------------------------------------
+  const custom = card.customization;
+
+  if (custom?.backgroundMode === 'image') {
+    const isEditable = typeof onFieldMove === 'function';
+    const fontColor = custom.fontColor || '#FFFFFF';
+    const backgroundImage = custom.backgroundImage ? resolveCardAssetUrl(custom.backgroundImage) : null;
+    const logoUrl = custom.customLogo || club.logo;
+    // Field sizes are authored against the 1012px-wide box the admin drags in,
+    // then expressed in cqw so the browser scales them to the rendered card
+    // width. No JS measurement, so fields are correct on the very first paint.
+    const cqw = (designPx: number) => `${(designPx / CARD_BG_WIDTH) * 100}cqw`;
+    const logoPx = getLogoDimensionPx(custom.logoSize) * 3;
+
+    const startDrag = (field: CardFieldKey) => (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!onFieldMove || !boxRef.current) return;
+      event.preventDefault();
+      const chip = event.currentTarget.getBoundingClientRect();
+      // Grab offset keeps the field from jumping to the cursor on pointer-down.
+      const grabX = event.clientX - chip.left;
+      const grabY = event.clientY - chip.top;
+
+      const onMove = (e: PointerEvent) => {
+        // Re-measured every move so scrolling mid-drag can't offset the field.
+        const box = boxRef.current?.getBoundingClientRect();
+        if (!box || !box.width || !box.height) return;
+        onFieldMove(
+          field,
+          dragPositionPercent({ x: e.clientX, y: e.clientY }, { x: grabX, y: grabY }, chip, box)
+        );
+      };
+      const onEnd = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onEnd);
+        // Touch drags end with pointercancel, which would otherwise leak the listener.
+        window.removeEventListener('pointercancel', onEnd);
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onEnd);
+      window.addEventListener('pointercancel', onEnd);
+    };
+
+    // `render` is a thunk: a hidden field must not build its children, or the
+    // URL helpers run on the undefined logo/photo it doesn't have.
+    const placed = (field: CardFieldKey, visible: boolean, render: () => React.ReactNode) => {
+      if (!visible) return null;
+      const { x, y } = getFieldPosition(custom.fieldPositions, field);
+      return (
+        <div
+          key={field}
+          onPointerDown={isEditable ? startDrag(field) : undefined}
+          className={
+            isEditable
+              ? 'absolute rounded-md bg-black/40 cursor-grab active:cursor-grabbing select-none touch-none'
+              : 'absolute'
+          }
+          style={{
+            left: `${x}%`,
+            top: `${y}%`,
+            // outline (not border/padding) so the drag affordance adds no layout
+            // box — the field sits at the same spot on the member's card.
+            ...(isEditable
+              ? { outline: `${cqw(2)} dashed rgba(255, 255, 255, 0.65)`, outlineOffset: cqw(6) }
+              : {}),
+          }}
+          title={isEditable ? `Drag to move ${CARD_FIELD_LABELS[field]}` : undefined}
+        >
+          {render()}
+        </div>
+      );
+    };
+
+    const labelled = (field: CardFieldKey, value: React.ReactNode) => (
+      <>
+        <p style={{ margin: 0, fontSize: cqw(17), letterSpacing: cqw(1.5), opacity: 0.75, textTransform: 'uppercase' }}>
+          {CARD_FIELD_LABELS[field]}
+        </p>
+        <div style={{ fontSize: cqw(31), fontWeight: 700, whiteSpace: 'nowrap', lineHeight: 1.2 }}>{value}</div>
+      </>
+    );
+
+    return (
+      <div
+        ref={boxRef}
+        className="relative w-full overflow-hidden rounded-xl shadow-sm"
+        style={{
+          aspectRatio: `${CARD_BG_WIDTH} / ${CARD_BG_HEIGHT}`,
+          containerType: 'inline-size',
+          backgroundColor: '#000000',
+          backgroundImage: backgroundImage ? `url("${backgroundImage}")` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          color: fontColor,
+          textShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
+          ...getFontFamilyStyle(),
+        }}
+      >
+        {!backgroundImage && isEditable && (
+            <p
+              style={{
+                position: 'absolute',
+                top: '45%',
+                left: 0,
+                width: '100%',
+                margin: 0,
+                textAlign: 'center',
+                fontSize: cqw(22),
+                opacity: 0.75,
+              }}
+            >
+              No image uploaded — showing default black background
+            </p>
+          )}
+
+          {placed(
+            'clubLogo',
+            (custom.showLogo ?? showLogo) && !!logoUrl,
+            () => (<img
+              src={resolveCardAssetUrl(logoUrl!)}
+              alt={club.name}
+              style={{ width: cqw(logoPx), height: cqw(logoPx), objectFit: 'contain', display: 'block' }}
+            />)
+          )}
+
+          {placed(
+            'profilePicture',
+            showUserProfilePicture,
+            () => (<img
+              src={resolveProfilePictureUrl(profilePicture!)}
+              alt={userName || 'Member'}
+              style={{
+                width: cqw(logoPx),
+                height: cqw(logoPx),
+                borderRadius: '50%',
+                objectFit: 'cover',
+                display: 'block',
+                border: `${cqw(4)} solid rgba(255,255,255,0.3)`,
+              }}
+            />)
+          )}
+
+          {placed('clubName', custom.showClubName ?? true, () => labelled('clubName', club.name))}
+          {placed('memberName', true, () => labelled('memberName', userName || 'Member'))}
+          {placed('planName', true, () => labelled('planName', membershipPlan.name))}
+          {placed(
+            'membershipId',
+            (custom.showMembershipId ?? true) && !!displayMembershipId,
+            () => labelled('membershipId', displayMembershipId)
+          )}
+          {placed('endDate', custom.showEndDate ?? true, () => labelled('endDate', formatDate(card.expiryDate)))}
+          {placed(
+            'status',
+            custom.showStatus ?? true,
+            () => labelled(
+              'status',
+              <Badge className={getStatusClassName(card.status)} style={{ fontSize: cqw(18), padding: `${cqw(1)} ${cqw(14)}` }}>
+                {card.status}
+              </Badge>
+            )
+          )}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={cardRef}
@@ -285,12 +466,14 @@ export function MembershipCard({
             <p className="text-[10px] opacity-70 whitespace-nowrap">Valid Thru</p>
             <p className="text-xs font-medium whitespace-nowrap">{formatDate(card.expiryDate)}</p>
           </div>
-          <div className="text-right flex-shrink-0">
-            <p className="text-[10px] opacity-70">Status</p>
-            <Badge className={`text-[10px] px-1.5 py-0 ${getStatusClassName(card.status)}`}>
-              {card.status}
-            </Badge>
-          </div>
+          {(custom?.showStatus ?? true) && (
+            <div className="text-right flex-shrink-0">
+              <p className="text-[10px] opacity-70">Status</p>
+              <Badge className={`text-[10px] px-1.5 py-0 ${getStatusClassName(card.status)}`}>
+                {card.status}
+              </Badge>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

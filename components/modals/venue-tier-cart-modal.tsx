@@ -516,7 +516,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         const autoC = res.data.coupon
         setCouponDiscount(autoC.discount)
         setCouponName(autoC.name)
-        setLocalCouponCode(autoC.code)
+        setLocalCouponCode(autoC.code ?? '')
         setCouponApplied(true)
         setIsAutoApplied(true)
       } else {
