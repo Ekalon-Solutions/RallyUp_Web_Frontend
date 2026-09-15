@@ -6,7 +6,7 @@ import {
   MEMBER_ENTITLEMENTS_CHANGED_EVENT,
   type ClubFeatureKey,
 } from './clubFeatures';
-import type { PlanAttributes, PlanMemberDiscount } from './membershipPlanConfig';
+import type { EntitlementRule, PlanAttributes, PlanMemberDiscount } from './membershipPlanConfig';
 import type { BackgroundMode, FieldPositions } from './membershipCardFields';
 
 const API_BASE_URL = getApiUrl('');
@@ -1144,6 +1144,7 @@ export interface MembershipPlan {
   brochure?: Array<{ url: string; name: string; size: number }>;
   attributes?: PlanAttributes;
   memberDiscount?: PlanMemberDiscount;
+  entitlementRules?: EntitlementRule[];
   isActive: boolean;
   club: string;
   createdAt: string;
@@ -3978,6 +3979,7 @@ class ApiClient {
     brochure?: Array<{ url: string; name: string; size: number }>;
     attributes?: PlanAttributes;
     memberDiscount?: PlanMemberDiscount;
+    entitlementRules?: EntitlementRule[];
   }): Promise<ApiResponse<{ message: string; membershipPlan: MembershipPlan }>> {
     return this.request('/membership-plans', {
       method: 'POST',
