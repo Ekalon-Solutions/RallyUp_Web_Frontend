@@ -100,6 +100,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [couponApplied, setCouponApplied] = useState(false)
   const [isAutoApplied, setIsAutoApplied] = useState(false)
   const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
+  const [autoDiscountSource, setAutoDiscountSource] = useState<'plan' | 'coupon' | null>(null)
+  const [autoDiscountPercent, setAutoDiscountPercent] = useState<number | null>(null)
   const [attributedClub, setAttributedClub] = useState("")
   const [attributedClubError, setAttributedClubError] = useState("")
   const [showClubAlert, setShowClubAlert] = useState(false)
@@ -161,6 +163,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       setCouponName("")
       setIsAutoApplied(false)
       setAutoCouponRemoved(false)
+      setAutoDiscountSource(null)
+      setAutoDiscountPercent(null)
       setAttributedClub("")
       setAttributedClubError("")
       setShowClubAlert(false)
@@ -260,8 +264,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       }
     }
 
+    // Plan entitlement % and event-level member discount never stack — if the
+    // auto-applied discount came from the membership plan, that is the member
+    // benefit. Event.memberDiscount only applies when there is no plan %.
     let memberDiscountPerTicket = 0
-    if (discountSource.memberDiscount?.enabled && isMember) {
+    const skipEventMemberDiscount = isAutoApplied && autoDiscountSource === 'plan'
+    if (!skipEventMemberDiscount && discountSource.memberDiscount?.enabled && isMember) {
       const md = discountSource.memberDiscount
       memberDiscountPerTicket = md.type === 'percentage' 
         ? (ticketPrice * (md.value ?? 0)) / 100 
@@ -301,15 +309,19 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
     if (!clubId || (!searchPhone && !searchEmail)) return
 
-    const { orderTotalBeforeCoupon } = getOrderPricing()
-    if (orderTotalBeforeCoupon <= 0) return
+    const pricing = getOrderPricing()
+    const subtotalForAuto = Math.max(
+      pricing.totalBasePrice - pricing.earlyBirdDiscountTotal - pricing.groupDiscountTotal,
+      0
+    )
+    if (subtotalForAuto <= 0) return
 
     try {
       const res = await apiClient.getHighestEligibleAutoCoupon({
         clubId,
         phone: searchPhone || undefined,
         email: searchEmail || undefined,
-        cartSubtotal: orderTotalBeforeCoupon,
+        cartSubtotal: subtotalForAuto,
         eventId: event?._id || undefined
       })
 
@@ -320,6 +332,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         setLocalCouponCode(autoC.code ?? '')
         setCouponApplied(true)
         setIsAutoApplied(true)
+        setAutoDiscountSource(autoC.source === 'plan' ? 'plan' : 'coupon')
+        setAutoDiscountPercent(
+          autoC.source === 'plan' && autoC.discountType === 'percentage' ? autoC.discountValue : null
+        )
       } else {
         if (isAutoApplied) {
           setLocalCouponCode("")
@@ -327,6 +343,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           setCouponDiscount(0)
           setCouponName("")
           setIsAutoApplied(false)
+          setAutoDiscountSource(null)
+          setAutoDiscountPercent(null)
         }
       }
     } catch (err) {
@@ -373,6 +391,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         setCouponDiscount(response.data.coupon.discount)
         setCouponName(response.data.coupon.name)
         setCouponApplied(true)
+        setIsAutoApplied(false)
+        setAutoDiscountSource('coupon')
+        setAutoDiscountPercent(null)
         toast.success("Coupon applied!")
       } else {
         setCouponDiscount(0)
@@ -395,6 +416,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     setCouponDiscount(0)
     setCouponName("")
     setIsAutoApplied(false)
+    setAutoDiscountSource(null)
+    setAutoDiscountPercent(null)
     setAutoCouponRemoved(true)
     toast.info("Coupon removed")
   }
@@ -971,7 +994,13 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 font-medium">
                           <Tag className="w-4 h-4" />
-                          <span>{localCouponCode ? `Coupon (${localCouponCode})${couponName ? ` — ${couponName}` : ''}` : (couponName || 'Member discount')}</span>
+                          <span>{
+                            localCouponCode
+                              ? `Coupon (${localCouponCode})${couponName ? ` — ${couponName}` : ''}`
+                              : autoDiscountSource === 'plan' && autoDiscountPercent
+                                ? `${autoDiscountPercent}% membership discount`
+                                : (couponName || 'Member discount')
+                          }</span>
                         </div>
                         {isAutoApplied && (
                           <div className="flex items-center gap-2 flex-wrap mt-0.5">
