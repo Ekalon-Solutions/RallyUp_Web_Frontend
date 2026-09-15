@@ -3,6 +3,7 @@
 import React, { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -269,7 +270,7 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
                   <div className="mt-3">
                     <Label className="text-sm font-medium">Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</Label>
                     <div className="flex gap-2 mt-2">
-                      <input type="number" min={0} value={redeemPoints} onChange={(e) => setRedeemPoints(Number(e.target.value || 0))} className="border rounded px-2 py-1 w-32" placeholder="Points" />
+                      <Input type="number" min={0} value={redeemPoints} onChange={(e) => setRedeemPoints(Number(e.target.value || 0))} className="w-32 h-9" placeholder="Points" />
                       <Button type="button" size="sm" onClick={async () => {
                         if (!redeemPoints || redeemPoints <= 0) { toast.error('Enter points to redeem'); return }
                         setReserving(true)

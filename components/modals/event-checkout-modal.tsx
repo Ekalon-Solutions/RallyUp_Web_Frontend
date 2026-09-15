@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -1048,13 +1049,13 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   <div className="space-y-2">
                   <label className="text-sm font-medium">Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</label>
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <input
+                    <Input
                       type="number"
                       min={1}
                       max={availablePoints || undefined}
                       value={redeemPoints}
                       onChange={(e) => setRedeemPoints(e.target.value === "" ? "" : Number(e.target.value))}
-                      className="w-full sm:w-32 flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      className="w-full sm:w-32 flex-1 h-9"
                       placeholder="Enter Points"
                       disabled={!!reservationToken || reserving}
                     />
