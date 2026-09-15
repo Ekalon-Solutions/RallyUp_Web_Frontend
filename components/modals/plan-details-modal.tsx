@@ -44,7 +44,7 @@ function formatValidity(plan: DetailedPlan): string {
 }
 
 /**
- * "Know More About The Plan" — the public breakdown of what a plan includes,
+ * "View Plan Details" — the public breakdown of what a plan includes,
  * built entirely from what the admin configured in the plan wizard.
  */
 export function PlanDetailsModal({

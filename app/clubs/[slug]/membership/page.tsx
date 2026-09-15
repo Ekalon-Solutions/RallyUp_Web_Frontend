@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 import { ArrowLeft, ArrowUpRight, Calendar, Clock, CreditCard, Search } from "lucide-react"
 import { PlanDetailsModal } from "@/components/modals/plan-details-modal"
+import { planBenefits } from "@/lib/membershipPlanConfig"
 
 interface Club {
   _id: string
@@ -172,13 +173,13 @@ export default function ClubMembershipPlansPage() {
   }
 
   const getCardCta = (plan: JoinablePlan): { label: string; disabled: boolean } => {
-    if (!isLoggedIn) return { label: "Select Plan", disabled: false }
+    if (!isLoggedIn) return { label: "Purchase Plan", disabled: false }
     if (String(plan._id) === String(currentPlanId)) return { label: "Your Current Plan", disabled: true }
     if (hasActiveMembership && plan.price <= currentPlanPrice) {
       return { label: "Downgrade Unavailable", disabled: true }
     }
     if (hasActiveMembership) return { label: "Upgrade to This Plan", disabled: false }
-    return { label: "Select Plan", disabled: false }
+    return { label: "Purchase Plan", disabled: false }
   }
 
   if (loading) {
@@ -266,6 +267,7 @@ export default function ClubMembershipPlansPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {visiblePlans.map((plan) => {
               const cta = getCardCta(plan)
+              const benefits = planBenefits(plan)
               return (
                 <Card key={plan._id} className="flex flex-col overflow-hidden">
                   <CardHeader style={{ backgroundColor: primaryColor }} className="text-white">
@@ -295,6 +297,16 @@ export default function ClubMembershipPlansPage() {
                     {String(plan._id) === String(currentPlanId) && (
                       <Badge variant="secondary" className="w-fit">Current Plan</Badge>
                     )}
+                    {benefits.length > 0 && (
+                      <ul className="space-y-1.5 text-sm text-muted-foreground">
+                        {benefits.slice(0, 4).map((b) => (
+                          <li key={b.key} className="flex items-start gap-2">
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
+                            <span className="leading-snug">{b.title}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     <Separator className="mt-auto" />
                     <Button
                       className="w-full"
@@ -310,7 +322,7 @@ export default function ClubMembershipPlansPage() {
                       className="inline-flex items-center justify-center gap-1 text-sm font-semibold hover:underline"
                       style={{ color: primaryColor }}
                     >
-                      Know More About The Plan
+                      View Plan Details
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </button>
                   </CardContent>

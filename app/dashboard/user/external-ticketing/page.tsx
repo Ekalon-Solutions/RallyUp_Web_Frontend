@@ -21,10 +21,16 @@ import {
   UserCheck
 } from "lucide-react"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
 
 export default function ExternalTicketingPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
+  const { isEnabled: isMemberFeatureEnabled, loading: featuresLoading } = useClubFeatures(
+    clubId ?? null,
+    { asMember: true }
+  )
+  const canSubmitNewRequest = isMemberFeatureEnabled("external_ticketing")
   const [availableFixtures, setAvailableFixtures] = useState<ExternalTicketFixture[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,11 +46,20 @@ export default function ExternalTicketingPage() {
   const ticketCountOptions = Array.from({ length: 500 }, (_, idx) => idx + 1)
 
   useEffect(() => {
-    if (user && clubId) {
-      loadAvailableFixtures(clubId)
-      loadMyRequests()
-    }
+    if (!user || !clubId) return
+    loadMyRequests()
   }, [user, clubId])
+
+  useEffect(() => {
+    if (!user || !clubId || featuresLoading) return
+    if (canSubmitNewRequest) {
+      loadAvailableFixtures(clubId)
+    } else {
+      setAvailableFixtures([])
+      setIsLoading(false)
+      setError(null)
+    }
+  }, [user, clubId, canSubmitNewRequest, featuresLoading])
 
   const loadAvailableFixtures = async (clubIdToLoad: string) => {
     setIsLoading(true)
@@ -148,6 +163,10 @@ export default function ExternalTicketingPage() {
   }
 
   const openRequestDialog = (fixture: ExternalTicketFixture) => {
+    if (!canSubmitNewRequest) {
+      toast.error('Your current plan does not include new ticket requests.')
+      return
+    }
     const profilePhone = (user as any)?.phoneNumber || ''
     const profileCountryCode = (user as any)?.countryCode || ''
     const profileName = user?.name || ''
@@ -181,12 +200,24 @@ export default function ExternalTicketingPage() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">External Ticketing</h1>
               <p className="text-muted-foreground">
-                Browse published fixtures for your club and request tickets
+                {canSubmitNewRequest
+                  ? "Browse published fixtures for your club and request tickets"
+                  : "Your current plan does not include new ticket requests. Applications you already submitted stay valid."}
               </p>
             </div>
           </div>
 
-          {isLoading ? (
+          {!canSubmitNewRequest && !featuresLoading ? (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">
+                  You can still track existing applications below. Upgrade your membership plan to submit new requests.
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {canSubmitNewRequest && isLoading ? (
             <div className="flex items-center justify-center min-h-[400px]">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -195,7 +226,7 @@ export default function ExternalTicketingPage() {
             </div>
           ) : (
             <>
-              {error && (
+              {canSubmitNewRequest && error && (
                 <Card className="border-destructive">
                   <CardContent className="pt-6">
                     <div className="text-center text-destructive">
@@ -212,7 +243,7 @@ export default function ExternalTicketingPage() {
                 </Card>
               )}
 
-              {!error && (
+              {canSubmitNewRequest && !error && (
                 <Card>
                   <CardContent className="pt-6">
                     <div className="rounded-md border">

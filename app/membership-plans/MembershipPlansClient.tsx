@@ -2,43 +2,27 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { apiClient } from "@/lib/api"
 import { calculateTransactionFees } from "@/lib/transactionFees"
-import { Check, CreditCard, Building2 } from "lucide-react"
+import { ArrowUpRight, Building2, CreditCard } from "lucide-react"
+import { JoinMembershipModal, type JoinablePlan } from "@/components/modals/join-membership-modal"
+import { PlanDetailsModal } from "@/components/modals/plan-details-modal"
+import { planBenefits, type PublicPlanConfig } from "@/lib/membershipPlanConfig"
 
-type PublicMembershipPlan = {
-  _id: string
-  name: string
-  description: string
-  price: number
-  currency: string
-  duration?: number
-  planStartDate?: string
-  planEndDate?: string
-  bookingStartDate?: string
-  bookingEndDate?: string
-  features?: {
-    maxEvents?: number
-    maxNews?: number
-    maxMembers?: number
-    customBranding?: boolean
-    advancedAnalytics?: boolean
-    prioritySupport?: boolean
-    apiAccess?: boolean
-    customIntegrations?: boolean
-  }
+type PublicMembershipPlan = JoinablePlan & PublicPlanConfig & {
   isActive: boolean
 }
 
 type PublicClubWithPlans = {
   _id: string
   name: string
+  slug?: string
   platformFeePercent?: number
   membershipPlans?: PublicMembershipPlan[]
 }
@@ -48,9 +32,9 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
 
   const [loading, setLoading] = useState(false)
   const [club, setClub] = useState<PublicClubWithPlans | null>(null)
-
-  const encodeSearchParam = (value: string) =>
-    encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+  const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
+  const [showJoinModal, setShowJoinModal] = useState(false)
+  const [detailsPlan, setDetailsPlan] = useState<PublicMembershipPlan | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -190,7 +174,9 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
               </Card>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {plans.map((plan) => (
+                {plans.map((plan) => {
+                  const benefits = planBenefits(plan)
+                  return (
                   <Card key={plan._id} className="border-2">
                     <CardHeader className="text-center">
                       <CardTitle className="text-xl">{plan.name}</CardTitle>
@@ -225,39 +211,50 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
                         )}
                       </div>
 
-                      <div className="space-y-2">
-                        <div className="text-sm font-semibold">Highlights</div>
-                        <div className="flex flex-wrap gap-2">
-                          {typeof plan.features?.maxEvents === "number" && (
-                            <Badge variant="secondary">Events: {plan.features.maxEvents}</Badge>
-                          )}
-                          {typeof plan.features?.maxNews === "number" && (
-                            <Badge variant="secondary">News: {plan.features.maxNews}</Badge>
-                          )}
-                          {typeof plan.features?.maxMembers === "number" && (
-                            <Badge variant="secondary">Members: {plan.features.maxMembers}</Badge>
-                          )}
-                        </div>
-                      </div>
+                      {benefits.length > 0 && (
+                        <ul className="space-y-1.5 text-sm text-muted-foreground text-left">
+                          {benefits.slice(0, 4).map((b) => (
+                            <li key={b.key} className="flex items-start gap-2">
+                              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
+                              <span className="leading-snug">{b.title}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
 
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Check className="h-4 w-4 text-green-600" />
-                        Join flow continues on Clubs page
-                      </div>
+                      <Separator />
 
                       {(() => {
                         const salesState = getPlanSalesState(plan)
                         return (
-                          <Link href={`/clubs?search=${encodeSearchParam(club.name)}`} className="block">
-                            <Button className="w-full" disabled={!salesState.isOpen}>
-                              {salesState.closed ? "Membership Closed" : salesState.notStarted ? "Unavailable" : "Continue to Join"}
-                            </Button>
-                          </Link>
+                          <Button
+                            className="w-full"
+                            disabled={!salesState.isOpen}
+                            onClick={() => {
+                              setSelectedPlanId(plan._id)
+                              setShowJoinModal(true)
+                            }}
+                          >
+                            {salesState.closed
+                              ? "Membership Closed"
+                              : salesState.notStarted
+                                ? "Unavailable"
+                                : "Purchase Plan"}
+                          </Button>
                         )
                       })()}
+                      <button
+                        type="button"
+                        onClick={() => setDetailsPlan(plan)}
+                        className="inline-flex w-full items-center justify-center gap-1 text-sm font-semibold text-primary hover:underline"
+                      >
+                        View Plan Details
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </button>
                     </CardContent>
                   </Card>
-                ))}
+                  )
+                })}
               </div>
             )}
           </>
@@ -265,6 +262,33 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
       </div>
 
       <SiteFooter brandName="Wingman Pro" />
+
+      <PlanDetailsModal
+        open={Boolean(detailsPlan)}
+        onOpenChange={(open) => { if (!open) setDetailsPlan(null) }}
+        plan={detailsPlan}
+        displayPrice={
+          detailsPlan
+            ? calculateTransactionFees(detailsPlan.price || 0, club?.platformFeePercent).finalAmount
+            : undefined
+        }
+      />
+
+      {club?._id && (
+        <JoinMembershipModal
+          open={showJoinModal}
+          onOpenChange={(open) => {
+            setShowJoinModal(open)
+            if (!open) setSelectedPlanId(undefined)
+          }}
+          clubId={club._id}
+          clubName={club.name}
+          platformFeePercent={club.platformFeePercent}
+          plans={plans.filter((p) => getPlanSalesState(p).isOpen) as JoinablePlan[]}
+          returnPath={`/membership-plans?clubId=${encodeURIComponent(clubId)}`}
+          initialPlanId={selectedPlanId}
+        />
+      )}
     </div>
   )
 }
