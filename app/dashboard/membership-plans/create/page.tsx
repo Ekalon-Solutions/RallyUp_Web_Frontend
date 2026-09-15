@@ -31,21 +31,25 @@ import { cn } from "@/lib/utils"
 import {
   CUSTOM_FIELD_TYPES,
   ID_PROOF_FORMATS,
-  DISCOUNT_TYPES,
+  ENTITLEMENT_RULE_TYPES,
   MAX_BROCHURE_FILES,
   MAX_CUSTOM_FIELDS,
+  MAX_ENTITLEMENT_RULES,
   PLAN_ATTRIBUTE_FIELDS,
   PLAN_FEATURES,
   defaultPlanAttributes,
   defaultPlanFeatures,
-  defaultPlanMemberDiscount,
+  deriveLegacyFromRules,
+  emptyDiscountRule,
+  emptyTicketingRule,
+  hydrateEntitlementRules,
   hydratePlanAttributes,
   hydratePlanFeatures,
-  hydratePlanMemberDiscount,
+  pickWinningPercentRule,
+  rulePercent,
   type CustomFieldType,
-  type DiscountType,
+  type EntitlementRule,
   type IdProofFormat,
-  type PlanMemberDiscount,
   type PlanAttributes,
   type PlanBrochureFile,
 } from "@/lib/membershipPlanConfig"
@@ -201,13 +205,19 @@ function PlanPreview({
   details,
   planFeatures,
   customFeatures,
+  entitlementRules,
 }: {
   details: BasicDetails
   planFeatures: Record<string, boolean>
   customFeatures: string[]
+  entitlementRules: EntitlementRule[]
 }) {
+  const winningDiscount = pickWinningPercentRule(entitlementRules)
   const benefits = [
     ...PLAN_FEATURES.filter((f) => planFeatures[f.key]).map((f) => f.label),
+    ...(winningDiscount
+      ? [`${rulePercent(winningDiscount)}% off events and store`]
+      : []),
     ...customFeatures.filter((c) => c.trim()),
   ]
   const validity =
@@ -288,7 +298,7 @@ function MembershipPlanWizard() {
   const [planFeatures, setPlanFeatures] = useState<Record<string, boolean>>(defaultPlanFeatures)
   const [customFeatures, setCustomFeatures] = useState<string[]>(["", ""])
   const [brochure, setBrochure] = useState<PlanBrochureFile[]>([])
-  const [memberDiscount, setMemberDiscount] = useState<PlanMemberDiscount>(defaultPlanMemberDiscount)
+  const [entitlementRules, setEntitlementRules] = useState<EntitlementRule[]>([])
   const [attributes, setAttributes] = useState<PlanAttributes>(defaultPlanAttributes)
   const [idProofDraft, setIdProofDraft] = useState<{ label: string; format: IdProofFormat; maxLength: string }>({
     label: "",
@@ -326,10 +336,13 @@ function MembershipPlanWizard() {
           referralRewardEnabled: plan.referralReward?.enabled ?? false,
           referralRewardPoints: plan.referralReward?.points ?? 0,
         })
-        setPlanFeatures(hydratePlanFeatures(plan.planFeatures))
+        const features = hydratePlanFeatures(plan.planFeatures)
+        const rules = hydrateEntitlementRules(plan)
+        const derived = deriveLegacyFromRules(rules, features)
+        setPlanFeatures(derived.planFeatures)
         setCustomFeatures(plan.customFeatures?.length ? plan.customFeatures : ["", ""])
         setBrochure(plan.brochure ?? [])
-        setMemberDiscount(hydratePlanMemberDiscount(plan.memberDiscount))
+        setEntitlementRules(rules)
         setAttributes(hydratePlanAttributes(plan.attributes))
       })
       .finally(() => {
@@ -437,6 +450,7 @@ function MembershipPlanWizard() {
 
     setIsSaving(true)
     try {
+      const derivedEntitlements = deriveLegacyFromRules(entitlementRules, planFeatures)
       const payload = {
         name: details.name.trim(),
         description: details.description.trim(),
@@ -452,8 +466,9 @@ function MembershipPlanWizard() {
             ? Math.max(0, Math.floor(details.referralRewardPoints))
             : 0,
         },
-        planFeatures,
-        memberDiscount,
+        planFeatures: derivedEntitlements.planFeatures,
+        memberDiscount: derivedEntitlements.memberDiscount,
+        entitlementRules,
         customFeatures: customFeatures.map((c) => c.trim()).filter(Boolean),
         brochure,
         attributes: {
@@ -686,9 +701,25 @@ function MembershipPlanWizard() {
                         </div>
                         <Switch
                           checked={Boolean(planFeatures[feature.key])}
-                          onCheckedChange={(v) =>
+                          onCheckedChange={(v) => {
                             setPlanFeatures((prev) => ({ ...prev, [feature.key]: v }))
-                          }
+                            if (feature.key === "events_store_discounts" && !v) {
+                              setEntitlementRules((prev) =>
+                                prev.map((r) =>
+                                  r.type === "auto_discount_percent" ? { ...r, enabled: false } : r
+                                )
+                              )
+                            }
+                            if (feature.key === "matchday_tickets") {
+                              setEntitlementRules((prev) => {
+                                const hasTicketing = prev.some((r) => r.type === "external_ticketing")
+                                if (!hasTicketing) return v ? [...prev, emptyTicketingRule(true)] : prev
+                                return prev.map((r) =>
+                                  r.type === "external_ticketing" ? { ...r, enabled: v } : r
+                                )
+                              })
+                            }
+                          }}
                           aria-label={feature.label}
                         />
                       </div>
@@ -697,120 +728,187 @@ function MembershipPlanWizard() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold text-foreground">Member discount</h3>
-                      <p className="mt-0.5 text-sm text-muted-foreground">
-                        Auto-applied at event and store checkout for members on this plan — no coupon code needed.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={memberDiscount.enabled}
-                      onCheckedChange={(v) => setMemberDiscount({ ...memberDiscount, enabled: v })}
-                      aria-label="Member discount"
-                    />
-                  </div>
+                  <SectionHeading
+                    title="Entitlement rules"
+                    subtitle="Optional benefits for members on this club plan — not the RallyUp billing tier. A plan can have none, one, or several."
+                    badge={`${entitlementRules.length} of ${MAX_ENTITLEMENT_RULES}`}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    If two percentage rules are on the same plan, the higher percentage is used — they are never
+                    combined. A typed coupon code still wins over the plan. Future checkouts follow these live
+                    rules; already-paid orders keep the discount that was charged.
+                  </p>
 
-                  {memberDiscount.enabled && (
-                    <div className="grid gap-4 border-l-2 border-muted pl-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="discountType">Discount type</Label>
-                        <Select
-                          value={memberDiscount.discountType}
-                          onValueChange={(v) =>
-                            setMemberDiscount({ ...memberDiscount, discountType: v as DiscountType })
-                          }
-                        >
-                          <SelectTrigger id="discountType">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {DISCOUNT_TYPES.map((d) => (
-                              <SelectItem key={d.value} value={d.value}>
-                                {d.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="discountValue">
-                          {memberDiscount.discountType === 'percentage' ? 'Percentage off' : 'Amount off'}
-                        </Label>
-                        <Input
-                          id="discountValue"
-                          type="number"
-                          min={0}
-                          max={memberDiscount.discountType === 'percentage' ? 100 : undefined}
-                          value={memberDiscount.discountValue}
-                          onChange={(e) =>
-                            setMemberDiscount({
-                              ...memberDiscount,
-                              discountValue: Math.max(0, Number(e.target.value) || 0),
-                            })
-                          }
-                        />
-                      </div>
-                      {memberDiscount.discountType === 'percentage' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="maxDiscountAmount">Maximum discount</Label>
-                          <Input
-                            id="maxDiscountAmount"
-                            type="number"
-                            min={0}
-                            placeholder="0 = no cap"
-                            value={memberDiscount.maxDiscountAmount}
-                            onChange={(e) =>
-                              setMemberDiscount({
-                                ...memberDiscount,
-                                maxDiscountAmount: Math.max(0, Number(e.target.value) || 0),
-                              })
-                            }
+                  {entitlementRules.map((rule) => (
+                    <div key={rule.id} className="space-y-3 rounded-lg border p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {ENTITLEMENT_RULE_TYPES.find((t) => t.value === rule.type)?.label || rule.type}
+                          </p>
+                          {rule.type === "auto_discount_percent" && (
+                            <p className="text-xs text-muted-foreground">
+                              {rule.enabled
+                                ? `${rulePercent(rule)}% off events and store`
+                                : "Disabled — not applied at checkout"}
+                            </p>
+                          )}
+                          {rule.type === "external_ticketing" && (
+                            <p className="text-xs text-muted-foreground">
+                              {rule.enabled
+                                ? "Members on this plan can use external / matchday ticketing"
+                                : "Ticketing access is off for this plan"}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={rule.enabled}
+                            onCheckedChange={(v) => {
+                              setEntitlementRules((prev) =>
+                                prev.map((r) => (r.id === rule.id ? { ...r, enabled: v } : r))
+                              )
+                              if (rule.type === "auto_discount_percent" && v) {
+                                setPlanFeatures((prev) => ({ ...prev, events_store_discounts: true }))
+                              }
+                              if (rule.type === "external_ticketing") {
+                                setPlanFeatures((prev) => ({ ...prev, matchday_tickets: v }))
+                              }
+                            }}
+                            aria-label={`Enable ${rule.type}`}
                           />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label="Remove rule"
+                            onClick={() =>
+                              setEntitlementRules((prev) => prev.filter((r) => r.id !== rule.id))
+                            }
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {rule.type === "auto_discount_percent" && rule.enabled && (
+                        <div className="grid gap-4 border-l-2 border-muted pl-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor={`percent-${rule.id}`}>Percentage off</Label>
+                            <Input
+                              id={`percent-${rule.id}`}
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={rule.payload.percent ?? 0}
+                              onChange={(e) => {
+                                const percent = Math.min(100, Math.max(0, Number(e.target.value) || 0))
+                                setEntitlementRules((prev) =>
+                                  prev.map((r) =>
+                                    r.id === rule.id ? { ...r, payload: { ...r.payload, percent } } : r
+                                  )
+                                )
+                                setPlanFeatures((p) => ({ ...p, events_store_discounts: true }))
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`cap-${rule.id}`}>Maximum discount</Label>
+                            <Input
+                              id={`cap-${rule.id}`}
+                              type="number"
+                              min={0}
+                              placeholder="0 = no cap"
+                              value={rule.payload.maxDiscountAmount ?? 0}
+                              onChange={(e) => {
+                                const maxDiscountAmount = Math.max(0, Number(e.target.value) || 0)
+                                setEntitlementRules((prev) =>
+                                  prev.map((r) =>
+                                    r.id === rule.id
+                                      ? { ...r, payload: { ...r.payload, maxDiscountAmount } }
+                                      : r
+                                  )
+                                )
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`min-${rule.id}`}>Minimum order value</Label>
+                            <Input
+                              id={`min-${rule.id}`}
+                              type="number"
+                              min={0}
+                              placeholder="0 = any order"
+                              value={rule.payload.minPurchaseAmount ?? 0}
+                              onChange={(e) => {
+                                const minPurchaseAmount = Math.max(0, Number(e.target.value) || 0)
+                                setEntitlementRules((prev) =>
+                                  prev.map((r) =>
+                                    r.id === rule.id
+                                      ? { ...r, payload: { ...r.payload, minPurchaseAmount } }
+                                      : r
+                                  )
+                                )
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`uses-${rule.id}`}>Auto-apply limit per member</Label>
+                            <Input
+                              id={`uses-${rule.id}`}
+                              type="number"
+                              min={0}
+                              step={1}
+                              placeholder="0 = unlimited"
+                              value={rule.payload.maxUsesPerMember ?? 0}
+                              onChange={(e) => {
+                                const maxUsesPerMember = Math.max(0, Math.floor(Number(e.target.value) || 0))
+                                setEntitlementRules((prev) =>
+                                  prev.map((r) =>
+                                    r.id === rule.id
+                                      ? { ...r, payload: { ...r.payload, maxUsesPerMember } }
+                                      : r
+                                  )
+                                )
+                              }}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Cancelled and refunded orders don&apos;t count towards this.
+                            </p>
+                          </div>
                         </div>
                       )}
-                      <div className="space-y-2">
-                        <Label htmlFor="minPurchaseAmount">Minimum order value</Label>
-                        <Input
-                          id="minPurchaseAmount"
-                          type="number"
-                          min={0}
-                          placeholder="0 = any order"
-                          value={memberDiscount.minPurchaseAmount}
-                          onChange={(e) =>
-                            setMemberDiscount({
-                              ...memberDiscount,
-                              minPurchaseAmount: Math.max(0, Number(e.target.value) || 0),
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="maxUsesPerMember">Auto-apply limit per member</Label>
-                        <Input
-                          id="maxUsesPerMember"
-                          type="number"
-                          min={0}
-                          step={1}
-                          placeholder="0 = unlimited"
-                          value={memberDiscount.maxUsesPerMember}
-                          onChange={(e) =>
-                            setMemberDiscount({
-                              ...memberDiscount,
-                              maxUsesPerMember: Math.max(0, Math.floor(Number(e.target.value) || 0)),
-                            })
-                          }
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Cancelled and refunded orders don&apos;t count towards this.
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground sm:col-span-2">
-                        If a club-wide auto-apply coupon is worth more, the member gets that instead — the two are
-                        never combined. A code the member types in always wins.
-                      </p>
                     </div>
-                  )}
+                  ))}
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 border-dashed"
+                      disabled={entitlementRules.length >= MAX_ENTITLEMENT_RULES}
+                      onClick={() => {
+                        setEntitlementRules((prev) => [...prev, emptyDiscountRule()])
+                        setPlanFeatures((prev) => ({ ...prev, events_store_discounts: true }))
+                      }}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add auto-discount %
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 border-dashed"
+                      disabled={entitlementRules.length >= MAX_ENTITLEMENT_RULES}
+                      onClick={() => {
+                        setEntitlementRules((prev) => [...prev, emptyTicketingRule(true)])
+                        setPlanFeatures((prev) => ({ ...prev, matchday_tickets: true }))
+                      }}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add external ticketing
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -1181,7 +1279,12 @@ function MembershipPlanWizard() {
           </CardContent>
         </Card>
 
-        <PlanPreview details={details} planFeatures={planFeatures} customFeatures={customFeatures} />
+        <PlanPreview
+          details={details}
+          planFeatures={planFeatures}
+          customFeatures={customFeatures}
+          entitlementRules={entitlementRules}
+        />
       </div>
     </div>
   )

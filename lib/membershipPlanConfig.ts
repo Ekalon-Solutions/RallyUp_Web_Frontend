@@ -313,3 +313,160 @@ export function hydratePlanMemberDiscount(
 ): PlanMemberDiscount {
   return { ...defaultPlanMemberDiscount(), ...(raw ?? {}) }
 }
+
+// ── Entitlement rules (mirrors backend membershipPlanConfig.ts) ─────────────
+//
+// Same-plan percentage rules: higher percentage wins, never summed.
+// Future checkouts follow the LIVE plan. Completed purchases keep the
+// discount that was charged.
+
+export const ENTITLEMENT_RULE_TYPES = [
+  { value: 'auto_discount_percent', label: 'Auto-discount %' },
+  { value: 'external_ticketing', label: 'External ticketing' },
+] as const
+
+export type KnownEntitlementRuleType = (typeof ENTITLEMENT_RULE_TYPES)[number]['value']
+
+export const MAX_ENTITLEMENT_RULES = 20
+
+export type EntitlementRule = {
+  id: string
+  type: string
+  enabled: boolean
+  payload: {
+    percent?: number
+    maxDiscountAmount?: number
+    minPurchaseAmount?: number
+    maxUsesPerMember?: number
+    [key: string]: unknown
+  }
+}
+
+function newRuleId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `rule_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+}
+
+export function emptyDiscountRule(): EntitlementRule {
+  return {
+    id: newRuleId(),
+    type: 'auto_discount_percent',
+    enabled: true,
+    payload: { percent: 0, maxDiscountAmount: 0, minPurchaseAmount: 0, maxUsesPerMember: 0 },
+  }
+}
+
+export function emptyTicketingRule(enabled = true): EntitlementRule {
+  return { id: newRuleId(), type: 'external_ticketing', enabled, payload: {} }
+}
+
+export function normalizeEntitlementRule(raw: unknown): EntitlementRule | null {
+  const input = (raw ?? {}) as any
+  const type = typeof input.type === 'string' ? input.type.trim() : ''
+  if (!type) return null
+  const id = typeof input.id === 'string' && input.id.trim() ? input.id.trim() : newRuleId()
+  const enabled = Boolean(input.enabled)
+  const nested = input.payload && typeof input.payload === 'object' ? input.payload : {}
+  if (type === 'auto_discount_percent') {
+    const percent = Math.min(100, Math.max(0, Number(nested.percent ?? input.percent) || 0))
+    return {
+      id,
+      type,
+      enabled,
+      payload: {
+        percent,
+        maxDiscountAmount: Math.max(0, Number(nested.maxDiscountAmount ?? input.maxDiscountAmount) || 0),
+        minPurchaseAmount: Math.max(0, Number(nested.minPurchaseAmount ?? input.minPurchaseAmount) || 0),
+        maxUsesPerMember: Math.max(0, Math.floor(Number(nested.maxUsesPerMember ?? input.maxUsesPerMember) || 0)),
+      },
+    }
+  }
+  if (type === 'external_ticketing') {
+    return { id, type, enabled, payload: {} }
+  }
+  return { id, type, enabled, payload: { ...nested } }
+}
+
+export function normalizeEntitlementRules(raw: unknown): EntitlementRule[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map(normalizeEntitlementRule).filter((r): r is EntitlementRule => Boolean(r)).slice(0, MAX_ENTITLEMENT_RULES)
+}
+
+export function hydrateEntitlementRulesFromLegacy(plan: {
+  memberDiscount?: Partial<PlanMemberDiscount> | null
+  planFeatures?: Record<string, boolean> | null
+}): EntitlementRule[] {
+  const rules: EntitlementRule[] = []
+  const discount = hydratePlanMemberDiscount(plan.memberDiscount)
+  if (discount.enabled && discount.discountType === 'percentage' && discount.discountValue > 0) {
+    rules.push({
+      id: newRuleId(),
+      type: 'auto_discount_percent',
+      enabled: true,
+      payload: {
+        percent: Math.min(100, discount.discountValue),
+        maxDiscountAmount: discount.maxDiscountAmount,
+        minPurchaseAmount: discount.minPurchaseAmount,
+        maxUsesPerMember: discount.maxUsesPerMember,
+      },
+    })
+  }
+  const ticketingOn = !plan.planFeatures || plan.planFeatures.matchday_tickets !== false
+  rules.push(emptyTicketingRule(ticketingOn))
+  return rules
+}
+
+export function hydrateEntitlementRules(plan: {
+  entitlementRules?: EntitlementRule[] | null
+  memberDiscount?: Partial<PlanMemberDiscount> | null
+  planFeatures?: Record<string, boolean> | null
+}): EntitlementRule[] {
+  if (Array.isArray(plan.entitlementRules)) return normalizeEntitlementRules(plan.entitlementRules)
+  return hydrateEntitlementRulesFromLegacy(plan)
+}
+
+export function rulePercent(rule: EntitlementRule): number {
+  if (rule.type !== 'auto_discount_percent') return 0
+  return Math.min(100, Math.max(0, Number(rule.payload?.percent) || 0))
+}
+
+/** Higher percentage wins; they are never summed. */
+export function pickWinningPercentRule(rules: EntitlementRule[]): EntitlementRule | null {
+  const active = rules
+    .filter((r) => r.type === 'auto_discount_percent' && r.enabled && rulePercent(r) > 0)
+    .sort((a, b) => rulePercent(b) - rulePercent(a))
+  return active[0] ?? null
+}
+
+export function discountConfigFromRules(rules: EntitlementRule[]): PlanMemberDiscount {
+  const winner = pickWinningPercentRule(rules)
+  if (!winner) return defaultPlanMemberDiscount()
+  return {
+    enabled: true,
+    discountType: 'percentage',
+    discountValue: rulePercent(winner),
+    maxDiscountAmount: Math.max(0, Number(winner.payload.maxDiscountAmount) || 0),
+    minPurchaseAmount: Math.max(0, Number(winner.payload.minPurchaseAmount) || 0),
+    maxUsesPerMember: Math.max(0, Math.floor(Number(winner.payload.maxUsesPerMember) || 0)),
+  }
+}
+
+export function ticketingGrantedFromRules(rules: EntitlementRule[]): boolean | null {
+  const ticketing = rules.filter((r) => r.type === 'external_ticketing')
+  if (ticketing.length === 0) return null
+  return ticketing.some((r) => r.enabled)
+}
+
+export function deriveLegacyFromRules(
+  rules: EntitlementRule[],
+  planFeatures?: Record<string, boolean>
+): { planFeatures: Record<string, boolean>; memberDiscount: PlanMemberDiscount } {
+  const features = { ...(planFeatures ?? defaultPlanFeatures()) }
+  const memberDiscount = discountConfigFromRules(rules)
+  if (memberDiscount.enabled) features.events_store_discounts = true
+  const ticketing = ticketingGrantedFromRules(rules)
+  if (ticketing !== null) features.matchday_tickets = ticketing
+  return { planFeatures: features, memberDiscount }
+}
