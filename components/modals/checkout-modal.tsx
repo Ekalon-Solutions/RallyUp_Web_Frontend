@@ -1571,12 +1571,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {user && <div className="mb-4">
                       <Label>Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</Label>
                       <div className="flex gap-2 mt-2">
-                        <input
+                        <Input
                           type="number"
                           min={0}
                           value={redeemPoints}
                           onChange={(e) => setRedeemPoints(Number(e.target.value || 0))}
-                          className="border rounded px-2 py-1 w-32"
+                          className="w-32 h-9"
                           placeholder="Enter Points"
                         />
                         <Button
