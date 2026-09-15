@@ -59,7 +59,7 @@ export const PLAN_ATTRIBUTE_FIELDS = [
   { key: 'zip_code', label: 'ZIP / Postal Code' },
   { key: 'country', label: 'Country' },
   { key: 'club_member_id', label: 'Club Membership ID' },
-  { key: 'id_proof', label: 'ID Proof' },
+  { key: 'id_proof', label: 'ID Proof', sensitive: true },
 ] as const
 
 export type PlanAttributeKey = (typeof PLAN_ATTRIBUTE_FIELDS)[number]['key']
@@ -88,6 +88,27 @@ export const DEFAULT_ID_PROOF_TYPES: PlanIdProofType[] = [
   { label: 'Voter ID', format: 'alphanumeric', maxLength: 10 },
 ]
 
+/** Profiles store "Aadhar"; plans default to "Aadhaar". Same document. */
+export function canonicalizeIdProofLabel(label: string): string {
+  const n = label.trim().toLowerCase().replace(/['’]/g, '').replace(/\s+/g, ' ')
+  if (/^aadha?r$/.test(n)) return 'aadhaar'
+  if (/^voter\s*id$/.test(n) || n === 'voterid') return 'voter id'
+  if (/^passport$/.test(n)) return 'passport'
+  if (
+    /^drivers?\s*(license|licence)$/.test(n) ||
+    n === 'driving license' ||
+    n === 'driving licence'
+  ) {
+    return 'driving license'
+  }
+  if (/^pan(\s*card)?$/.test(n)) return 'pan'
+  return n
+}
+
+export function idProofLabelsMatch(a: string, b: string): boolean {
+  return canonicalizeIdProofLabel(a) === canonicalizeIdProofLabel(b)
+}
+
 /**
  * Custom field "Field Type" — what a value *means*, which drives validation.
  * Deliberately a different list from ID_PROOF_FORMATS (which describes the
@@ -99,7 +120,10 @@ export const CUSTOM_FIELD_TYPES = [
   { value: 'number', label: 'Number' },
   { value: 'date', label: 'Date' },
   { value: 'email', label: 'Email' },
+  { value: 'dropdown', label: 'Dropdown' },
 ] as const
+
+export const MAX_DROPDOWN_OPTIONS = 30
 
 export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number]['value']
 
@@ -109,7 +133,13 @@ export const MAX_CUSTOM_FIELDS = 16
 
 export type PlanAttributeField = { key: string; enabled: boolean; mandatory: boolean }
 export type PlanIdProofType = { label: string; format: IdProofFormat; maxLength: number }
-export type PlanCustomField = { label: string; type: CustomFieldType; mandatory: boolean }
+export type PlanCustomField = {
+  label: string
+  type: CustomFieldType
+  mandatory: boolean
+  options?: string[]
+  sensitive?: boolean
+}
 export type PlanAttributes = {
   fields: PlanAttributeField[]
   idProofTypes: PlanIdProofType[]
@@ -127,19 +157,45 @@ export function defaultPlanAttributes(): PlanAttributes {
 
 /** Fills in any field the stored plan predates, so older plans render complete. */
 export function hydratePlanAttributes(raw: Partial<PlanAttributes> | null | undefined): PlanAttributes {
-  const stored = new Map((raw?.fields ?? []).map((f) => [f.key, f]))
+  const storedList = raw?.fields ?? []
+  const seen = new Set<string>()
+  const fields: PlanAttributeField[] = []
+  for (const hit of storedList) {
+    if (!PLAN_ATTRIBUTE_FIELDS.some((f) => f.key === hit.key) || seen.has(hit.key)) continue
+    seen.add(hit.key)
+    fields.push({
+      key: hit.key,
+      enabled: Boolean(hit.enabled),
+      mandatory: Boolean(hit.enabled) && Boolean(hit.mandatory),
+    })
+  }
+  for (const f of PLAN_ATTRIBUTE_FIELDS) {
+    if (seen.has(f.key)) continue
+    fields.push({ key: f.key, enabled: true, mandatory: false })
+  }
   return {
-    fields: PLAN_ATTRIBUTE_FIELDS.map((f) => {
-      const hit = stored.get(f.key)
-      return {
-        key: f.key,
-        enabled: hit ? Boolean(hit.enabled) : true,
-        mandatory: hit ? Boolean(hit.enabled) && Boolean(hit.mandatory) : false,
-      }
-    }),
+    fields,
     idProofTypes: raw?.idProofTypes?.length ? raw.idProofTypes : DEFAULT_ID_PROOF_TYPES.map((t) => ({ ...t })),
     customFields: raw?.customFields ?? [],
   }
+}
+
+/** Stable snapshot so submit can detect the admin changing the form in another tab. */
+export function fieldConfigSignature(attrs: Partial<PlanAttributes> | null | undefined): string {
+  const a = hydratePlanAttributes(attrs)
+  return JSON.stringify({
+    fields: a.fields.map((f) => [f.key, f.enabled, f.mandatory]),
+    idProofTypes: a.idProofTypes.map((t) => [t.label, t.format, t.maxLength]),
+    customFields: a.customFields.map((f) => [f.label, f.type, f.mandatory, f.options ?? []]),
+  })
+}
+
+export function reorderList<T>(list: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list
+  const next = [...list]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next
 }
 
 export function hydratePlanFeatures(raw: Record<string, boolean> | null | undefined): Record<string, boolean> {
@@ -224,7 +280,7 @@ export function validateFieldValue(
   if (type === 'date') {
     return isRealDate(value) ? null : `${label} must be a valid date.`
   }
-  // Text accepts letters and digits together, so "X1234567" passes.
+  // Text and dropdown: presence/options are checked by the caller.
   return null
 }
 
@@ -250,20 +306,72 @@ export type PublicPlanConfig = {
   planFeatures?: Record<string, boolean> | null
   customFeatures?: string[] | null
   brochure?: PlanBrochureFile[] | null
+  memberDiscount?: PlanMemberDiscount | null
+  entitlementRules?: EntitlementRule[] | null
 }
 
 export type PlanBenefit = { key: string; title: string; description: string }
 
 /**
- * The benefit list a member sees: the default features the plan grants, plus a
- * single "Additional Perks" row listing whatever custom features the admin added.
+ * The winning auto-discount % for a plan, or null when it has none.
+ * Same-plan rules: higher percentage wins; they are never summed.
+ */
+export function visiblePlanDiscountPercent(
+  plan: PublicPlanConfig | null | undefined
+): number | null {
+  if (!plan) return null
+  const winner = pickWinningPercentRule(hydrateEntitlementRules(plan))
+  if (winner) {
+    const percent = rulePercent(winner)
+    return percent > 0 ? percent : null
+  }
+  const legacy = hydratePlanMemberDiscount(plan.memberDiscount)
+  if (legacy.enabled && legacy.discountType === 'percentage' && legacy.discountValue > 0) {
+    return Math.min(100, legacy.discountValue)
+  }
+  return null
+}
+
+function planGrantsTicketing(plan: PublicPlanConfig | null | undefined): boolean {
+  if (!plan) return true
+  const fromRules = ticketingGrantedFromRules(hydrateEntitlementRules(plan))
+  if (fromRules !== null) return fromRules
+  return !plan.planFeatures || plan.planFeatures.matchday_tickets !== false
+}
+
+/**
+ * The benefit list a member sees. Discount shows the actual percentage when
+ * the plan has one. Ticketing is omitted when the plan does not grant it.
  * A plan with no config predates this feature and grants everything.
  */
 export function planBenefits(plan: PublicPlanConfig | null | undefined): PlanBenefit[] {
   const features = plan?.planFeatures
-  const benefits: PlanBenefit[] = PLAN_FEATURES.filter(
-    (f) => !features || features[f.key] !== false
-  ).map((f) => ({ key: f.key, title: f.label, description: f.memberDescription }))
+  const percent = visiblePlanDiscountPercent(plan)
+  const ticketingOn = planGrantsTicketing(plan)
+
+  const benefits: PlanBenefit[] = []
+  for (const f of PLAN_FEATURES) {
+    if (f.key === 'matchday_tickets') {
+      if (!ticketingOn) continue
+      benefits.push({ key: f.key, title: f.label, description: f.memberDescription })
+      continue
+    }
+    if (f.key === 'events_store_discounts') {
+      if (percent != null) {
+        benefits.push({
+          key: f.key,
+          title: `${percent}% off events and store`,
+          description: `Members on this plan get ${percent}% off events and store purchases — no coupon code needed.`,
+        })
+        continue
+      }
+      if (features && features[f.key] === false) continue
+      benefits.push({ key: f.key, title: f.label, description: f.memberDescription })
+      continue
+    }
+    if (features && features[f.key] === false) continue
+    benefits.push({ key: f.key, title: f.label, description: f.memberDescription })
+  }
 
   const perks = (plan?.customFeatures ?? []).map((c) => c.trim()).filter(Boolean)
   if (perks.length) {
@@ -389,9 +497,28 @@ export function normalizeEntitlementRule(raw: unknown): EntitlementRule | null {
   return { id, type, enabled, payload: { ...nested } }
 }
 
+/** Ticketing is on/off for the plan — extra copies do not stack. Keep one; on if any was on. */
+export function collapseExternalTicketingRules(rules: EntitlementRule[]): EntitlementRule[] {
+  const anyOn = rules.some((r) => r.type === 'external_ticketing' && r.enabled)
+  const out: EntitlementRule[] = []
+  let keptTicketing = false
+  for (const rule of rules) {
+    if (rule.type !== 'external_ticketing') {
+      out.push(rule)
+      continue
+    }
+    if (keptTicketing) continue
+    out.push({ ...rule, enabled: anyOn })
+    keptTicketing = true
+  }
+  return out
+}
+
 export function normalizeEntitlementRules(raw: unknown): EntitlementRule[] {
   if (!Array.isArray(raw)) return []
-  return raw.map(normalizeEntitlementRule).filter((r): r is EntitlementRule => Boolean(r)).slice(0, MAX_ENTITLEMENT_RULES)
+  return collapseExternalTicketingRules(
+    raw.map(normalizeEntitlementRule).filter((r): r is EntitlementRule => Boolean(r)).slice(0, MAX_ENTITLEMENT_RULES)
+  )
 }
 
 export function hydrateEntitlementRulesFromLegacy(plan: {

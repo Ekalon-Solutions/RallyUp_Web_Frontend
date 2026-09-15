@@ -47,6 +47,11 @@ import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 import { JoinMembershipModal, extractClubTeamId, isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
+import {
+  inputPropsForFieldType,
+  validateFieldValue,
+  type PlanAttributes,
+} from "@/lib/membershipPlanConfig"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
@@ -108,6 +113,7 @@ interface MembershipPlan {
   }
   isActive: boolean
   referralReward?: { enabled: boolean; points: number }
+  attributes?: PlanAttributes
 }
 
 type ReferralStatus = "idle" | "checking" | "found" | "not-found" | "not-member" | "self"
@@ -163,6 +169,8 @@ function ClubsPageContent() {
   const [priceFilter, setPriceFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [registrationData, setRegistrationData] = useState({ ...EMPTY_REGISTRATION })
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({})
+  const [pendingCustomFieldValues, setPendingCustomFieldValues] = useState<Record<string, string>>({})
   const [referralPhone, setReferralPhone] = useState("")
   const [referralStatus, setReferralStatus] = useState<ReferralStatus>("idle")
   const [referralName, setReferralName] = useState<string | null>(null)
@@ -438,6 +446,8 @@ function ClubsPageContent() {
 
   const resetRegistrationForm = () => {
     setRegistrationData({ ...EMPTY_REGISTRATION })
+    setCustomFieldValues({})
+    setPendingCustomFieldValues({})
     resetReferralState()
     resetCouponState()
   }
@@ -545,13 +555,10 @@ function ClubsPageContent() {
     }
     setSelectedClub(club)
     setSelectedPlan(plan)
+    setCustomFieldValues({})
     resetReferralState()
     resetCouponState()
-    if (isAuthenticated) {
-      setShowMembershipDialog(true)
-    } else {
-      setShowRegistrationDialog(true)
-    }
+    setShowMembershipDialog(true)
   }
 
   const handleViewClubDetails = (club: Club) => {
@@ -584,6 +591,20 @@ function ClubsPageContent() {
       return
     }
 
+    const planCustomFields = selectedPlan.attributes?.customFields ?? []
+    for (const field of planCustomFields) {
+      const value = String(customFieldValues[field.label] ?? "").trim()
+      if (field.mandatory && !value) {
+        toast.error(`${field.label} is required.`)
+        return
+      }
+      const typeError = validateFieldValue(field.type, value, field.label)
+      if (typeError) {
+        toast.error(typeError)
+        return
+      }
+    }
+
     setIsRegistering(true)
     try {
       if (selectedPlan && selectedPlan.price > 0) {
@@ -611,7 +632,7 @@ function ClubsPageContent() {
           return
         }
 
-        const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...registrationData }) })
+        const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...registrationData, membershipPlanId: selectedPlan._id, customFieldValues }) })
         const registerData = await registerResponse.json()
         if (!registerResponse.ok || !registerData.token) { toast.error(registerData.message || 'Registration failed'); return }
         localStorage.setItem('token', registerData.token)
@@ -625,6 +646,7 @@ function ClubsPageContent() {
         const paymentMethod = 'all'
 
         setPendingRegistrationData({ ...registrationData })
+        setPendingCustomFieldValues({ ...customFieldValues })
         setPendingReferralPhone(getValidReferralPhone())
         if (total > 0) {
           setPendingOrder({
@@ -647,6 +669,7 @@ function ClubsPageContent() {
             { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
             appliedCoupon?.code,
             registrationData.club_member_id?.trim() || undefined,
+            customFieldValues,
           )
           if (!subscribeRes.success) {
             toast.error(subscribeRes.error || "Failed to activate discounted membership")
@@ -666,6 +689,8 @@ function ClubsPageContent() {
           },
           body: JSON.stringify({
             ...registrationData,
+            membershipPlanId: selectedPlan._id,
+            customFieldValues,
           }),
         })
 
@@ -683,6 +708,7 @@ function ClubsPageContent() {
               undefined,
               appliedCoupon?.code,
               registrationData.club_member_id?.trim() || undefined,
+              customFieldValues,
             )
 
             if (subscribeRes.success) {
@@ -816,6 +842,7 @@ function ClubsPageContent() {
         undefined,
         pendingOrder?.couponCode,
         pendingRegistrationData.club_member_id?.trim() || undefined,
+        pendingCustomFieldValues,
       )
 
       if (subscribeRes.success) {
@@ -1826,6 +1853,25 @@ function ClubsPageContent() {
                     className="h-12"
                   />
                 </div>
+
+                {(selectedPlan?.attributes?.customFields ?? []).map((field) => (
+                  <div key={field.label} className="space-y-2">
+                    <Label htmlFor={`custom-${field.label}`}>
+                      {field.label}
+                      {field.mandatory && <span className="text-destructive ml-0.5">*</span>}
+                    </Label>
+                    <Input
+                      id={`custom-${field.label}`}
+                      {...inputPropsForFieldType(field.type)}
+                      value={customFieldValues[field.label] ?? ""}
+                      onChange={(e) =>
+                        setCustomFieldValues((prev) => ({ ...prev, [field.label]: e.target.value }))
+                      }
+                      required={field.mandatory}
+                      className="h-12"
+                    />
+                  </div>
+                ))}
 
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="page_club_member_id">

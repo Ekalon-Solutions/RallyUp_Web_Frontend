@@ -154,6 +154,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [isAutoApplied, setIsAutoApplied] = useState(false)
   const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
+  const [autoDiscountSource, setAutoDiscountSource] = useState<'plan' | 'coupon' | null>(null)
+  const [autoDiscountPercent, setAutoDiscountPercent] = useState<number | null>(null)
   const [redeemPoints, setRedeemPoints] = useState<number | string>("")
   const [reservationToken, setReservationToken] = useState<string | null>(null)
   const [reservedDiscount, setReservedDiscount] = useState(0)
@@ -264,6 +266,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setCouponName("")
       setIsAutoApplied(false)
       setAutoCouponRemoved(false)
+      setAutoDiscountSource(null)
+      setAutoDiscountPercent(null)
       setRedeemPoints("")
       setReservationToken(null)
       setReservedDiscount(0)
@@ -444,7 +448,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       }
     }
     const md = (event as any).memberDiscount
-    if (md?.enabled && isMember) {
+    const skipEventMemberDiscount = isAutoApplied && autoDiscountSource === 'plan'
+    if (!skipEventMemberDiscount && md?.enabled && isMember) {
       const memberDiscountPerTicket = md.type === 'percentage'
         ? (simpleTicketPrice * (md.value ?? 0)) / 100
         : (md.value ?? 0)
@@ -482,6 +487,11 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   }
 
   const subtotal = Math.max(subtotalBase - earlyBirdDiscountTotal, 0)
+  // Plan % is resolved on the amount before event-level member discount so it
+  // matches the server and is not stacked with Event.memberDiscount.
+  const subtotalForAuto = isSimpleEvent
+    ? Math.max(simpleTotalBasePrice - simpleEarlyBirdDiscountTotal - simpleGroupDiscountTotal, 0)
+    : subtotal
   const afterCoupon = Math.max(subtotal - couponDiscount, 0)
   const payableBeforePoints = afterCoupon
   const showPointsRedemption = canShowPointsRedemption(availablePoints, payableBeforePoints)
@@ -519,6 +529,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         setLocalCouponCode(autoC.code ?? '')
         setCouponApplied(true)
         setIsAutoApplied(true)
+        setAutoDiscountSource(autoC.source === 'plan' ? 'plan' : 'coupon')
+        setAutoDiscountPercent(
+          autoC.source === 'plan' && autoC.discountType === 'percentage' ? autoC.discountValue : null
+        )
       } else {
         if (isAutoApplied) {
           setLocalCouponCode("")
@@ -526,6 +540,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           setCouponDiscount(0)
           setCouponName("")
           setIsAutoApplied(false)
+          setAutoDiscountSource(null)
+          setAutoDiscountPercent(null)
         }
       }
     } catch (err) {
@@ -536,18 +552,18 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   useEffect(() => {
     if (isOpen) {
       const storedPhone = localStorage.getItem("rallyup_verified_guest_phone") || ""
-      triggerAutoCouponApply(subtotal, storedPhone)
+      triggerAutoCouponApply(subtotalForAuto, storedPhone)
     }
   }, [isOpen, triggerAutoCouponApply])
 
   useEffect(() => {
-    if (isOpen && (primaryPhone || guestEmail || subtotal)) {
+    if (isOpen && (primaryPhone || guestEmail || subtotalForAuto)) {
       const delayDebounceFn = setTimeout(() => {
-        triggerAutoCouponApply(subtotal)
+        triggerAutoCouponApply(subtotalForAuto)
       }, 500)
       return () => clearTimeout(delayDebounceFn)
     }
-  }, [primaryPhone, guestEmail, subtotal, isOpen, triggerAutoCouponApply])
+  }, [primaryPhone, guestEmail, subtotalForAuto, isOpen, triggerAutoCouponApply])
 
   const handleRemoveCoupon = () => {
     setCouponApplied(false)
@@ -555,6 +571,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     setCouponDiscount(0)
     setCouponName("")
     setIsAutoApplied(false)
+    setAutoDiscountSource(null)
+    setAutoDiscountPercent(null)
     setAutoCouponRemoved(true)
     toast.info("Coupon removed")
   }
@@ -659,6 +677,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         setCouponDiscount(res.data.coupon.discount)
         setCouponName(res.data.coupon.name)
         setCouponApplied(true)
+        setIsAutoApplied(false)
+        setAutoDiscountSource('coupon')
+        setAutoDiscountPercent(null)
         toast.success("Coupon applied!")
       } else {
         toast.error(res.error ?? "Invalid coupon")
@@ -2438,7 +2459,11 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5 font-medium">
                             <Tag className="w-3.5 h-3.5" />
-                            <span>Coupon ({couponName || localCouponCode})</span>
+                            <span>{
+                              autoDiscountSource === 'plan' && autoDiscountPercent
+                                ? `${autoDiscountPercent}% membership discount`
+                                : `Coupon (${couponName || localCouponCode})`
+                            }</span>
                           </div>
                           {isAutoApplied && (
                             <div className="flex items-center gap-2 flex-wrap mt-0.5">
@@ -2570,14 +2595,22 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                     <div className="flex items-center justify-between p-2.5 bg-green-500/10 border border-green-500 rounded-lg">
                       <div>
                         <div className="font-semibold text-sm flex items-center gap-2 flex-wrap">
-                          <span>{couponName}</span>
+                          <span>{
+                            autoDiscountSource === 'plan' && autoDiscountPercent
+                              ? `${autoDiscountPercent}% membership discount`
+                              : couponName
+                          }</span>
                           {isAutoApplied && (
                             <span className="bg-green-100 text-green-800 text-[10px] leading-4 px-1.5 py-0.5 rounded font-medium border border-green-200">
                               Member Discount Auto-Applied
                             </span>
                           )}
                         </div>
-                        <p className="text-muted-foreground text-xs">Code: {localCouponCode}</p>
+                        {localCouponCode ? (
+                          <p className="text-muted-foreground text-xs">Code: {localCouponCode}</p>
+                        ) : autoDiscountSource === 'plan' ? (
+                          <p className="text-muted-foreground text-xs">Included with your membership plan</p>
+                        ) : null}
                       </div>
                       {!isAutoApplied ? (
                         <Button variant="ghost" size="sm" onClick={handleRemoveCoupon} className="text-destructive hover:text-destructive">

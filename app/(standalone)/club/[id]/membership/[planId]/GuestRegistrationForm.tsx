@@ -38,8 +38,12 @@ import {
 } from "@/components/ui/tooltip"
 import type { CheckoutClub, CheckoutPlan } from "./CheckoutLanding"
 import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
+import { PlanRegistrationFields } from "@/components/membership-plan/plan-registration-fields"
 import {
+  fieldConfigSignature,
+  hydratePlanAttributes,
   inputPropsForFieldType,
+  idProofLabelsMatch,
   isAttributeEnabled,
   isAttributeMandatory,
   isDateFieldType,
@@ -192,13 +196,15 @@ export function GuestRegistrationForm({
   const fieldRequired = (key: PlanAttributeKey) => isAttributeMandatory(planAttributes, key)
   const idProofTypes = planAttributes?.idProofTypes ?? []
   const planCustomFields = planAttributes?.customFields ?? []
-  const selectedIdProof = idProofTypes.find((t) => t.label === registrationData.id_proof_type)
+  const selectedIdProof = idProofTypes.find((t) =>
+    idProofLabelsMatch(t.label, registrationData.id_proof_type)
+  )
 
   // Default the ID proof dropdown to the plan's first configured type, since the
   // hardcoded "Aadhar" fallback may not be one of the options the admin allowed.
   useEffect(() => {
     if (!idProofTypes.length) return
-    if (idProofTypes.some((t) => t.label === registrationData.id_proof_type)) return
+    if (idProofTypes.some((t) => idProofLabelsMatch(t.label, registrationData.id_proof_type))) return
     setRegistrationData((prev) => ({ ...prev, id_proof_type: idProofTypes[0].label }))
   }, [plan?._id, idProofTypes.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -497,6 +503,19 @@ export function GuestRegistrationForm({
       return
     }
 
+    const previous = fieldConfigSignature(planAttributes)
+    try {
+      const live = await resolvePlan()
+      const latest = hydratePlanAttributes(live.attributes)
+      if (fieldConfigSignature(latest) !== previous) {
+        setPlan((prev) => (prev ? { ...prev, attributes: latest } : prev))
+        toast.error("This club's registration form has changed. Review the fields below and submit again.")
+        return
+      }
+    } catch {
+      /* keep current config */
+    }
+
     const attributeError = validatePlanAttributes()
     if (attributeError) {
       toast.error(attributeError)
@@ -532,7 +551,7 @@ export function GuestRegistrationForm({
           return
         }
 
-        const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...registrationData }) })
+        const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...registrationData, membershipPlanId: resolvedPlan._id, customFieldValues }) })
         const registerData = await registerResponse.json()
         if (!registerResponse.ok || !registerData.token) { handleRegistrationError(registerData, registerResponse); return }
         localStorage.setItem("token", registerData.token)
@@ -673,42 +692,42 @@ export function GuestRegistrationForm({
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...registrationData }),
+            body: JSON.stringify({
+              ...registrationData,
+              membershipPlanId: resolvedPlan._id,
+              customFieldValues,
+            }),
           }
         )
         const registerData = await registerResponse.json()
 
-        if (registerResponse.ok) {
-          if (registerData.token) {
-            localStorage.setItem("token", registerData.token)
-            localStorage.setItem("userType", "member")
+        if (registerResponse.ok && registerData.token) {
+          localStorage.setItem("token", registerData.token)
+          localStorage.setItem("userType", "member")
 
-            const subscribeRes = await apiClient.subscribeMembershipPlan(
-              resolvedPlan._id,
-              undefined,
-              getValidReferralPhone(),
-              {
-                tshirtSize: registrationData.tshirtSize,
-                tshirtColor: registrationData.tshirtColor,
-              },
-              undefined,
-              registrationData.club_member_id?.trim() || undefined,
-              customFieldValues
-            )
+          const subscribeRes = await apiClient.subscribeMembershipPlan(
+            resolvedPlan._id,
+            undefined,
+            getValidReferralPhone(),
+            {
+              tshirtSize: registrationData.tshirtSize,
+              tshirtColor: registrationData.tshirtColor,
+            },
+            undefined,
+            registrationData.club_member_id?.trim() || undefined,
+            customFieldValues
+          )
 
-            if (subscribeRes.success) {
-              toast.success("Successfully joined the club!")
-              onOpenChange(false)
-              router.refresh()
-            } else {
-              toast.error(
-                subscribeRes.error ||
-                  subscribeRes.message ||
-                  "Failed to join club after registration"
-              )
-            }
+          if (subscribeRes.success) {
+            toast.success("Successfully joined the club!")
+            onOpenChange(false)
+            router.refresh()
           } else {
-            toast.error("Registration token missing")
+            toast.error(
+              subscribeRes.error ||
+                subscribeRes.message ||
+                "Failed to join club after registration"
+            )
           }
         } else {
           handleRegistrationError(registerData, registerResponse)
@@ -897,458 +916,17 @@ export function GuestRegistrationForm({
 
           <div className="flex-1 overflow-y-auto px-6 pb-6">
             <form onSubmit={handleRegistration} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Username */}
-                {showField("username") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="username">
-                      Username
-                      {fieldRequired("username") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id="username"
-                      value={registrationData.username}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          username: e.target.value,
-                        })
-                      }
-                      required={fieldRequired("username")}
-                      className="h-12"
-                    />
-                  </div>
-                )}
-
-                {/* First Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="first_name">First Name</Label>
-                  <Input
-                    id="first_name"
-                    value={registrationData.first_name}
-                    onChange={(e) =>
-                      setRegistrationData({
-                        ...registrationData,
-                        first_name: e.target.value,
-                      })
-                    }
-                    required
-                    className="h-12"
-                  />
-                </div>
-
-                {/* Last Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="last_name">Last Name</Label>
-                  <Input
-                    id="last_name"
-                    value={registrationData.last_name}
-                    onChange={(e) =>
-                      setRegistrationData({
-                        ...registrationData,
-                        last_name: e.target.value,
-                      })
-                    }
-                    required
-                    className="h-12"
-                  />
-                </div>
-
-                {/* Date of Birth */}
-                {showField("date_of_birth") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="date_of_birth">
-                      Date of Birth
-                      {fieldRequired("date_of_birth") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id="date_of_birth"
-                      type="date"
-                      value={registrationData.date_of_birth}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          date_of_birth: e.target.value,
-                        })
-                      }
-                      required={fieldRequired("date_of_birth")}
-                      className="h-12"
-                    />
-                  </div>
-                )}
-
-                {/* Gender */}
-                {showField("gender") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">
-                      Gender
-                      {fieldRequired("gender") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <select
-                      id="gender"
-                      value={registrationData.gender}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          gender: e.target.value,
-                        })
-                      }
-                      className="w-full h-12 rounded-md border px-3"
-                    >
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="non-binary">Non-binary</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={registrationData.email}
-                    onChange={(e) =>
-                      setRegistrationData({
-                        ...registrationData,
-                        email: e.target.value,
-                      })
-                    }
-                    required
-                    className="h-12"
-                  />
-                </div>
-
-                {/* Phone */}
-                <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="countryCode">Country Code</Label>
-                    <CountryCodeSelect
-                      id="countryCode"
-                      value={registrationData.countryCode}
-                      onValueChange={(value) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          countryCode: value,
-                        })
-                      }
-                      className="h-12 w-full"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phoneNumber">Phone Number</Label>
-                    <Input
-                      id="phoneNumber"
-                      type="tel"
-                      value={registrationData.phoneNumber}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          phoneNumber: e.target.value,
-                        })
-                      }
-                      required
-                      className="h-12 w-full"
-                    />
-                    {registrationErrors.phoneNumber && (
-                      <p className="text-destructive text-sm mt-1">
-                        {registrationErrors.phoneNumber}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Address */}
-                {showField("address_line1") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="address_line1">
-                      Address Line 1
-                      {fieldRequired("address_line1") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id="address_line1"
-                      value={registrationData.address_line1}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          address_line1: e.target.value,
-                        })
-                      }
-                      required={fieldRequired("address_line1")}
-                      className="h-12"
-                    />
-                  </div>
-                )}
-
-                {showField("address_line2") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="address_line2">
-                      Address Line 2
-                      {fieldRequired("address_line2") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id="address_line2"
-                      value={registrationData.address_line2}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          address_line2: e.target.value,
-                        })
-                      }
-                      required={fieldRequired("address_line2")}
-                      className="h-12"
-                    />
-                  </div>
-                )}
-
-                {showField("city") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="city">
-                      City
-                      {fieldRequired("city") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id="city"
-                      value={registrationData.city}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          city: e.target.value,
-                        })
-                      }
-                      required={fieldRequired("city")}
-                      className="h-12"
-                    />
-                  </div>
-                )}
-
-                {showField("state_province") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="state_province">
-                      State / Province
-                      {fieldRequired("state_province") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id="state_province"
-                      value={registrationData.state_province}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          state_province: e.target.value,
-                        })
-                      }
-                      required={fieldRequired("state_province")}
-                      className="h-12"
-                    />
-                  </div>
-                )}
-
-                {showField("zip_code") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="zip_code">
-                      ZIP / Postal Code
-                      {fieldRequired("zip_code") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id="zip_code"
-                      value={registrationData.zip_code}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          zip_code: e.target.value,
-                        })
-                      }
-                      required={fieldRequired("zip_code")}
-                      className="h-12"
-                    />
-                  </div>
-                )}
-
-                {showField("country") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="country">
-                      Country
-                      {fieldRequired("country") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id="country"
-                      value={registrationData.country}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          country: e.target.value,
-                        })
-                      }
-                      required={fieldRequired("country")}
-                      className="h-12"
-                    />
-                  </div>
-                )}
-
-                {/* ID Proof — types come from the plan's Attributes Setup */}
-                {showField("id_proof") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="id_proof_type">
-                      ID Proof Type
-                      {fieldRequired("id_proof") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <select
-                      id="id_proof_type"
-                      value={registrationData.id_proof_type}
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          id_proof_type: e.target.value,
-                        })
-                      }
-                      className="w-full h-12 rounded-md border px-3"
-                    >
-                      {idProofTypes.map((type) => (
-                        <option key={type.label} value={type.label}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {showField("id_proof") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="id_proof_number">
-                      ID Proof Number
-                      {fieldRequired("id_proof") && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id="id_proof_number"
-                      {...(selectedIdProof ? inputPropsForFieldType(selectedIdProof.format) : { type: "text" as const })}
-                      value={registrationData.id_proof_number}
-                      maxLength={
-                        selectedIdProof && !isDateFieldType(selectedIdProof.format)
-                          ? selectedIdProof.maxLength
-                          : undefined
-                      }
-                      onChange={(e) =>
-                        setRegistrationData({
-                          ...registrationData,
-                          id_proof_number: e.target.value,
-                        })
-                      }
-                      required={fieldRequired("id_proof")}
-                      className="h-12"
-                    />
-                    {selectedIdProof && !isDateFieldType(selectedIdProof.format) && (
-                      <p className="text-muted-foreground text-xs">
-                        Up to {selectedIdProof.maxLength} characters, {selectedIdProof.format}.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Favorite League */}
-                <div className="space-y-2">
-                  <Label htmlFor="favoriteLeague">Favorite League</Label>
-                  <select
-                    id="favoriteLeague"
-                    value={registrationData.favoriteLeagueId}
-                    onChange={(e) => {
-                      const league = leagues.find((l) => l.idLeague === e.target.value)
-                      setRegistrationData({
-                        ...registrationData,
-                        favoriteLeagueId: e.target.value,
-                        favoriteLeagueName: league?.strLeague || "",
-                        favoriteTeamId: "",
-                        favoriteTeamName: "",
-                        favoriteTeamBadge: "",
-                      })
-                    }}
-                    className="w-full h-12 rounded-md border px-3"
-                  >
-                    <option value="">Select league (optional)</option>
-                    {leagues.map((l) => (
-                      <option key={l.idLeague} value={l.idLeague}>
-                        {l.strLeague}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Favorite Team (within the selected league) */}
-                <div className="space-y-2">
-                  <Label htmlFor="favoriteTeam">Favorite Team</Label>
-                  <select
-                    id="favoriteTeam"
-                    value={registrationData.favoriteTeamId}
-                    onChange={(e) => {
-                      const team = teams.find((t) => t.idTeam === e.target.value)
-                      setRegistrationData({
-                        ...registrationData,
-                        favoriteTeamId: e.target.value,
-                        favoriteTeamName: team?.strTeam || "",
-                        favoriteTeamBadge: team?.strTeamBadge || "",
-                      })
-                    }}
-                    disabled={!registrationData.favoriteLeagueId || teamsLoading}
-                    className="w-full h-12 rounded-md border px-3"
-                  >
-                    <option value="">
-                      {teamsLoading
-                        ? "Loading teams…"
-                        : registrationData.favoriteLeagueId
-                          ? "Select team (optional)"
-                          : "Select a league first"}
-                    </option>
-                    {teams.map((t) => (
-                      <option key={t.idTeam} value={t.idTeam}>
-                        {t.strTeam}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Club Membership ID — the club-level rule overrides the plan
-                    config, so a club that mandates it always collects it. */}
-                {(showField("club_member_id") || isClubMemberIdMandatory(clubTeamId)) && (() => {
-                  const clubMemberIdRequired =
-                    isClubMemberIdMandatory(clubTeamId) || fieldRequired("club_member_id")
-                  return (
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="guest_club_member_id">
-                        Club Membership ID{clubMemberIdRequired ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
-                      </Label>
-                      <Input
-                        id="guest_club_member_id"
-                        value={registrationData.club_member_id}
-                        onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
-                        placeholder={isClubMemberIdMandatory(clubTeamId) ? "Arsenal Membership No. (Digital or Red)" : "Optional — as registered on official site"}
-                        required={clubMemberIdRequired}
-                        className="h-12 w-full rounded-md border border-input bg-background px-3"
-                      />
-                    </div>
-                  )
-                })()}
-
-                {/* Plan-specific custom fields (Attributes Setup → Custom Fields) */}
-                {planCustomFields.map((field) => (
-                  <div key={field.label} className="space-y-2">
-                    <Label htmlFor={`custom-${field.label}`}>
-                      {field.label}
-                      {field.mandatory && <span className="text-destructive"> *</span>}
-                    </Label>
-                    <Input
-                      id={`custom-${field.label}`}
-                      {...inputPropsForFieldType(field.type)}
-                      value={customFieldValues[field.label] ?? ""}
-                      onChange={(e) =>
-                        setCustomFieldValues((prev) => ({ ...prev, [field.label]: e.target.value }))
-                      }
-                      required={field.mandatory}
-                      className="h-12"
-                    />
-                  </div>
-                ))}
-
-                {showTshirtFields && (
+              <PlanRegistrationFields
+                attributes={planAttributes}
+                values={registrationData}
+                onChange={(patch) => setRegistrationData((prev) => ({ ...prev, ...patch }))}
+                customFieldValues={customFieldValues}
+                onCustomChange={(label, value) => setCustomFieldValues((prev) => ({ ...prev, [label]: value }))}
+                clubTeamId={clubTeamId}
+                phoneError={registrationErrors.phoneNumber}
+                variant="plain"
+              />
+              {showTshirtFields && (
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="tshirtSize">Choose T-Shirt Size:</Label>
@@ -1395,7 +973,6 @@ export function GuestRegistrationForm({
                     </div>
                   </>
                 )}
-              </div>
 
               {showTshirtFields && (
                 <div className="space-y-2">

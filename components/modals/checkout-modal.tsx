@@ -78,6 +78,7 @@ interface AppliedCoupon {
   discountValue: number
   discount: number
   originalPrice: number
+  source?: 'plan' | 'coupon'
   finalPrice: number
 }
 
@@ -233,7 +234,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           discountValue: autoC.discountValue,
           discount: autoC.discount,
           originalPrice: totalPrice,
-          finalPrice: Math.max(0, totalPrice - autoC.discount)
+          finalPrice: Math.max(0, totalPrice - autoC.discount),
+          source: autoC.source === 'plan' ? 'plan' : 'coupon',
         })
         setIsAutoApplied(true)
       } else {
@@ -1520,7 +1522,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                           <CheckCircle className="w-5 h-5 text-green-600" />
                           <div>
                             <div className="font-medium text-green-900 flex items-center gap-2 flex-wrap">
-                              <span>{appliedCoupon.name}</span>
+                              <span>{
+                                appliedCoupon.source === 'plan' && appliedCoupon.discountType === 'percentage'
+                                  ? `${appliedCoupon.discountValue}% membership discount`
+                                  : appliedCoupon.name
+                              }</span>
                               {isAutoApplied && (
                                 <span className="bg-green-100 text-green-800 text-[10px] leading-4 px-1.5 py-0.5 rounded font-medium border border-green-200">
                                   Member Discount Auto-Applied
@@ -1657,7 +1663,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5 font-medium">
                             <Tag className="w-4 h-4" />
-                            <span>{appliedCoupon.code ? `Coupon (${appliedCoupon.code})` : appliedCoupon.name}</span>
+                            <span>{
+                              appliedCoupon.source === 'plan' && appliedCoupon.discountType === 'percentage'
+                                ? `${appliedCoupon.discountValue}% membership discount`
+                                : appliedCoupon.code
+                                  ? `Coupon (${appliedCoupon.code})`
+                                  : appliedCoupon.name
+                            }</span>
                           </div>
                           {isAutoApplied && (
                             <div className="flex items-center gap-2 flex-wrap mt-0.5">

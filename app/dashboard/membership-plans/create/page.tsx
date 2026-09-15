@@ -41,10 +41,10 @@ import {
   defaultPlanFeatures,
   deriveLegacyFromRules,
   emptyDiscountRule,
-  emptyTicketingRule,
   hydrateEntitlementRules,
   hydratePlanAttributes,
   hydratePlanFeatures,
+  reorderList,
   pickWinningPercentRule,
   rulePercent,
   type CustomFieldType,
@@ -306,6 +306,8 @@ function MembershipPlanWizard() {
     maxLength: "",
   })
   const [draggedIdProof, setDraggedIdProof] = useState<number | null>(null)
+  const [draggedField, setDraggedField] = useState<number | null>(null)
+  const [draggedCustom, setDraggedCustom] = useState<number | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(isEdit)
@@ -342,7 +344,7 @@ function MembershipPlanWizard() {
         setPlanFeatures(derived.planFeatures)
         setCustomFeatures(plan.customFeatures?.length ? plan.customFeatures : ["", ""])
         setBrochure(plan.brochure ?? [])
-        setEntitlementRules(rules)
+        setEntitlementRules(rules.filter((r) => r.type !== "external_ticketing"))
         setAttributes(hydratePlanAttributes(plan.attributes))
       })
       .finally(() => {
@@ -450,7 +452,10 @@ function MembershipPlanWizard() {
 
     setIsSaving(true)
     try {
-      const derivedEntitlements = deriveLegacyFromRules(entitlementRules, planFeatures)
+      const derivedEntitlements = deriveLegacyFromRules(
+        entitlementRules.filter((r) => r.type !== "external_ticketing"),
+        planFeatures
+      )
       const payload = {
         name: details.name.trim(),
         description: details.description.trim(),
@@ -468,7 +473,7 @@ function MembershipPlanWizard() {
         },
         planFeatures: derivedEntitlements.planFeatures,
         memberDiscount: derivedEntitlements.memberDiscount,
-        entitlementRules,
+        entitlementRules: entitlementRules.filter((r) => r.type !== "external_ticketing"),
         customFeatures: customFeatures.map((c) => c.trim()).filter(Boolean),
         brochure,
         attributes: {
@@ -710,15 +715,6 @@ function MembershipPlanWizard() {
                                 )
                               )
                             }
-                            if (feature.key === "matchday_tickets") {
-                              setEntitlementRules((prev) => {
-                                const hasTicketing = prev.some((r) => r.type === "external_ticketing")
-                                if (!hasTicketing) return v ? [...prev, emptyTicketingRule(true)] : prev
-                                return prev.map((r) =>
-                                  r.type === "external_ticketing" ? { ...r, enabled: v } : r
-                                )
-                              })
-                            }
                           }}
                           aria-label={feature.label}
                         />
@@ -730,8 +726,8 @@ function MembershipPlanWizard() {
                 <div className="space-y-4">
                   <SectionHeading
                     title="Entitlement rules"
-                    subtitle="Optional benefits for members on this club plan — not the RallyUp billing tier. A plan can have none, one, or several."
-                    badge={`${entitlementRules.length} of ${MAX_ENTITLEMENT_RULES}`}
+                    subtitle="Optional auto-discount % for members on this club plan — not the RallyUp billing tier. Ticketing is the Matchday Tickets switch above."
+                    badge={`${entitlementRules.filter((r) => r.type !== "external_ticketing").length} of ${MAX_ENTITLEMENT_RULES}`}
                   />
                   <p className="text-xs text-muted-foreground">
                     If two percentage rules are on the same plan, the higher percentage is used — they are never
@@ -739,7 +735,7 @@ function MembershipPlanWizard() {
                     rules; already-paid orders keep the discount that was charged.
                   </p>
 
-                  {entitlementRules.map((rule) => (
+                  {entitlementRules.filter((r) => r.type !== "external_ticketing").map((rule) => (
                     <div key={rule.id} className="space-y-3 rounded-lg border p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -753,13 +749,6 @@ function MembershipPlanWizard() {
                                 : "Disabled — not applied at checkout"}
                             </p>
                           )}
-                          {rule.type === "external_ticketing" && (
-                            <p className="text-xs text-muted-foreground">
-                              {rule.enabled
-                                ? "Members on this plan can use external / matchday ticketing"
-                                : "Ticketing access is off for this plan"}
-                            </p>
-                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Switch
@@ -770,9 +759,6 @@ function MembershipPlanWizard() {
                               )
                               if (rule.type === "auto_discount_percent" && v) {
                                 setPlanFeatures((prev) => ({ ...prev, events_store_discounts: true }))
-                              }
-                              if (rule.type === "external_ticketing") {
-                                setPlanFeatures((prev) => ({ ...prev, matchday_tickets: v }))
                               }
                             }}
                             aria-label={`Enable ${rule.type}`}
@@ -886,7 +872,10 @@ function MembershipPlanWizard() {
                       type="button"
                       variant="outline"
                       className="flex-1 border-dashed"
-                      disabled={entitlementRules.length >= MAX_ENTITLEMENT_RULES}
+                      disabled={
+                        entitlementRules.filter((r) => r.type !== "external_ticketing").length >=
+                        MAX_ENTITLEMENT_RULES
+                      }
                       onClick={() => {
                         setEntitlementRules((prev) => [...prev, emptyDiscountRule()])
                         setPlanFeatures((prev) => ({ ...prev, events_store_discounts: true }))
@@ -894,19 +883,6 @@ function MembershipPlanWizard() {
                     >
                       <Plus className="mr-2 h-4 w-4" />
                       Add auto-discount %
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex-1 border-dashed"
-                      disabled={entitlementRules.length >= MAX_ENTITLEMENT_RULES}
-                      onClick={() => {
-                        setEntitlementRules((prev) => [...prev, emptyTicketingRule(true)])
-                        setPlanFeatures((prev) => ({ ...prev, matchday_tickets: true }))
-                      }}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add external ticketing
                     </Button>
                   </div>
                 </div>
@@ -1028,7 +1004,7 @@ function MembershipPlanWizard() {
                 <div className="space-y-3">
                   <SectionHeading
                     title="Additional Information"
-                    subtitle="Turn a field on to collect it during purchase. Off fields are skipped."
+                    subtitle="Turn a field on to collect it during purchase. Drag to set the order members see. Name and contact cannot be removed. If two admins save at once, the last save wins."
                     badge={`${enabledAttributeCount} of ${attributes.fields.length} on`}
                   />
                   <div className="grid grid-cols-[minmax(0,1fr)_96px_96px] items-center gap-2 border-b pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -1036,26 +1012,53 @@ function MembershipPlanWizard() {
                     <span className="text-center">Turn on/off</span>
                     <span className="text-center">Mandatory</span>
                   </div>
-                  {PLAN_ATTRIBUTE_FIELDS.map((field) => {
-                    const state = attributes.fields.find((f) => f.key === field.key)
+                  {attributes.fields.map((state, i) => {
+                    const field = PLAN_ATTRIBUTE_FIELDS.find((f) => f.key === state.key)
+                    if (!field) return null
+                    const isSensitive = "sensitive" in field && field.sensitive
                     return (
                       <div
-                        key={field.key}
-                        className="grid grid-cols-[minmax(0,1fr)_96px_96px] items-center gap-2 border-b py-3"
+                        key={state.key}
+                        draggable
+                        onDragStart={() => setDraggedField(i)}
+                        onDragEnd={() => setDraggedField(null)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          if (draggedField !== null) {
+                            setAttributes((prev) => ({
+                              ...prev,
+                              fields: reorderList(prev.fields, draggedField, i),
+                            }))
+                          }
+                          setDraggedField(null)
+                        }}
+                        className={cn(
+                          "grid grid-cols-[minmax(0,1fr)_96px_96px] items-center gap-2 border-b py-3",
+                          draggedField === i && "opacity-40"
+                        )}
                       >
-                        <span className="text-sm text-foreground">{field.label}</span>
+                        <span className="flex items-center gap-2 text-sm text-foreground">
+                          <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground" />
+                          {field.label}
+                          {isSensitive && (
+                            <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                              Sensitive ID
+                            </span>
+                          )}
+                        </span>
                         <div className="flex justify-center">
                           <Switch
-                            checked={Boolean(state?.enabled)}
-                            onCheckedChange={(v) => setField(field.key, { enabled: v })}
+                            checked={Boolean(state.enabled)}
+                            onCheckedChange={(v) => setField(state.key, { enabled: v })}
                             aria-label={`Collect ${field.label}`}
                           />
                         </div>
                         <div className="flex justify-center">
                           <Checkbox
-                            checked={Boolean(state?.mandatory)}
-                            disabled={!state?.enabled}
-                            onCheckedChange={(v) => setField(field.key, { mandatory: v === true })}
+                            checked={Boolean(state.mandatory)}
+                            disabled={!state.enabled}
+                            onCheckedChange={(v) => setField(state.key, { mandatory: v === true })}
                             aria-label={`${field.label} is mandatory`}
                           />
                         </div>
@@ -1163,69 +1166,115 @@ function MembershipPlanWizard() {
                     badge={`${attributes.customFields.length} of ${MAX_CUSTOM_FIELDS} added`}
                   />
                   {attributes.customFields.map((field, i) => (
-                    <div key={i} className="flex flex-col gap-2 rounded-lg bg-muted/40 p-2 sm:flex-row sm:items-center">
-                      <Input
-                        placeholder="Field name"
-                        value={field.label}
-                        onChange={(e) =>
+                    <div
+                      key={i}
+                      draggable
+                      onDragStart={() => setDraggedCustom(i)}
+                      onDragEnd={() => setDraggedCustom(null)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        if (draggedCustom !== null) {
                           setAttributes((prev) => ({
                             ...prev,
-                            customFields: prev.customFields.map((f, idx) =>
-                              idx === i ? { ...f, label: e.target.value } : f
-                            ),
+                            customFields: reorderList(prev.customFields, draggedCustom, i),
                           }))
                         }
-                      />
-                      <Select
-                        value={field.type}
-                        onValueChange={(v) =>
-                          setAttributes((prev) => ({
-                            ...prev,
-                            customFields: prev.customFields.map((f, idx) =>
-                              idx === i ? { ...f, type: v as CustomFieldType } : f
-                            ),
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="sm:w-56">
-                          <SelectValue placeholder="Field Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CUSTOM_FIELD_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <label className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
-                        <Checkbox
-                          checked={field.mandatory}
-                          onCheckedChange={(v) =>
+                        setDraggedCustom(null)
+                      }}
+                      className={cn("space-y-2 rounded-lg bg-muted/40 p-2", draggedCustom === i && "opacity-40")}
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground" />
+                        <Input
+                          className="min-w-0 flex-1"
+                          placeholder="Field name"
+                          value={field.label}
+                          onChange={(e) =>
                             setAttributes((prev) => ({
                               ...prev,
                               customFields: prev.customFields.map((f, idx) =>
-                                idx === i ? { ...f, mandatory: v === true } : f
+                                idx === i ? { ...f, label: e.target.value } : f
                               ),
                             }))
                           }
                         />
-                        Mandatory
-                      </label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        aria-label="Remove custom field"
-                        onClick={() =>
-                          setAttributes((prev) => ({
-                            ...prev,
-                            customFields: prev.customFields.filter((_, idx) => idx !== i),
-                          }))
-                        }
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                        <Select
+                          value={field.type}
+                          onValueChange={(v) =>
+                            setAttributes((prev) => ({
+                              ...prev,
+                              customFields: prev.customFields.map((f, idx) =>
+                                idx === i
+                                  ? {
+                                      ...f,
+                                      type: v as CustomFieldType,
+                                      options: v === "dropdown" ? f.options ?? [] : undefined,
+                                    }
+                                  : f
+                              ),
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="w-32 shrink-0">
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CUSTOM_FIELD_TYPES.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>
+                                {t.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <label className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm text-muted-foreground">
+                          <Checkbox
+                            checked={field.mandatory}
+                            onCheckedChange={(v) =>
+                              setAttributes((prev) => ({
+                                ...prev,
+                                customFields: prev.customFields.map((f, idx) =>
+                                  idx === i ? { ...f, mandatory: v === true } : f
+                                ),
+                              }))
+                            }
+                          />
+                          Mandatory
+                        </label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                          aria-label="Remove custom field"
+                          onClick={() =>
+                            setAttributes((prev) => ({
+                              ...prev,
+                              customFields: prev.customFields.filter((_, idx) => idx !== i),
+                            }))
+                          }
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {field.type === "dropdown" && (
+                        <Input
+                          placeholder="Dropdown options, comma-separated (e.g. S, M, L)"
+                          value={(field.options ?? []).join(", ")}
+                          onChange={(e) => {
+                            const options = e.target.value
+                              .split(",")
+                              .map((o) => o.trim())
+                              .filter(Boolean)
+                            setAttributes((prev) => ({
+                              ...prev,
+                              customFields: prev.customFields.map((f, idx) =>
+                                idx === i ? { ...f, options } : f
+                              ),
+                            }))
+                          }}
+                        />
+                      )}
                     </div>
                   ))}
                   <Button

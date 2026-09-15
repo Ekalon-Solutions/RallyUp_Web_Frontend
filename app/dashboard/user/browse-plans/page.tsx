@@ -16,7 +16,9 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { JoinMembershipModal } from "@/components/modals/join-membership-modal"
+import { PlanDetailsModal } from "@/components/modals/plan-details-modal"
 import { computeMembershipPlanCharge } from "@/lib/transactionFees"
+import { planBenefits } from "@/lib/membershipPlanConfig"
 
 export default function BrowseMembershipPlansPage() {
   const [plans, setPlans] = useState<MembershipPlan[]>([])
@@ -25,6 +27,7 @@ export default function BrowseMembershipPlansPage() {
   const [currentMembership, setCurrentMembership] = useState<any>(null)
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
+  const [detailsPlan, setDetailsPlan] = useState<MembershipPlan | null>(null)
   const { user, checkAuth } = useAuth()
   const clubId = useRequiredClubId()
 
@@ -349,7 +352,7 @@ export default function BrowseMembershipPlansPage() {
       } else if (isDowngradePlan(plan)) {
         return 'Downgrade to This Plan'
       }
-      return 'Select Plan'
+      return 'Purchase Plan'
     }
   }
 
@@ -613,6 +616,7 @@ export default function BrowseMembershipPlansPage() {
                 const isDisabled = isPlanDisabled(plan)
                 const buttonText = getButtonText(plan)
                 const salesState = getPlanSalesState(plan)
+                const benefits = planBenefits(plan)
                 
                 return (
                   <Card 
@@ -672,6 +676,17 @@ export default function BrowseMembershipPlansPage() {
                         </div>
                       </div>
 
+                      {benefits.length > 0 && (
+                        <ul className="space-y-1.5 text-sm text-muted-foreground text-left">
+                          {benefits.slice(0, 4).map((b) => (
+                            <li key={b.key} className="flex items-start gap-2">
+                              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
+                              <span className="leading-snug">{b.title}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
                       <Button 
                         className="w-full" 
                         variant={isCurrent ? "outline" : isPopular ? "default" : "outline"}
@@ -705,12 +720,26 @@ export default function BrowseMembershipPlansPage() {
                           </>
                         )}
                       </Button>
+                      <button
+                        type="button"
+                        onClick={() => setDetailsPlan(plan)}
+                        className="inline-flex w-full items-center justify-center gap-1 text-sm font-semibold text-primary hover:underline"
+                      >
+                        View Plan Details
+                      </button>
                     </CardContent>
                   </Card>
                 )
               })}
             </div>
           ) : null}
+
+          <PlanDetailsModal
+            open={Boolean(detailsPlan)}
+            onOpenChange={(open) => { if (!open) setDetailsPlan(null) }}
+            plan={detailsPlan}
+            displayPrice={detailsPlan ? getPlanCharge(detailsPlan).finalAmount : undefined}
+          />
 
           {joinModalOpen && clubId && (
             <JoinMembershipModal

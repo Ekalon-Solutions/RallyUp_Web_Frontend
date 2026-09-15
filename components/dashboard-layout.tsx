@@ -64,6 +64,7 @@ import { BASE_STORAGE_GB } from "@/lib/storageConstants"
 import type { WebsiteSectionKey } from "@/lib/websiteSections"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { useExistingExternalTicketAccess } from "@/hooks/useExistingExternalTicketAccess"
 import { ADMIN_NAV_FEATURE_MAP, FEATURE_LABELS, featureKeyForPath, isFeatureEnabled, type ClubFeatureKey } from "@/lib/clubFeatures"
 import { LockedFeaturePage } from "@/components/feature-gate/locked-feature-page"
 import { NAV_HREF_TO_PERMISSION_MODULE, permissionModuleForPath } from "@/lib/permissionMatrix"
@@ -704,6 +705,11 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     isRegularUser ? clubId ?? null : null,
     { asMember: true }
   )
+  const ticketingEntitled = isRegularUser && isMemberFeatureEnabled("external_ticketing")
+  const existingTickets = useExistingExternalTicketAccess(
+    isRegularUser ? clubId ?? null : null,
+    ticketingEntitled
+  )
 
   const memberPageSection = isRegularUser ? USER_PATH_TO_SECTION[pathname] : undefined
   const memberPageFeatureKey = memberPageSection
@@ -714,12 +720,18 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       ? isSectionVisible("merchandise") || isSectionVisible("store")
       : isSectionVisible(memberPageSection)
     : true
+  const ticketingInboxOverride =
+    memberPageSection === "externalTicketing" &&
+    (existingTickets.hasRequests || !existingTickets.loaded)
   const memberPageUnavailable = Boolean(
     isRegularUser &&
       clubId &&
       !settingsLoading &&
       memberPageSection &&
-      (!memberSectionVisible || (memberPageFeatureKey && !isMemberFeatureEnabled(memberPageFeatureKey)))
+      (!memberSectionVisible ||
+        (memberPageFeatureKey &&
+          !isMemberFeatureEnabled(memberPageFeatureKey) &&
+          !ticketingInboxOverride))
   )
 
   // Shared dashboard shell has no auth check of its own — enforcement was
@@ -779,6 +791,8 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     if (path === '/dashboard/user' || path.startsWith('/dashboard/user/feed') || path.startsWith('/dashboard/feed')) return true
     // Profile pages & user settings
     if (path.startsWith('/dashboard/user/profile') || path.startsWith('/dashboard/profile') || path.startsWith('/dashboard/user-settings')) return true
+    // Existing ticket requests stay reachable after the plan lapses.
+    if (path.startsWith('/dashboard/user/external-ticketing') && existingTickets.hasRequests) return true
     return false
   }
 
@@ -917,7 +931,8 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
           return canShowSection('leaderboard')
         }
         if (item.name === 'External Ticketing') {
-          return canShowSection('externalTicketing')
+          if (canShowSection('externalTicketing')) return true
+          return isSectionVisible('externalTicketing') && existingTickets.hasRequests
         }
         if (item.name === 'Volunteer') {
           return canShowSection('volunteer')
