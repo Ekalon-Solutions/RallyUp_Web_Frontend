@@ -14,12 +14,12 @@ import { apiClient, ExternalTicketRequest, ExternalTicketFixture, Event } from '
 import { toast } from 'sonner'
 import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils'
 import { formatLocalDate, toDatetimeLocalString } from '@/lib/timezone'
-import { CheckCircle, XCircle, Clock, Pause, UserX, Download, Filter, RefreshCw } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Pause, UserX, Filter, RefreshCw } from 'lucide-react'
 import { ProtectedRoute } from '@/components/protected-route'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import { useClubFeatures } from '@/hooks/useClubFeatures'
 import { isFeatureEnabled } from '@/lib/clubFeatures'
-import { LockedFeaturePage, FeatureUnavailableOverlay, LockedInline } from '@/components/feature-gate'
+import { LockedFeaturePage, FeatureUnavailableOverlay } from '@/components/feature-gate'
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
@@ -72,7 +72,6 @@ export default function ExternalTicketingPage() {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingFixtures, setLoadingFixtures] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const [updatingVisibility, setUpdatingVisibility] = useState(false)
   const [bulkUpdatingStatus, setBulkUpdatingStatus] = useState(false)
   const [competitionFilter, setCompetitionFilter] = useState<string>('all')
@@ -260,58 +259,6 @@ export default function ExternalTicketingPage() {
     }
   }
 
-  const exportRequests = async () => {
-    if (!clubId) {
-      toast.error('Missing club id')
-      return
-    }
-    try {
-      setExporting(true)
-      const result = await apiClient.exportExternalTicketRequests(clubId, {
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        fixtureId: requestFixtureFilter !== 'all' ? requestFixtureFilter : undefined,
-        competition: requestCompetitionFilter !== 'all' ? requestCompetitionFilter : undefined,
-        format: 'xlsx',
-      })
-      if (!result.success) throw new Error(result.error || 'Export failed')
-      const blob = result.blob as Blob | undefined
-      if (!blob) throw new Error('No file returned')
-      const filename = result.filename || `external_ticket_requests_${clubId}_${Date.now()}.xlsx`
-      triggerBlobDownload(blob, filename)
-      toast.success('XLSX download started')
-    } catch (err: any) {
-      toast.error('Failed to export XLSX')
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const exportRequestsCsv = async () => {
-    if (!clubId) {
-      toast.error('Missing club id')
-      return
-    }
-    try {
-      setExporting(true)
-      const result = await apiClient.exportExternalTicketRequests(clubId, {
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        fixtureId: requestFixtureFilter !== 'all' ? requestFixtureFilter : undefined,
-        competition: requestCompetitionFilter !== 'all' ? requestCompetitionFilter : undefined,
-        format: 'csv',
-      })
-      if (!result.success) throw new Error(result.error || 'Export failed')
-      const blob = result.blob as Blob | undefined
-      if (!blob) throw new Error('No file returned')
-      const filename = result.filename || `external_ticket_requests_${clubId}_${Date.now()}.csv`
-      triggerBlobDownload(blob, filename)
-      toast.success('CSV download started')
-    } catch (err: any) {
-      toast.error('Failed to export CSV')
-    } finally {
-      setExporting(false)
-    }
-  }
-
   const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   const getStatusBadge = (status: string) => {
@@ -415,23 +362,6 @@ export default function ExternalTicketingPage() {
               <h1 className="text-2xl font-bold">External Ticket Requests</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              {isFeatureEnabled(clubFeatureConfig, 'reporting') ? (
-                <>
-                  <Button variant="outline" onClick={exportRequestsCsv} disabled={exporting}>
-                    <Download className="w-4 h-4 mr-2" />
-                    {exporting ? 'Exporting…' : 'Export CSV'}
-                  </Button>
-                  <Button variant="default" onClick={exportRequests} disabled={exporting}>
-                    <Download className="w-4 h-4 mr-2" />
-                    {exporting ? 'Exporting…' : 'Export XLSX'}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <LockedInline label="Export CSV" reason="Upgrade to the Reporting add-on to export data. Contact RallyUp to unlock." />
-                  <LockedInline label="Export XLSX" reason="Upgrade to the Reporting add-on to export data. Contact RallyUp to unlock." />
-                </>
-              )}
             </div>
           </div>
 
