@@ -2311,6 +2311,9 @@ class ApiClient {
     if (params.team) query.team = params.team;
     if (params.teamId) query.teamId = params.teamId;
     if (params.leagueId) query.leagueId = params.leagueId;
+    // clubId was accepted but never forwarded, so the server could not fall back
+    // to the club's stored teamId when the caller had no teamId to hand.
+    if (params.clubId) query.clubId = params.clubId;
     const qs = Object.keys(query).length ? `?${new URLSearchParams(query).toString()}` : '';
     return this.request<any>(`/sports/next-matches${qs}`);
   }
