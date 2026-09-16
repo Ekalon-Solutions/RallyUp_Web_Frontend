@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient, User, Admin, SystemOwner, SESSION_EXPIRED_EVENT } from '../lib/api';
-import { buildAccessibleClubs, reconcileActiveClubId } from '../lib/clubContext';
+import { buildAccessibleClubs, reconcileActiveClubId, isClubUsable } from '../lib/clubContext';
 import { clearAllFeatureCaches } from '../lib/featureCacheStore';
 import {
   clearAuthSessionCookie,
@@ -168,7 +168,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return (typeof c === 'object' && c?._id ? c._id : c) ?? null;
     }
 
-    const memberships = Array.isArray(u?.memberships) ? u.memberships : [];
+    // Only consider memberships whose club is still live. This used to take the
+    // first membership with an active status regardless of the club's own state,
+    // so a member whose newest membership was in a deactivated or deleted club
+    // landed on that dead club and saw an empty member area.
+    const memberships = (Array.isArray(u?.memberships) ? u.memberships : []).filter((m: any) =>
+      isClubUsable(m?.club_id ?? m?.club),
+    );
     const relevantMembership = memberships.find((m: any) => m?.status === 'active') || memberships.find((m: any) => m?.status === 'expired');
     const clubId = relevantMembership?.club_id?._id || relevantMembership?.club_id;
     return clubId || null;
