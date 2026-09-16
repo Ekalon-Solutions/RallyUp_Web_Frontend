@@ -136,7 +136,7 @@ export default function SportsPage() {
     if (!currentTeam) return toast.error("No team configured")
     try {
       setFetchingEvents(true)
-      const resp = await apiClient.proxyInternalNextMatches({ team: currentTeam.teamName, clubId: selectedClubId })
+      const resp = await apiClient.proxyInternalNextMatches({ team: currentTeam.teamName, teamId: currentTeam.teamId, clubId: selectedClubId })
       if (resp.success) {
         toast.success("Next events fetched successfully")
       } else {
