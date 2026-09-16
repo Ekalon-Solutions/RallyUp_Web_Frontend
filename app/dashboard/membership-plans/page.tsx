@@ -309,9 +309,19 @@ export default function MembershipPlansPage() {
       } else {
         const errorDetails = response.errorDetails || {}
         const errorMessage = response.error || 'Unknown error occurred'
-        const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
-        const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
-        toast.error(`Failed to create membership plan "${formData.name}": ${errorMessage}.${validationMsg} Please check all required fields and try again.`)
+        // The API returns field-level details for schema validation failures.
+        // When we have one, it IS the actionable message — appending "check all
+        // required fields" only obscures it, since the required fields are fine.
+        const fieldDetails = Array.isArray(errorDetails.details) ? errorDetails.details : []
+        if (fieldDetails.length > 0) {
+          toast.error(`Could not create "${formData.name}"`, {
+            description: fieldDetails.map((d: any) => d.message).join('. '),
+          })
+        } else {
+          const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
+          const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
+          toast.error(`Failed to create membership plan "${formData.name}": ${errorMessage}.${validationMsg} Please check all required fields and try again.`)
+        }
       }
     } catch (error: any) {
       const errorMessage = error?.message || 'Network error or server unavailable'
@@ -666,6 +676,9 @@ export default function MembershipPlansPage() {
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         required
                       />
+                      <p className={`text-xs ${formData.description.length > 200 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        {formData.description.length}/200 characters
+                      </p>
                     </div>
 
                     <div className="space-y-2">
@@ -832,6 +845,9 @@ export default function MembershipPlansPage() {
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         required
                       />
+                      <p className={`text-xs ${formData.description.length > 200 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        {formData.description.length}/200 characters
+                      </p>
                     </div>
 
                     <div className="space-y-2">
