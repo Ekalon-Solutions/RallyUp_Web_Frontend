@@ -10,6 +10,26 @@ export function normalizeClubId(club: unknown): string | null {
   return null
 }
 
+/**
+ * A club is only selectable if it is actually live. Memberships in a club that
+ * was deactivated or soft-deleted are still returned by the API (the row itself
+ * stays valid), and the club-selection helpers used to take the first membership
+ * with an active *status* without ever checking the *club* — so a member whose
+ * newest membership sat in a deleted club had activeClubId pointed at it and
+ * every member-facing screen loaded against a dead tenant and came up empty.
+ *
+ * Only exclude when we positively know the club is dead: when `club_id` is an
+ * unpopulated id (a bare string) there is no status to judge, and dropping it
+ * would lose access rather than fix anything.
+ */
+export function isClubUsable(club: unknown): boolean {
+  if (!club || typeof club !== "object") return true
+  const c = club as { status?: unknown; is_deleted?: unknown }
+  if (c.is_deleted === true) return false
+  if (typeof c.status === "string" && c.status !== "active") return false
+  return true
+}
+
 export function buildAccessibleClubs(user: unknown): AccessibleClub[] {
   if (!user || typeof user !== "object") return []
   const userAny = user as Record<string, unknown>
@@ -68,6 +88,7 @@ export function buildAccessibleClubs(user: unknown): AccessibleClub[] {
   for (const m of memberships) {
     const rec = m as Record<string, unknown>
     const club = rec.club_id ?? rec.club
+    if (!isClubUsable(club)) continue
     const id = normalizeClubId(club)
     const name =
       typeof club === "object" && club && "name" in club
