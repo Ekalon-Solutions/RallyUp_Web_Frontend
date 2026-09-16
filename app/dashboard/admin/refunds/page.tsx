@@ -21,7 +21,6 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
-import { EventRefundLogPanel } from '@/components/admin/event-refund-log-panel'
 
 interface RefundRequest {
   _id: string
@@ -65,9 +64,7 @@ function RefundsPageInner() {
   const searchParams = useSearchParams()
 
   const urlTab = searchParams.get('tab')
-  const urlEventId = searchParams.get('eventId') ?? undefined
-  const urlEventTitle = searchParams.get('eventTitle') ?? undefined
-  const validTabs = new Set(['requests', 'event-log', 'rules'])
+  const validTabs = new Set(['requests', 'rules'])
   const [activeTab, setActiveTab] = useState(
     urlTab && validTabs.has(urlTab) && urlTab !== 'rules' ? urlTab : 'requests'
   )
@@ -76,10 +73,8 @@ function RefundsPageInner() {
     setActiveTab(tab)
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', tab)
-    if (tab !== 'event-log') {
-      params.delete('eventId')
-      params.delete('eventTitle')
-    }
+    params.delete('eventId')
+    params.delete('eventTitle')
     router.replace(`/dashboard/admin/refunds?${params.toString()}`)
   }
   const [refunds, setRefunds] = useState<RefundRequest[]>([])
@@ -258,12 +253,8 @@ function RefundsPageInner() {
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList>
             <TabsTrigger value="requests">Refund Requests</TabsTrigger>
-            <TabsTrigger value="event-log">Event Refund Report</TabsTrigger>
             <TabsTrigger value="rules">Policy Settings</TabsTrigger>
           </TabsList>
-          <TabsContent value="event-log" className="mt-4">
-            <EventRefundLogPanel eventId={urlEventId} eventTitle={urlEventTitle} />
-          </TabsContent>
           <TabsContent value="rules" className="mt-4 space-y-4">
             <Card>
               <CardHeader>

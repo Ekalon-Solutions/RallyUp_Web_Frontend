@@ -30,7 +30,6 @@ import {
   Calendar,
   MoreHorizontal,
   Edit,
-  Download,
   MessageCircle,
   Truck,
   AlertTriangle,
@@ -40,7 +39,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useClubFeatures } from '@/hooks/useClubFeatures'
 import { isFeatureEnabled } from '@/lib/clubFeatures'
-import { LockedFeaturePage, FeatureUnavailableOverlay, LockedInline } from '@/components/feature-gate'
+import { LockedFeaturePage, FeatureUnavailableOverlay } from '@/components/feature-gate'
 import { ReadyToShipModal } from '@/components/admin/ready-to-ship-modal'
 import { LogisticsTimeline } from '@/components/admin/logistics-timeline'
 import { OrderAddressDisplay } from '@/components/order-address-display'
@@ -399,50 +398,6 @@ export default function OrdersPage() {
       await loadStats()
     } finally {
       setRefreshing(false)
-    }
-  }
-
-  const handleDownloadReport = async () => {
-    if (typeFilter === 'events') {
-      try {
-        const eventParams: Record<string, any> = {
-          ...(clubId ? { clubId } : {}),
-          ...(searchTerm ? { search: searchTerm } : {}),
-          ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
-          ...(earlyBirdFilter !== 'all' ? { earlyBird: earlyBirdFilter } : {}),
-          ...(couponFilter !== 'all' ? { coupon: couponFilter } : {}),
-          ...(paymentDateFilter ? { paymentDate: paymentDateFilter } : {}),
-          ...(amountFilter !== 'all' ? { amountFilter } : {}),
-          ...(amountFilter === 'range' ? { amountMin, amountMax } : {}),
-        }
-        const res = await apiClient.downloadEventRegistrationsReport(eventParams)
-        if (!res.success) {
-          toast.error(res.error || 'Failed to download event report')
-        } else {
-          toast.success('Report downloaded', { description: 'Event registrations report downloaded successfully.' })
-        }
-      } catch (error) {
-        toast.error('Failed to download event report')
-      }
-      return
-    }
-
-    const params = {
-      ...(searchTerm ? { search: searchTerm } : {}),
-      ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
-      ...(clubId ? { clubId } : {}),
-    };
-
-    try {
-      const res = await apiClient.downloadOrdersReport(params);
-      if (!res.success) {
-        toast.error(res.error || 'Failed to download report');
-      } else {
-        toast.success('Report downloaded', { description: 'Orders report downloaded successfully.' });
-        await loadStats();
-      }
-    } catch (error) {
-      toast.error('Failed to download report');
     }
   }
 
@@ -808,24 +763,6 @@ export default function OrdersPage() {
             <p className="text-muted-foreground text-sm sm:text-base">Manage customer orders and fulfillment</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            {isFeatureEnabled(clubFeatureConfig, 'reporting') ? (
-              <Link href="/dashboard/orders/logistics-report" className="w-full sm:w-auto">
-                <Button variant="secondary" className="w-full sm:w-auto">
-                  <Truck className="w-4 h-4 mr-2" />
-                  Logistics Report
-                </Button>
-              </Link>
-            ) : (
-              <LockedInline label="Logistics Report" reason="Upgrade to the Reporting add-on to access shipping and RTO analytics. Contact RallyUp to unlock." />
-            )}
-            {isFeatureEnabled(clubFeatureConfig, 'reporting') ? (
-              <Button variant="secondary" onClick={handleDownloadReport} className="w-full sm:w-auto">
-                <Download className="w-4 h-4 mr-2" />
-                Download Report
-              </Button>
-            ) : (
-              <LockedInline label="Download Report" reason="Upgrade to the Reporting add-on to export order data. Contact RallyUp to unlock." />
-            )}
             <Button onClick={refreshOrders} disabled={refreshing} className="w-full sm:w-auto">
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
