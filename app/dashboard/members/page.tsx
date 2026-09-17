@@ -902,19 +902,17 @@ export default function MembersPage() {
               <CardDescription>Search and filter your members</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      placeholder="Search members by name, email, or phone..."
-                      value={searchTerm}
-                                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+              <div className="flex flex-col gap-4 mb-4">
+                <div className="relative min-w-0">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Search members by name, email, or phone..."
+                    value={searchTerm}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-                <div className="w-full sm:w-48">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   <Select value={statusFilter} onValueChange={handleStatusFilter}>
                     <SelectTrigger>
                       <SelectValue placeholder="Filter by status" />
@@ -925,8 +923,6 @@ export default function MembersPage() {
                       <SelectItem value="inactive">Inactive Only</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="w-full sm:w-56">
                   <Select value={verificationFilter} onValueChange={handleVerificationFilter}>
                     <SelectTrigger>
                       <SelectValue placeholder="Filter by verification" />
@@ -937,8 +933,6 @@ export default function MembersPage() {
                       <SelectItem value="unverified">Unverified Only</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="w-full sm:w-56">
                   <Select value={planFilter} onValueChange={handlePlanFilter}>
                     <SelectTrigger>
                       <SelectValue placeholder="Filter by plan" />

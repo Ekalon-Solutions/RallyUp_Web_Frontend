@@ -245,8 +245,8 @@ export default function ClubMembersPage() {
                   <CardDescription>Search and connect with fellow members</CardDescription>
                 </CardHeader>
                 <CardContent>
-              <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                <div className="relative flex-1">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 mb-4">
+                <div className="relative min-w-0 flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     placeholder="Search members by name or email..."
@@ -255,7 +255,7 @@ export default function ClubMembersPage() {
                     className="pl-10"
                   />
                 </div>
-                <div className="w-full sm:w-56">
+                <div className="w-full sm:w-64 shrink-0">
                   <Select value={planFilter} onValueChange={(value) => { setPlanFilter(value); setCurrentPage(1) }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Filter by plan" />
