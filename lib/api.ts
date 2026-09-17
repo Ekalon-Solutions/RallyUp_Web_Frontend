@@ -5180,6 +5180,7 @@ class ApiClient {
     limit?: number;
     status?: string;
     verification?: 'verified' | 'unverified';
+    membershipPlanId?: string;
     clubId: string;
     export?: boolean;
   }): Promise<ApiResponse<{
@@ -5201,6 +5202,9 @@ class ApiClient {
     if (params?.search) queryParams.append('search', params.search);
     if (params?.status) queryParams.append('status', params.status);
     if (params?.verification) queryParams.append('verification', params.verification);
+    if (params?.membershipPlanId && params.membershipPlanId !== 'all') {
+      queryParams.append('membershipPlanId', params.membershipPlanId);
+    }
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.clubId) queryParams.append('clubId', params.clubId);

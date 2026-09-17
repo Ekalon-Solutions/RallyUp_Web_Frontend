@@ -105,6 +105,8 @@ export default function MembersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified'>('all')
+  const [planFilter, setPlanFilter] = useState('all')
+  const [filterPlans, setFilterPlans] = useState<Array<{ _id: string; name: string; isActive?: boolean }>>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState({
     page: 1,
@@ -166,7 +168,23 @@ export default function MembersPage() {
 
   useEffect(() => {
     fetchMembers()
-  }, [currentPage, searchTerm, statusFilter, verificationFilter, clubId])
+  }, [currentPage, searchTerm, statusFilter, verificationFilter, planFilter, clubId])
+
+  useEffect(() => {
+    if (!clubId) {
+      setFilterPlans([])
+      setPlanFilter('all')
+      return
+    }
+    apiClient.getMembershipPlans(clubId).then((res: any) => {
+      const list = (res.success && res.data)
+        ? (Array.isArray(res.data) ? res.data : res.data?.data ?? [])
+        : []
+      setFilterPlans((list as Array<{ _id: string; name: string; isActive?: boolean }>).filter((p) => p?._id && p?.name))
+    }).catch(() => {
+      setFilterPlans([])
+    })
+  }, [clubId])
    
 
   const fetchMembers = async () => {
@@ -185,6 +203,7 @@ export default function MembersPage() {
         limit: pagination.limit,
         status: statusFilter === 'all' ? undefined : statusFilter,
         verification: verificationFilter === 'all' ? undefined : verificationFilter,
+        membershipPlanId: planFilter === 'all' ? undefined : planFilter,
         clubId
       })
 
@@ -234,6 +253,11 @@ export default function MembersPage() {
 
   const handleVerificationFilter = (value: string): void => {
     setVerificationFilter(value as 'all' | 'verified' | 'unverified')
+    setCurrentPage(1)
+  }
+
+  const handlePlanFilter = (value: string): void => {
+    setPlanFilter(value)
     setCurrentPage(1)
   }
 
@@ -607,6 +631,7 @@ export default function MembersPage() {
         search: searchTerm || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
         verification: verificationFilter === 'all' ? undefined : verificationFilter,
+        membershipPlanId: planFilter === 'all' ? undefined : planFilter,
         clubId: clubId!,
         export: true,
       })
@@ -879,6 +904,21 @@ export default function MembersPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="w-full sm:w-56">
+                  <Select value={planFilter} onValueChange={handlePlanFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All membership plans</SelectItem>
+                      {filterPlans.map((plan) => (
+                        <SelectItem key={plan._id} value={plan._id}>
+                          {plan.name}{plan.isActive === false ? ' (inactive)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 text-sm text-muted-foreground">
@@ -889,7 +929,7 @@ export default function MembersPage() {
                     ? 'Showing 0 results'
                     : `Showing ${(currentPage - 1) * pagination.limit + 1}-${(currentPage - 1) * pagination.limit + members.length} of ${pagination.total} results`}
                 </div>
-                {(searchTerm || statusFilter !== 'all' || verificationFilter !== 'all') && (
+                {(searchTerm || statusFilter !== 'all' || verificationFilter !== 'all' || planFilter !== 'all') && (
                   <div>
                     Total in directory: {metadata.total}
                   </div>

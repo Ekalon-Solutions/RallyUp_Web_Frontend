@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
 import MemberConnections from '@/components/member-connections'
@@ -51,6 +52,8 @@ export default function ClubMembersPage() {
   const [members, setMembers] = useState<ClubMember[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [planFilter, setPlanFilter] = useState('all')
+  const [filterPlans, setFilterPlans] = useState<Array<{ _id: string; name: string; isActive?: boolean }>>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState({
     page: 1,
@@ -64,7 +67,23 @@ export default function ClubMembersPage() {
     if (user) {
       fetchClubMembers()
     }
-  }, [currentPage, searchTerm, user, clubId])
+  }, [currentPage, searchTerm, planFilter, user, clubId])
+
+  useEffect(() => {
+    if (!clubId) {
+      setFilterPlans([])
+      setPlanFilter('all')
+      return
+    }
+    apiClient.getMembershipPlans(clubId).then((res: any) => {
+      const list = (res.success && res.data)
+        ? (Array.isArray(res.data) ? res.data : res.data?.data ?? [])
+        : []
+      setFilterPlans((list as Array<{ _id: string; name: string; isActive?: boolean }>).filter((p) => p?._id && p?.name))
+    }).catch(() => {
+      setFilterPlans([])
+    })
+  }, [clubId])
 
   const fetchClubMembers = async () => {
     try {
@@ -81,6 +100,7 @@ export default function ClubMembersPage() {
         search: searchTerm || undefined,
         page: currentPage,
         limit: 20,
+        membershipPlanId: planFilter === 'all' ? undefined : planFilter,
         clubId
       })
 
@@ -225,14 +245,31 @@ export default function ClubMembersPage() {
                   <CardDescription>Search and connect with fellow members</CardDescription>
                 </CardHeader>
                 <CardContent>
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search members by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Search members by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="w-full sm:w-56">
+                  <Select value={planFilter} onValueChange={(value) => { setPlanFilter(value); setCurrentPage(1) }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All membership plans</SelectItem>
+                      {filterPlans.map((plan) => (
+                        <SelectItem key={plan._id} value={plan._id}>
+                          {plan.name}{plan.isActive === false ? ' (inactive)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Members List */}
