@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Check, Image as ImageIcon, Upload } from "lucide-react"
+import { Check, Image as ImageIcon, Loader2, Upload } from "lucide-react"
 import { toast } from "sonner"
 import { MembershipCard } from "@/components/membership-card"
 import { apiClient, PublicMembershipCardDisplay } from "@/lib/api"
@@ -28,6 +28,7 @@ import {
   FONT_FAMILIES,
   FieldPosition,
   normalizeCardCustomization,
+  processCardBackgroundImage,
   resolveCardAssetUrl,
   validateCardBackgroundImage,
 } from "@/lib/membershipCardFields"
@@ -56,6 +57,8 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null)
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null)
   const [backgroundError, setBackgroundError] = useState<string | null>(null)
+  const [backgroundInfo, setBackgroundInfo] = useState<string | null>(null)
+  const [isProcessingBackground, setIsProcessingBackground] = useState(false)
   const [isDropTarget, setIsDropTarget] = useState(false)
   const [saving, setSaving] = useState(false)
   const backgroundInputRef = useRef<HTMLInputElement>(null)
@@ -77,16 +80,34 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
 
   const handleBackgroundFile = async (file?: File | null) => {
     if (!file) return
-    const error = await validateCardBackgroundImage(file)
-    if (error) {
-      setBackgroundError(error)
+    setIsProcessingBackground(true)
+    setBackgroundError(null)
+    setBackgroundInfo(null)
+    try {
+      const result = await processCardBackgroundImage(file)
+      if (result.error || !result.processedFile) {
+        setBackgroundError(result.error || "Failed to process image.")
+        setBackgroundFile(null)
+        setBackgroundPreview(null)
+        return
+      }
+      setBackgroundError(null)
+      setBackgroundFile(result.processedFile)
+      setBackgroundPreview(URL.createObjectURL(result.processedFile))
+      if (result.wasAdjusted && result.originalSize) {
+        setBackgroundInfo(
+          `Image (${result.originalSize.width}×${result.originalSize.height}px) was automatically fitted to card dimensions (${CARD_BG_WIDTH}×${CARD_BG_HEIGHT}px).`
+        )
+      } else {
+        setBackgroundInfo(null)
+      }
+    } catch (err: any) {
+      setBackgroundError(err?.message || "Failed to process image.")
       setBackgroundFile(null)
       setBackgroundPreview(null)
-      return
+    } finally {
+      setIsProcessingBackground(false)
     }
-    setBackgroundError(null)
-    setBackgroundFile(file)
-    setBackgroundPreview(URL.createObjectURL(file))
   }
 
   const handleLogoFile = (file?: File | null) => {
@@ -316,10 +337,10 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
         <ul className="space-y-1 text-sm text-muted-foreground">
           <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" />Format: <span className="font-semibold text-foreground">JPG or PNG</span></li>
           <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" />Max file size: <span className="font-semibold text-foreground">{CARD_BG_MAX_MB}MB</span></li>
-          <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" />Exact dimensions: <span className="font-semibold text-foreground">{CARD_BG_WIDTH} × {CARD_BG_HEIGHT}px</span></li>
+          <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" />Card dimensions: <span className="font-semibold text-foreground">{CARD_BG_WIDTH} × {CARD_BG_HEIGHT}px (~1.586:1)</span></li>
         </ul>
         <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
-          <strong>Note:</strong> (~1.586:1) — images outside this won't be stretched or auto-fit, so they'll be rejected
+          <strong>Note:</strong> Images approximately ~1.586:1 will automatically fit to {CARD_BG_WIDTH}×{CARD_BG_HEIGHT}px. Images too far from this ratio will be rejected.
         </p>
       </div>
 
@@ -331,18 +352,24 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
           type="file"
           accept="image/jpeg,image/png"
           className="hidden"
+          onClick={(e) => { (e.target as HTMLInputElement).value = "" }}
           onChange={(e) => handleBackgroundFile(e.target.files?.[0])}
         />
         <div
           role="button"
           tabIndex={0}
-          onClick={() => backgroundInputRef.current?.click()}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") backgroundInputRef.current?.click() }}
-          onDragOver={(e) => { e.preventDefault(); setIsDropTarget(true) }}
+          onClick={() => !isProcessingBackground && backgroundInputRef.current?.click()}
+          onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !isProcessingBackground) backgroundInputRef.current?.click() }}
+          onDragOver={(e) => { e.preventDefault(); if (!isProcessingBackground) setIsDropTarget(true) }}
           onDragLeave={() => setIsDropTarget(false)}
-          onDrop={(e) => { e.preventDefault(); setIsDropTarget(false); handleBackgroundFile(e.dataTransfer.files?.[0]) }}
+          onDrop={(e) => {
+            e.preventDefault()
+            setIsDropTarget(false)
+            if (!isProcessingBackground) handleBackgroundFile(e.dataTransfer.files?.[0])
+          }}
           className={cn(
             "flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors",
+            isProcessingBackground && "opacity-60 cursor-wait",
             backgroundError
               ? "border-red-400 bg-red-50 text-red-600 dark:bg-red-900/20"
               : isDropTarget
@@ -350,15 +377,29 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
                 : "border-muted-foreground/25 hover:border-muted-foreground/50"
           )}
         >
-          <Upload className="h-5 w-5" />
-          <p className="text-sm font-semibold">Click to upload, or drag and drop</p>
-          <p className="text-xs text-muted-foreground">
-            JPG or PNG · {CARD_BG_WIDTH}×{CARD_BG_HEIGHT}px · up to {CARD_BG_MAX_MB}MB
-          </p>
+          {isProcessingBackground ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <p className="text-sm font-semibold">Fitting image to card dimensions...</p>
+            </>
+          ) : (
+            <>
+              <Upload className="h-5 w-5" />
+              <p className="text-sm font-semibold">Click to upload, or drag and drop</p>
+              <p className="text-xs text-muted-foreground">
+                JPG or PNG · ~1.586:1 ratio (auto-fits to {CARD_BG_WIDTH}×{CARD_BG_HEIGHT}px) · up to {CARD_BG_MAX_MB}MB
+              </p>
+            </>
+          )}
         </div>
         {backgroundError && (
           <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-800 dark:bg-red-900/20">
             {backgroundError}
+          </p>
+        )}
+        {backgroundInfo && !backgroundError && (
+          <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+            {backgroundInfo}
           </p>
         )}
         {(backgroundPreview || custom.backgroundImage) && !backgroundError && (
@@ -368,6 +409,7 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
             onClick={() => {
               setBackgroundFile(null)
               setBackgroundPreview(null)
+              setBackgroundInfo(null)
               patch({ backgroundImage: undefined })
             }}
             className="text-red-600 hover:text-red-700"
