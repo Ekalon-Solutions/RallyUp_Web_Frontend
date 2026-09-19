@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { apiClient } from "@/lib/api"
 import { computeMembershipPlanCharge } from "@/lib/transactionFees"
-import { JoinMembershipModal, JoinablePlan } from "@/components/modals/join-membership-modal"
+import type { JoinablePlan } from "@/components/modals/join-membership-modal"
 import { LoginModal } from "@/components/login-modal"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
@@ -70,8 +70,6 @@ export default function ClubMembershipPlansPage() {
   const [settings, setSettings] = useState<ClubSettings | null>(null)
   const [plans, setPlans] = useState<JoinablePlan[]>([])
   const [loginOpen, setLoginOpen] = useState(false)
-  const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
-  const [showJoinModal, setShowJoinModal] = useState(false)
   const [detailsPlan, setDetailsPlan] = useState<JoinablePlan | null>(null)
   const [isAppRedirect, setIsAppRedirect] = useState(false)
 
@@ -128,9 +126,8 @@ export default function ClubMembershipPlansPage() {
     } catch (_) {}
     if (!pending || (pending.clubId !== club._id && pending.clubId !== (club as any).slug && pending.clubId !== slug)) return
     sessionStorage.removeItem("clubs_pending_join")
-    setSelectedPlanId(pending.membershipPlanId)
-    setShowJoinModal(true)
-  }, [club?._id, slug])
+    router.push(`/clubs/${slug}/membership/checkout?planId=${pending.membershipPlanId}`)
+  }, [club?._id, slug, router])
 
   const activeMembership = (user as any)?.memberships?.find(
     (m: any) => (m.club_id?._id === club?._id || m.club_id === club?._id) && m.status === "active"
@@ -168,8 +165,7 @@ export default function ClubMembershipPlansPage() {
     })
 
   const handleSelectPlan = (plan: JoinablePlan) => {
-    setSelectedPlanId(plan._id)
-    setShowJoinModal(true)
+    router.push(`/clubs/${slug}/membership/checkout?planId=${plan._id}`)
   }
 
   const getCardCta = (plan: JoinablePlan): { label: string; disabled: boolean } => {
@@ -342,22 +338,7 @@ export default function ClubMembershipPlansPage() {
 
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} onSuccess={() => {}} />
 
-      {club._id && (
-        <JoinMembershipModal
-          open={showJoinModal}
-          onOpenChange={(open) => {
-            setShowJoinModal(open)
-            if (!open) setSelectedPlanId(undefined)
-          }}
-          clubId={club._id}
-          clubName={club.name}
-          platformFeePercent={club.platformFeePercent}
-          plans={visiblePlans}
-          primaryColor={primaryColor}
-          returnPath={`/clubs/${slug}/membership`}
-          initialPlanId={selectedPlanId}
-        />
-      )}
+
     </div>
   )
 }
