@@ -8,6 +8,8 @@ import { getBaseUrl } from '@/lib/config'
 
 export const CARD_BG_WIDTH = 1012
 export const CARD_BG_HEIGHT = 638
+export const CARD_BG_ASPECT_RATIO = CARD_BG_WIDTH / CARD_BG_HEIGHT
+export const CARD_BG_RATIO_TOLERANCE = 0.15 // Allows ~15% deviation (~1.35:1 to ~1.82:1)
 export const CARD_BG_MAX_MB = 10
 export const CARD_BG_MAX_BYTES = CARD_BG_MAX_MB * 1024 * 1024
 export const CARD_BG_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
@@ -108,26 +110,170 @@ function readImageSize(file: File): Promise<{ width: number; height: number } | 
   })
 }
 
+function canvasToFile(
+  canvas: HTMLCanvasElement,
+  filename: string,
+  mimeType: string,
+  quality = 0.95
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    if (canvas.toBlob) {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(new File([blob], filename, { type: mimeType, lastModified: Date.now() }))
+          } else {
+            try {
+              const dataUrl = canvas.toDataURL(mimeType, quality)
+              const arr = dataUrl.split(',')
+              const bstr = atob(arr[1])
+              let n = bstr.length
+              const u8arr = new Uint8Array(n)
+              while (n--) {
+                u8arr[n] = bstr.charCodeAt(n)
+              }
+              resolve(new File([u8arr], filename, { type: mimeType, lastModified: Date.now() }))
+            } catch (err) {
+              reject(err)
+            }
+          }
+        },
+        mimeType,
+        quality
+      )
+    } else {
+      try {
+        const dataUrl = canvas.toDataURL(mimeType, quality)
+        const arr = dataUrl.split(',')
+        const bstr = atob(arr[1])
+        let n = bstr.length
+        const u8arr = new Uint8Array(n)
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n)
+        }
+        resolve(new File([u8arr], filename, { type: mimeType, lastModified: Date.now() }))
+      } catch (err) {
+        reject(err)
+      }
+    }
+  })
+}
+
 /**
- * Returns an error message, or null when the file is a usable card background.
- * Exact dimensions are required because the card never stretches or auto-fits
- * the image — anything else would silently crop the admin's artwork.
+ * Scales and stretches an image to fit the exact card dimensions (CARD_BG_WIDTH × CARD_BG_HEIGHT).
+ * Returns the original file if it already matches the exact dimensions.
  */
-export async function validateCardBackgroundImage(file: File): Promise<string | null> {
+export async function fitImageToCardDimensions(
+  file: File,
+  knownSize?: { width: number; height: number }
+): Promise<File> {
+  if (knownSize && knownSize.width === CARD_BG_WIDTH && knownSize.height === CARD_BG_HEIGHT) {
+    return file
+  }
+
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = async () => {
+      URL.revokeObjectURL(url)
+      if (img.naturalWidth === CARD_BG_WIDTH && img.naturalHeight === CARD_BG_HEIGHT) {
+        resolve(file)
+        return
+      }
+
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = CARD_BG_WIDTH
+        canvas.height = CARD_BG_HEIGHT
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve(file)
+          return
+        }
+
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        ctx.drawImage(img, 0, 0, CARD_BG_WIDTH, CARD_BG_HEIGHT)
+
+        const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+        const fittedFile = await canvasToFile(canvas, file.name, outputType, 0.95)
+        resolve(fittedFile)
+      } catch (err) {
+        reject(err)
+      }
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image for processing'))
+    }
+    img.src = url
+  })
+}
+
+export interface CardImageProcessResult {
+  error: string | null
+  processedFile: File | null
+  originalSize?: { width: number; height: number }
+  wasAdjusted?: boolean
+}
+
+/**
+ * Validates the uploaded background image and fits it to CARD_BG_WIDTH × CARD_BG_HEIGHT.
+ * Accepts images with an aspect ratio approximately equal to ~1.586:1 (within CARD_BG_RATIO_TOLERANCE)
+ * and automatically stretches/fits them to the exact card dimensions required.
+ */
+export async function processCardBackgroundImage(file: File): Promise<CardImageProcessResult> {
   if (!CARD_BG_MIME_TYPES.includes(file.type.toLowerCase())) {
-    return 'Image must be a JPG or PNG file.'
+    return { error: 'Image must be a JPG or PNG file.', processedFile: null }
   }
   if (file.size > CARD_BG_MAX_BYTES) {
-    return `Image must be ${CARD_BG_MAX_MB}MB or smaller.`
+    return { error: `Image must be ${CARD_BG_MAX_MB}MB or smaller.`, processedFile: null }
   }
   const size = await readImageSize(file)
   if (!size) {
-    return 'That file could not be read as an image. Please try another one.'
+    return { error: 'That file could not be read as an image. Please try another one.', processedFile: null }
   }
-  if (size.width !== CARD_BG_WIDTH || size.height !== CARD_BG_HEIGHT) {
-    return `Image must be ${CARD_BG_WIDTH}×${CARD_BG_HEIGHT}px (~1.586:1). This image is ${size.width}×${size.height}px — please resize it and try again.`
+  if (size.width < 100 || size.height < 60) {
+    return { error: 'Image is too small to be used as a card background.', processedFile: null }
   }
-  return null
+
+  const imageRatio = size.width / size.height
+  const ratioDifference = Math.abs(imageRatio - CARD_BG_ASPECT_RATIO) / CARD_BG_ASPECT_RATIO
+
+  if (ratioDifference > CARD_BG_RATIO_TOLERANCE) {
+    return {
+      error: `Image ratio (${imageRatio.toFixed(2)}:1) does not match the required card ratio (~1.586:1). This image is ${size.width}×${size.height}px. Please upload an image with an aspect ratio closer to 1.586:1 (e.g. ${CARD_BG_WIDTH}×${CARD_BG_HEIGHT}px).`,
+      processedFile: null,
+      originalSize: size,
+    }
+  }
+
+  const wasAdjusted = size.width !== CARD_BG_WIDTH || size.height !== CARD_BG_HEIGHT
+
+  try {
+    const processedFile = await fitImageToCardDimensions(file, size)
+    return {
+      error: null,
+      processedFile,
+      originalSize: size,
+      wasAdjusted,
+    }
+  } catch {
+    return {
+      error: 'Failed to process and fit image. Please try another image.',
+      processedFile: null,
+      originalSize: size,
+    }
+  }
+}
+
+/**
+ * Returns an error message, or null when the file is a usable card background.
+ * Maintained for backward compatibility.
+ */
+export async function validateCardBackgroundImage(file: File): Promise<string | null> {
+  const result = await processCardBackgroundImage(file)
+  return result.error
 }
 
 /** Resolves a stored asset path (S3 URL, data/blob URL, or API-relative path) for <img>. */
