@@ -5481,6 +5481,10 @@ class ApiClient {
     });
   }
 
+  async getPlanTemplateCard(planId: string): Promise<ApiResponse<PublicMembershipCardDisplay | null>> {
+    return this.request(`/membership-cards/template/${planId}`);
+  }
+
   async renewMembershipCard(cardId: string, data: RenewMembershipCardRequest): Promise<ApiResponse<PublicMembershipCardDisplay>> {
     return this.request(`/membership-cards/${cardId}/renew`, {
       method: 'PATCH',
