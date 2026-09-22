@@ -16,7 +16,7 @@ import { apiClient, type Event } from "@/lib/api"
 import { toDatetimeLocalString } from "@/lib/timezone"
 import { formatDisplayDate } from "@/lib/utils"
 
-type CouponEligibility = 'all' | 'members-only' | 'new-users' | 'specific-events' | 'membership-renewal'
+type CouponEligibility = 'all' | 'members-only' | 'new-users' | 'specific-events' | 'membership-renewal' | 'membership-plan'
 type ConfigurableCouponEligibility = Exclude<CouponEligibility, 'new-users'>
 
 interface Coupon {
@@ -31,6 +31,7 @@ interface Coupon {
   startTime: string
   endTime: string
   eligibility: CouponEligibility
+  membershipPlan?: string | { _id: string; name?: string } | null
   applicableEvents?: Array<string | { _id: string }>
   minPurchaseAmount?: number
   isActive: boolean
@@ -51,6 +52,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
   const [loading, setLoading] = useState(false)
   const [eventsLoading, setEventsLoading] = useState(false)
   const [events, setEvents] = useState<Event[]>([])
+  const [plans, setPlans] = useState<Array<{ _id: string; name: string }>>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     name: "",
@@ -62,6 +64,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
     startTime: "",
     endTime: "",
     eligibility: "all" as CouponEligibility,
+    membershipPlanId: "",
     applicableEvents: [] as string[],
     minPurchaseAmount: "",
     isAutoApply: false,
@@ -82,6 +85,9 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
           startTime: editCoupon.startTime.slice(0, 16),
           endTime: editCoupon.endTime.slice(0, 16),
           eligibility: editCoupon.eligibility,
+          membershipPlanId: typeof editCoupon.membershipPlan === "string"
+            ? editCoupon.membershipPlan
+            : editCoupon.membershipPlan?._id || "",
           applicableEvents: (editCoupon.applicableEvents || []).map((event) =>
             typeof event === "string" ? event : event._id
           ),
@@ -103,6 +109,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
           startTime: toDatetimeLocalString(now),
           endTime: toDatetimeLocalString(endDate),
           eligibility: "all",
+          membershipPlanId: "",
           applicableEvents: [],
           minPurchaseAmount: "",
           isAutoApply: false,
@@ -110,6 +117,22 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
       }
     }
   }, [isOpen, editCoupon])
+
+  useEffect(() => {
+    if (!isOpen || !clubId) {
+      setPlans([])
+      return
+    }
+    let cancelled = false
+    apiClient.getMembershipPlans(clubId).then((res: any) => {
+      if (cancelled) return
+      const list = Array.isArray(res?.data) ? res.data : (res?.data?.data || [])
+      setPlans(list.filter((plan: { isActive?: boolean }) => plan.isActive !== false))
+    }).catch(() => {
+      if (!cancelled) setPlans([])
+    })
+    return () => { cancelled = true }
+  }, [isOpen, clubId])
 
   useEffect(() => {
     if (!isOpen || !clubId || formData.eligibility !== "specific-events") {
@@ -194,6 +217,9 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
     if (formData.eligibility === "specific-events" && formData.applicableEvents.length === 0) {
       newErrors.applicableEvents = "Select at least one event"
     }
+    if (formData.eligibility === "membership-plan" && !formData.membershipPlanId) {
+      newErrors.membershipPlanId = "Select a membership plan"
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -225,6 +251,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
         startTime: new Date(formData.startTime).toISOString(),
         endTime: new Date(formData.endTime).toISOString(),
         eligibility: formData.eligibility,
+        membershipPlan: formData.eligibility === "membership-plan" ? formData.membershipPlanId : null,
         applicableEvents: formData.eligibility === "specific-events" ? formData.applicableEvents : [],
         minPurchaseAmount: formData.minPurchaseAmount ? parseFloat(formData.minPurchaseAmount) : undefined,
         isAutoApply: formData.isAutoApply,
@@ -267,6 +294,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
       startTime: toDatetimeLocalString(now),
       endTime: toDatetimeLocalString(endDate),
       eligibility: "all",
+      membershipPlanId: "",
       applicableEvents: [],
       minPurchaseAmount: "",
       isAutoApply: false,
@@ -511,9 +539,45 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
                 <SelectItem value="members-only">Members Only</SelectItem>
                 <SelectItem value="membership-renewal">Membership Renewal</SelectItem>
                 <SelectItem value="specific-events">Specific Events</SelectItem>
+                <SelectItem value="membership-plan">Membership Plan</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {formData.eligibility === "membership-plan" && (
+            <div className="space-y-2">
+              <Label>
+                Membership plan <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.membershipPlanId || undefined}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, membershipPlanId: value })
+                  if (errors.membershipPlanId) {
+                    const { membershipPlanId: _membershipPlanId, ...rest } = errors
+                    setErrors(rest)
+                  }
+                }}
+              >
+                <SelectTrigger className={errors.membershipPlanId ? "border-red-500" : ""}>
+                  <SelectValue placeholder="Select a membership plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.length === 0 ? (
+                    <SelectItem value="__none" disabled>No membership plans for this club</SelectItem>
+                  ) : (
+                    plans.map((plan) => (
+                      <SelectItem key={plan._id} value={plan._id}>{plan.name}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.membershipPlanId && <p className="text-red-500 text-sm">{errors.membershipPlanId}</p>}
+              <p className="text-xs text-muted-foreground">
+                This coupon applies only to members on the selected plan.
+              </p>
+            </div>
+          )}
 
           {formData.eligibility === "specific-events" && (
             <div className="space-y-2">
@@ -584,11 +648,13 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
             <div className="space-y-0.5">
               <Label htmlFor="isAutoApply" className="text-base font-medium">Auto Apply Discount</Label>
               <p className="text-sm text-muted-foreground">
-                Automatically apply this coupon to active members' checkouts if eligible. If their plan discount is higher, that is applied instead.
+                Automatically apply this coupon at checkout when the member is eligible. If another auto-apply coupon is worth more, that one is used.
               </p>
               {formData.isAutoApply && (
                 <p className="text-xs text-amber-600 font-medium mt-1">
-                  Only one coupon can have auto-apply enabled at a time. Enabling this will disable auto-apply on any other coupon in this club.
+                  {formData.eligibility === "membership-plan"
+                    ? "Only one auto-apply coupon can be on for this membership plan. Coupons for other plans, and coupons that are not tied to a plan, stay on."
+                    : "Only one auto-apply coupon can be on among coupons that are not tied to a membership plan. Membership plan coupons stay on."}
                 </p>
               )}
             </div>

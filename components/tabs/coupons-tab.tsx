@@ -26,7 +26,8 @@ interface Coupon {
   currentUsage: number
   startTime: string
   endTime: string
-  eligibility: 'all' | 'members-only' | 'new-users' | 'specific-events' | 'membership-renewal'
+  eligibility: 'all' | 'members-only' | 'new-users' | 'specific-events' | 'membership-renewal' | 'membership-plan'
+  membershipPlan?: string | { _id: string; name?: string } | null
   applicableEvents?: string[]
   minPurchaseAmount?: number
   isActive: boolean
@@ -204,7 +205,8 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
       'members-only': { label: 'Members Only', color: 'bg-blue-100 text-blue-800' },
       'new-users': { label: 'New Users', color: 'bg-green-100 text-green-800' },
       'membership-renewal': { label: 'Membership Renewal', color: 'bg-indigo-100 text-indigo-800' },
-      'specific-events': { label: 'Specific Events', color: 'bg-orange-100 text-orange-800' }
+      'specific-events': { label: 'Specific Events', color: 'bg-orange-100 text-orange-800' },
+      'membership-plan': { label: 'Membership Plan', color: 'bg-teal-100 text-teal-800' },
     }
     return badges[eligibility] || badges['all']
   }
@@ -324,6 +326,7 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
                 <SelectItem value="members-only">Members Only</SelectItem>
                 <SelectItem value="membership-renewal">Membership Renewal</SelectItem>
                 <SelectItem value="specific-events">Specific Events</SelectItem>
+                <SelectItem value="membership-plan">Membership Plan</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -423,6 +426,13 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
                               <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] leading-3 font-normal mt-1">
                                 Auto-Apply
                               </Badge>
+                            )}
+                            {coupon.eligibility === "membership-plan" && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {typeof coupon.membershipPlan === "object" && coupon.membershipPlan?.name
+                                  ? coupon.membershipPlan.name
+                                  : "Membership plan"}
+                              </span>
                             )}
                           </div>
                         </TableCell>
