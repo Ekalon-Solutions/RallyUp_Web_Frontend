@@ -363,7 +363,7 @@ export function MembershipCard({
         }}
       >
         <Card 
-          className={`w-full max-w-lg overflow-hidden ${style.bg} ${style.text} ${style.border} border-2 transition-all duration-300 ease-out cursor-pointer`}
+          className={`w-full overflow-hidden ${style.bg} ${style.text} ${style.border} border-2 transition-all duration-300 ease-out cursor-pointer`}
           style={{
             ...getFontFamilyStyle(),
             ...(style.customColors ? {

@@ -502,12 +502,12 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
         <div className="grid grid-cols-1 gap-6 rounded-xl border p-4 sm:p-6 lg:grid-cols-2 lg:gap-8">
           {isImageMode ? imageControls : gradientControls}
 
-          <div className="space-y-3 lg:sticky lg:top-6 lg:self-start">
+          <div className="w-full space-y-3 lg:sticky lg:top-6 lg:self-start">
             <div className="flex items-center justify-between">
               <Label>Live Preview</Label>
               {isImageMode && <Badge variant="secondary">{CARD_BG_WIDTH} × {CARD_BG_HEIGHT}</Badge>}
             </div>
-            <div className="w-full max-w-sm">
+            <div className="w-full">
               <MembershipCard
                 cardData={previewData}
                 cardStyle={cardStyle}
@@ -519,7 +519,7 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
               />
             </div>
             {isImageMode && (
-              <p className="max-w-sm text-center text-sm font-semibold">
+              <p className="text-center text-sm font-semibold">
                 Drag any field to reposition it on the card
               </p>
             )}
