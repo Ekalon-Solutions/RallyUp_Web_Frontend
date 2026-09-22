@@ -36,15 +36,13 @@ import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
 import { PlanBenefits } from "@/components/membership-plan/plan-benefits"
 import { PlanRegistrationFields } from "@/components/membership-plan/plan-registration-fields"
 import {
+  attributeVisibleForCheckout,
+  checkoutFieldValues,
   fieldConfigSignature,
   hydratePlanAttributes,
-  inputPropsForFieldType,
   idProofLabelsMatch,
-  isAttributeEnabled,
-  isAttributeMandatory,
-  isDateFieldType,
-  validateFieldValue,
-  validateIdProofNumber,
+  readProfileValue,
+  validateMembershipCheckout,
   type PlanAttributeKey,
   type PlanAttributes,
   type PublicPlanConfig,
@@ -369,7 +367,7 @@ export function JoinMembershipModal({
   useEffect(() => {
     if (!resumePurchaseAfterLogin || !isLoggedIn) return
     setResumePurchaseAfterLogin(false)
-    handleSubscribeOrUpgrade()
+    toast.info("Signed in. Fill any required fields still missing, then continue.")
   }, [resumePurchaseAfterLogin, isLoggedIn])
 
   useEffect(() => {
@@ -430,6 +428,35 @@ export function JoinMembershipModal({
     }
   }, [open])
 
+  // A returning member already has some answers on their profile. Copy those in
+  // so required fields they already completed stay hidden, and only the gaps show.
+  useEffect(() => {
+    if (!open || !user || mode === "register") return
+    setRegistrationData((prev) => {
+      const next = { ...prev }
+      const source = user as unknown as Record<string, unknown>
+      const keys = [
+        "username",
+        "date_of_birth",
+        "gender",
+        "address_line1",
+        "address_line2",
+        "city",
+        "state_province",
+        "zip_code",
+        "country",
+        "id_proof_type",
+        "id_proof_number",
+      ] as const
+      for (const key of keys) {
+        if (String(next[key] ?? "").trim()) continue
+        const stored = readProfileValue(source, key)
+        if (stored) next[key] = stored
+      }
+      return next
+    })
+  }, [open, user, mode])
+
   useEffect(() => {
     const digits = referralPhone.replace(/\D/g, "")
     if (digits.length !== 8) {
@@ -487,13 +514,7 @@ export function JoinMembershipModal({
   // Which fields this plan collects, and which are required. A plan with no
   // attributes config predates the feature and collects everything.
   const planAttributes = liveAttributes ?? selectedPlan?.attributes
-  const showField = (key: PlanAttributeKey) => isAttributeEnabled(planAttributes, key)
-  const fieldRequired = (key: PlanAttributeKey) => isAttributeMandatory(planAttributes, key)
   const idProofTypes = planAttributes?.idProofTypes ?? []
-  const planCustomFields = planAttributes?.customFields ?? []
-  const selectedIdProof = idProofTypes.find((t) =>
-    idProofLabelsMatch(t.label, registrationData.id_proof_type)
-  )
 
   // The stored "Aadhar" default may not be one of the types this plan allows.
   useEffect(() => {
@@ -507,42 +528,29 @@ export function JoinMembershipModal({
     setCustomFieldValues({})
   }, [selectedPlan?._id])
 
-  /** Returns the first unmet plan-attribute requirement, or null. */
-  const validatePlanAttributes = (): string | null => {
-    const labels: Record<string, string> = {
-      username: "Username",
-      date_of_birth: "Date of Birth",
-      gender: "Gender",
-      address_line1: "Address Line 1",
-      address_line2: "Address Line 2",
-      city: "City",
-      state_province: "State / Province",
-      zip_code: "ZIP / Postal Code",
-      country: "Country",
-      club_member_id: "Club Membership ID",
-    }
-    for (const [key, label] of Object.entries(labels)) {
-      if (!fieldRequired(key as PlanAttributeKey)) continue
-      if (!String((registrationData as any)[key] ?? "").trim()) return `${label} is required.`
-    }
-    if (showField("id_proof")) {
-      if (fieldRequired("id_proof") && !registrationData.id_proof_number.trim()) {
-        return "ID Proof Number is required."
+  const profileRecord = (user ?? null) as unknown as Record<string, unknown> | null
+  const submittedFieldValues = () => {
+    const all = checkoutFieldValues(registrationData)
+    if (mode === "register") return all
+    const out: Record<string, string> = {}
+    for (const [key, value] of Object.entries(all)) {
+      const attrKey = key.startsWith("id_proof") ? "id_proof" : key
+      if (attributeVisibleForCheckout(planAttributes, attrKey as PlanAttributeKey, profileRecord, true)) {
+        out[key] = value
       }
-      const idError = validateIdProofNumber(registrationData.id_proof_number, selectedIdProof)
-      if (idError) return idError
     }
-    for (const field of planCustomFields) {
-      const value = String(customFieldValues[field.label] ?? "").trim()
-      if (field.mandatory && !value) return `${field.label} is required.`
-      if (field.type === "dropdown" && value && !(field.options ?? []).includes(value)) {
-        return `${field.label} must be one of the configured options.`
-      }
-      const typeError = validateFieldValue(field.type, value, field.label)
-      if (typeError) return typeError
-    }
-    return null
+    return out
   }
+
+  /** Returns the first unmet plan-attribute requirement, or null. */
+  const validatePlanAttributes = (): string | null =>
+    validateMembershipCheckout({
+      attributes: planAttributes,
+      values: registrationData,
+      customFieldValues,
+      profile: profileRecord,
+      existingMember: mode !== "register",
+    })
 
   const isCurrentPlan = (plan: JoinablePlan) =>
     currentPlanId != null && String(plan._id) === currentPlanId
@@ -801,7 +809,8 @@ export function JoinMembershipModal({
         { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
         appliedCoupon?.code,
         registrationData.club_member_id?.trim() || undefined,
-        customFieldValues
+        customFieldValues,
+        submittedFieldValues()
       )
 
       if (!pendingRes.success) {
@@ -855,6 +864,7 @@ export function JoinMembershipModal({
               appliedCoupon?.code,
               registrationSnapshot?.club_member_id?.trim() || registrationData.club_member_id?.trim() || undefined,
               customFieldValues,
+              submittedFieldValues(),
             )
 
             if (!subscribeRes.success) {
@@ -1021,7 +1031,8 @@ export function JoinMembershipModal({
             { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
             appliedCoupon?.code,
             registrationData.club_member_id?.trim() || undefined,
-            customFieldValues
+            customFieldValues,
+            submittedFieldValues()
           )
           if (!subscribeRes.success) {
             toast.error(subscribeRes.error || "Failed to activate discounted membership")
@@ -1052,7 +1063,7 @@ export function JoinMembershipModal({
         const subscribeRes = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
           tshirtSize: registrationData.tshirtSize,
           tshirtColor: registrationData.tshirtColor,
-        }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined, customFieldValues)
+        }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined, customFieldValues, submittedFieldValues())
         if (subscribeRes.success) {
           toast.success("Successfully joined the club!")
           onOpenChange(false)
@@ -1120,7 +1131,7 @@ export function JoinMembershipModal({
       const response = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
         tshirtSize: registrationData.tshirtSize,
         tshirtColor: registrationData.tshirtColor,
-      }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined, customFieldValues)
+      }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined, customFieldValues, submittedFieldValues())
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
         toast.success(upgraded ? "Membership upgraded successfully!" : "Membership activated successfully!")
@@ -1157,7 +1168,8 @@ export function JoinMembershipModal({
         },
         pendingPayment.couponCode,
         pendingRegistrationData?.club_member_id ?? registrationData.club_member_id,
-        customFieldValues
+        customFieldValues,
+        submittedFieldValues()
       )
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
@@ -1265,63 +1277,6 @@ export function JoinMembershipModal({
     </div>
     )
   }
-
-  const renderClubMemberIdField = () => {
-    // The club-level rule overrides the plan config — a club that mandates this
-    // ID always collects it, even if the plan turned the field off.
-    const clubMandates = isClubMemberIdMandatory(clubTeamId)
-    if (!showField("club_member_id") && !clubMandates) return null
-    const isMandatory = clubMandates || fieldRequired("club_member_id")
-    return (
-      <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor="club_member_id" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>
-          Club Membership ID{isMandatory ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
-        </Label>
-        <Input
-          id="club_member_id"
-          type="text"
-          value={registrationData.club_member_id}
-          onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
-          required={isMandatory}
-          placeholder={clubMandates ? "Arsenal Membership No. (Digital or Red)" : "Optional — as registered on official site"}
-          className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")}
-        />
-      </div>
-    )
-  }
-
-  /** Plan-specific fields from the wizard's Attributes Setup → Custom Fields. */
-  const renderCustomFields = () =>
-    planCustomFields.map((field) => (
-      <div key={field.label} className="space-y-2">
-        <Label htmlFor={`custom-${field.label}`} className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>
-          {field.label}{field.mandatory && <span className="text-primary ml-0.5">*</span>}
-        </Label>
-        {field.type === "dropdown" ? (
-          <select
-            id={`custom-${field.label}`}
-            value={customFieldValues[field.label] ?? ""}
-            onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [field.label]: e.target.value }))}
-            required={field.mandatory}
-            className={cn("w-full h-12 rounded-xl border px-3", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}
-          >
-            <option value="">{field.mandatory ? "Select…" : "Optional"}</option>
-            {(field.options ?? []).map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        ) : (
-          <Input
-            id={`custom-${field.label}`}
-            {...inputPropsForFieldType(field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "email" ? "email" : "text")}
-            value={customFieldValues[field.label] ?? ""}
-            onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [field.label]: e.target.value }))}
-            required={field.mandatory}
-            className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")}
-          />
-        )}
-      </div>
-    ))
 
   /** What this plan includes — mirrors the club website's plan details modal. */
   const renderPlanBenefits = () => {
@@ -1646,10 +1601,17 @@ export function JoinMembershipModal({
               <div className="space-y-4">
                 {renderPlanSelector()}
                 {renderPlanBenefits()}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {renderClubMemberIdField()}
-                  {renderCustomFields()}
-                </div>
+                <PlanRegistrationFields
+                  attributes={planAttributes}
+                  values={registrationData}
+                  onChange={(patch) => setRegistrationData((prev) => ({ ...prev, ...patch }))}
+                  customFieldValues={customFieldValues}
+                  onCustomChange={(label, value) => setCustomFieldValues((prev) => ({ ...prev, [label]: value }))}
+                  clubTeamId={clubTeamId}
+                  isDashboard={isDashboard}
+                  existingMember
+                  profile={profileRecord}
+                />
                 {renderCouponField()}
                 {renderPlanSummary()}
                 {showTshirtFields && (

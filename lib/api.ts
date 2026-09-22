@@ -4090,7 +4090,8 @@ class ApiClient {
     merch?: { tshirtSize?: string; tshirtColor?: string },
     couponCode?: string,
     club_member_id?: string,
-    customFieldValues?: Record<string, string>
+    customFieldValues?: Record<string, string>,
+    fieldValues?: Record<string, string>
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -4106,6 +4107,11 @@ class ApiClient {
     if (couponCode) body.couponCode = couponCode;
     if (club_member_id) body.club_member_id = club_member_id;
     if (customFieldValues && Object.keys(customFieldValues).length) body.customFieldValues = customFieldValues;
+    if (fieldValues && Object.keys(fieldValues).length) {
+      body.fieldValues = fieldValues;
+      if (fieldValues.id_proof_type) body.id_proof_type = fieldValues.id_proof_type;
+      if (fieldValues.id_proof_number) body.id_proof_number = fieldValues.id_proof_number;
+    }
     const res = await this.request<{
       message: string;
       data: { userMembership: any; isUpgrade: boolean };
@@ -4128,12 +4134,18 @@ class ApiClient {
     merchOrCoupon?: { tshirtSize?: string; tshirtColor?: string } | string,
     couponCode?: string,
     club_member_id?: string,
-    customFieldValues?: Record<string, string>
+    customFieldValues?: Record<string, string>,
+    fieldValues?: Record<string, string>
   ): Promise<ApiResponse<{ userMembership: any; status: 'pending' | 'active' }>> {
     const body: any = { razorpayOrderId }
     if (referralPhone) body.referralPhone = referralPhone
     if (club_member_id) body.club_member_id = club_member_id
     if (customFieldValues && Object.keys(customFieldValues).length) body.customFieldValues = customFieldValues
+    if (fieldValues && Object.keys(fieldValues).length) {
+      body.fieldValues = fieldValues
+      if (fieldValues.id_proof_type) body.id_proof_type = fieldValues.id_proof_type
+      if (fieldValues.id_proof_number) body.id_proof_number = fieldValues.id_proof_number
+    }
     if (typeof merchOrCoupon === 'object' && merchOrCoupon !== null) {
       if (merchOrCoupon.tshirtSize) body.tshirtSize = merchOrCoupon.tshirtSize
       if (merchOrCoupon.tshirtColor) body.tshirtColor = merchOrCoupon.tshirtColor

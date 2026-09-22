@@ -29,14 +29,14 @@ import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
 import { LoginModal } from "@/components/login-modal"
 import { cn } from "@/lib/utils"
 import {
+  attributeVisibleForCheckout,
+  checkoutFieldValues,
   hydratePlanAttributes,
-  isAttributeEnabled,
   isAttributeMandatory,
-  validateFieldValue,
-  validateIdProofNumber,
   isDateFieldType,
   idProofLabelsMatch,
   PLAN_FEATURES,
+  validateMembershipCheckout,
   type PlanAttributeKey,
   type PlanAttributes,
   type PlanCustomField,
@@ -267,18 +267,35 @@ function CheckoutContent() {
     }
   }, [slug, requestedPlanId])
 
-  // Prefill user data if logged in
+  // Prefill user data if logged in, including answers a returning member already has.
   useEffect(() => {
     if (!user) return
     const nameParts = (user.name || "").trim().split(" ")
     const firstName = nameParts[0] || ""
     const lastName = nameParts.slice(1).join(" ") || ""
+    const source = user as unknown as Record<string, string>
     setFormData((prev) => ({
       ...prev,
-      first_name: prev.first_name || firstName,
-      last_name: prev.last_name || lastName,
+      first_name: prev.first_name || source.first_name || firstName,
+      last_name: prev.last_name || source.last_name || lastName,
       email: prev.email || user.email || "",
-      phoneNumber: prev.phoneNumber || (user.phoneNumber ? user.phoneNumber.replace(/^\+91/, "").replace(/\D/g, "") : ""),
+      phoneNumber:
+        prev.phoneNumber ||
+        (user.phoneNumber ? user.phoneNumber.replace(/^\+91/, "").replace(/\D/g, "") : ""),
+      countryCode: prev.phoneNumber ? prev.countryCode : source.countryCode || prev.countryCode || "+91",
+      username: prev.username || source.username || "",
+      date_of_birth: prev.date_of_birth || (source.date_of_birth ? String(source.date_of_birth).slice(0, 10) : ""),
+      gender: prev.gender || source.gender || "",
+      address_line1: prev.address_line1 || source.address_line1 || "",
+      address_line2: prev.address_line2 || source.address_line2 || "",
+      city: prev.city || source.city || "",
+      state_province: prev.state_province || source.state_province || "",
+      zip_code: prev.zip_code || source.zip_code || "",
+      country: prev.country || source.country || "",
+      id_proof_type: prev.id_proof_type || source.id_proof_type || "",
+      id_proof_number:
+        prev.id_proof_number ||
+        (source.id_proof_number && !/^TEMP\d+$/i.test(source.id_proof_number) ? source.id_proof_number : ""),
     }))
   }, [user])
 
@@ -294,7 +311,10 @@ function CheckoutContent() {
     [selectedPlan?.attributes]
   )
 
-  const showField = (key: PlanAttributeKey) => isAttributeEnabled(planAttributes, key)
+  const existingMember = Boolean(user?._id)
+  const profileRecord = (user ?? null) as unknown as Record<string, unknown> | null
+  const showField = (key: PlanAttributeKey) =>
+    attributeVisibleForCheckout(planAttributes, key, profileRecord, existingMember)
   const fieldRequired = (key: PlanAttributeKey) => isAttributeMandatory(planAttributes, key)
   const idProofTypes = planAttributes.idProofTypes
   const planCustomFields: PlanCustomField[] = planAttributes.customFields
@@ -525,113 +545,82 @@ function CheckoutContent() {
     e.preventDefault()
     if (!selectedPlan || !club?._id) return
 
-    if (!formData.first_name.trim()) {
-      toast.error("First name is required")
-      return
-    }
-    if (!formData.last_name.trim()) {
-      toast.error("Last name is required")
-      return
-    }
-    if (!formData.email.trim()) {
-      toast.error("Email address is required")
-      return
-    }
-    if (!formData.phoneNumber.trim()) {
-      toast.error("Phone number is required")
-      return
-    }
-    if (!/^\d{7,15}$/.test(formData.phoneNumber.replace(/\D/g, ""))) {
-      toast.error("Please enter a valid 7-15 digit phone number")
-      return
-    }
-
-    // Validate built-in attributes based on plan configuration
-    const attributeLabels: Record<string, string> = {
-      username: "Username",
-      date_of_birth: "Date of birth",
-      gender: "Gender",
-      address_line1: "Address line 1",
-      address_line2: "Address line 2",
-      city: "City",
-      state_province: "State / province",
-      zip_code: "ZIP / postal code",
-      country: "Country",
-    }
-
-    for (const [key, label] of Object.entries(attributeLabels)) {
-      if (showField(key as PlanAttributeKey) && fieldRequired(key as PlanAttributeKey)) {
-        if (!String((formData as any)[key] ?? "").trim()) {
-          toast.error(`${label} is required`)
-          return
-        }
+    if (!existingMember) {
+      if (!formData.first_name.trim()) {
+        toast.error("First name is required")
+        return
       }
-    }
-
-    // Club membership ID validation
-    if (showField("club_member_id") || clubMandatesMemberId) {
-      if ((fieldRequired("club_member_id") || clubMandatesMemberId) && !formData.club_member_id.trim()) {
-        toast.error("Club Membership ID is required")
+      if (!formData.last_name.trim()) {
+        toast.error("Last name is required")
+        return
+      }
+      if (!formData.email.trim()) {
+        toast.error("Email address is required")
+        return
+      }
+      if (!formData.phoneNumber.trim()) {
+        toast.error("Phone number is required")
+        return
+      }
+      if (!/^\d{7,15}$/.test(formData.phoneNumber.replace(/\D/g, ""))) {
+        toast.error("Please enter a valid 7-15 digit phone number")
         return
       }
     }
 
-    // ID proof validation
-    if (showField("id_proof")) {
-      if (fieldRequired("id_proof") && !formData.id_proof_number.trim()) {
-        toast.error("ID proof number is required")
-        return
-      }
-      if (formData.id_proof_number.trim()) {
-        const idErr = validateIdProofNumber(formData.id_proof_number, selectedIdProof ?? undefined)
-        if (idErr) {
-          toast.error(idErr)
-          return
-        }
-      }
+    const fieldError = validateMembershipCheckout({
+      attributes: planAttributes,
+      values: formData,
+      customFieldValues,
+      profile: profileRecord,
+      existingMember,
+    })
+    if (fieldError) {
+      toast.error(fieldError)
+      return
     }
 
-    // Validate plan custom fields
-    for (const field of planCustomFields) {
-      const val = (customFieldValues[field.label] ?? "").trim()
-      if (field.mandatory && !val) {
-        toast.error(`${field.label} is required`)
-        return
-      }
-      if (val) {
-        if (field.type === "dropdown" && !(field.options ?? []).includes(val)) {
-          toast.error(`${field.label} must be one of the configured options`)
-          return
-        }
-        const err = validateFieldValue(field.type, val, field.label)
-        if (err) {
-          toast.error(err)
-          return
-        }
-      }
+    if (clubMandatesMemberId && !formData.club_member_id.trim()) {
+      toast.error("Club Membership ID is required")
+      return
     }
+
+    const clubMemberId = formData.club_member_id.trim() || undefined
+    const profileFields = Object.fromEntries(
+      Object.entries(checkoutFieldValues(formData)).filter(([key]) => {
+        const attrKey = key.startsWith("id_proof") ? "id_proof" : key
+        return attributeVisibleForCheckout(
+          planAttributes,
+          attrKey as PlanAttributeKey,
+          profileRecord,
+          existingMember
+        )
+      })
+    )
 
     setIsProcessing(true)
 
     try {
-      // 1. Check if user already exists
-      const checkResponse = await fetch(getApiUrl(API_ENDPOINTS.users.checkExistingUserPlan), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email.trim(),
-          phoneNumber: formData.phoneNumber.trim(),
-          countryCode: formData.countryCode || "+91",
-          clubId: club._id,
-          membershipPlanId: selectedPlan._id,
-        }),
-      })
-      const checkData = await checkResponse.json()
-      if (checkResponse.ok && checkData.planValid) {
-        toast.info("An account with this email or phone already exists. Please log in to continue.")
-        setIsProcessing(false)
-        setLoginModalOpen(true)
-        return
+      // 1. An existing account has to sign in so we can see which required fields they still owe.
+      if (!existingMember) {
+        const checkResponse = await fetch(getApiUrl(API_ENDPOINTS.users.checkExistingUserPlan), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email.trim(),
+            phoneNumber: formData.phoneNumber.trim(),
+            countryCode: formData.countryCode || "+91",
+            clubId: club._id,
+            membershipPlanId: selectedPlan._id,
+          }),
+        })
+        const checkData = await checkResponse.json()
+        if (checkResponse.ok && checkData.planValid) {
+          toast.info("An account with this email or phone already exists. Please log in to continue.")
+          setIsProcessing(false)
+          setLoginModalOpen(true)
+          return
+        }
       }
 
       // 2. Register account if not already logged in
@@ -666,8 +655,9 @@ function CheckoutContent() {
           undefined,
           undefined,
           appliedCoupon?.code,
-          formData.club_member_id.trim() || undefined,
-          Object.keys(customFieldValues).length ? customFieldValues : undefined
+          clubMemberId,
+          Object.keys(customFieldValues).length ? customFieldValues : undefined,
+          Object.keys(profileFields).length ? profileFields : undefined
         )
         if (subscribeRes.success) {
           toast.success("Membership activated successfully!")
@@ -716,8 +706,9 @@ function CheckoutContent() {
         undefined,
         undefined,
         appliedCoupon?.code,
-        formData.club_member_id.trim() || undefined,
-        Object.keys(customFieldValues).length ? customFieldValues : undefined
+        clubMemberId,
+        Object.keys(customFieldValues).length ? customFieldValues : undefined,
+        Object.keys(profileFields).length ? profileFields : undefined
       )
 
       if (!pendingRes.success) {
@@ -777,8 +768,9 @@ function CheckoutContent() {
               undefined,
               undefined,
               appliedCoupon?.code,
-              formData.club_member_id.trim() || undefined,
-              Object.keys(customFieldValues).length ? customFieldValues : undefined
+              clubMemberId,
+              Object.keys(customFieldValues).length ? customFieldValues : undefined,
+              Object.keys(profileFields).length ? profileFields : undefined
             )
 
             if (!subscribeRes.success) {
@@ -851,6 +843,15 @@ function CheckoutContent() {
     showField("state_province") ||
     showField("zip_code") ||
     showField("country")
+  const showPersonalExtras = (["username", "date_of_birth", "gender"] as PlanAttributeKey[]).some(showField)
+  const showMemberId = showField("club_member_id") || clubMandatesMemberId
+  const showPersonal = !existingMember || showPersonalExtras || showMemberId
+  const showContact = !existingMember || hasAddressFields
+  let step = 1
+  const personalStep = showPersonal ? step++ : 0
+  const contactStep = showContact ? step++ : 0
+  const customStep = planCustomFields.length > 0 ? step++ : 0
+  const paymentStep = step
 
   if (loading) {
     return (
@@ -1090,18 +1091,27 @@ function CheckoutContent() {
               </div>
             )}
 
+            {existingMember && (
+              <p className="mb-5 text-sm text-muted-foreground">
+                Buying as {user?.name || formData.email}. This plan only asks for details your account is still missing.
+              </p>
+            )}
+
+            {showPersonal && (
+            <>
             {/* Section 1: Personal details */}
             <div className="flex items-center gap-2.5 mb-5">
               <div
                 className="w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-sm"
                 style={{ backgroundColor: primaryColor }}
               >
-                1
+                {personalStep}
               </div>
               <h2 className="text-sm font-bold text-foreground">Personal details</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {!existingMember && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground/90">
                   First name{" "}
@@ -1117,7 +1127,9 @@ function CheckoutContent() {
                   className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
                 />
               </div>
+              )}
 
+              {!existingMember && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground/90">
                   Last name{" "}
@@ -1133,7 +1145,9 @@ function CheckoutContent() {
                   className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
                 />
               </div>
+              )}
 
+              {!existingMember && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground/90">
                   Email address{" "}
@@ -1149,6 +1163,7 @@ function CheckoutContent() {
                   className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
                 />
               </div>
+              )}
 
               {showField("username") && (
                 <div className="space-y-1.5">
@@ -1247,8 +1262,12 @@ function CheckoutContent() {
                 </div>
               )}
             </div>
+            </>
+            )}
 
-            <div className="my-6 border-t border-border" />
+            {showContact && (
+            <>
+            {showPersonal && <div className="my-6 border-t border-border" />}
 
             {/* Section 2: Contact & address */}
             <div className="flex items-center gap-2.5 mb-5">
@@ -1256,14 +1275,15 @@ function CheckoutContent() {
                 className="w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-sm"
                 style={{ backgroundColor: primaryColor }}
               >
-                2
+                {contactStep}
               </div>
               <h2 className="text-sm font-bold text-foreground">
-                {hasAddressFields ? "Contact & address" : "Contact details"}
+                {existingMember ? "Address" : hasAddressFields ? "Contact & address" : "Contact details"}
               </h2>
             </div>
 
             <div className="space-y-4">
+              {!existingMember && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground/90">
                   Phone number{" "}
@@ -1300,6 +1320,7 @@ function CheckoutContent() {
                   />
                 </div>
               </div>
+              )}
 
               {showField("address_line1") && (
                 <div className="space-y-1.5">
@@ -1431,18 +1452,20 @@ function CheckoutContent() {
                 </div>
               )}
             </div>
+            </>
+            )}
 
             {/* Step 3 (if additional fields exist): Additional fields */}
             {planCustomFields.length > 0 && (
               <>
-                <div className="my-6 border-t border-border" />
+                {(showPersonal || showContact) && <div className="my-6 border-t border-border" />}
 
                 <div className="flex items-center gap-2.5 mb-5">
                   <div
                     className="w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-sm"
                     style={{ backgroundColor: primaryColor }}
                   >
-                    3
+                    {customStep}
                   </div>
                   <h2 className="text-sm font-bold text-foreground">Additional fields</h2>
                 </div>
@@ -1501,15 +1524,17 @@ function CheckoutContent() {
               </>
             )}
 
-            <div className="my-6 border-t border-border" />
+            {(showPersonal || showContact || planCustomFields.length > 0) && (
+              <div className="my-6 border-t border-border" />
+            )}
 
-            {/* Last Step: Identity & payment (Step 4 if additional fields exist, otherwise Step 3) */}
+            {/* Last Step: Identity & payment */}
             <div className="flex items-center gap-2.5 mb-5">
               <div
                 className="w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-sm"
                 style={{ backgroundColor: primaryColor }}
               >
-                {planCustomFields.length > 0 ? 4 : 3}
+                {paymentStep}
               </div>
               <h2 className="text-sm font-bold text-foreground">
                 {showField("id_proof") ? "Identity & payment" : "Payment & promo code"}
@@ -1683,6 +1708,8 @@ function CheckoutContent() {
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Processing...
                   </>
+                ) : existingMember ? (
+                  "Pay & join"
                 ) : (
                   "Pay & create account"
                 )}

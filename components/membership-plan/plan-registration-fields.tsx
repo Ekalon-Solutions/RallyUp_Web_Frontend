@@ -9,7 +9,7 @@ import {
   hydratePlanAttributes,
   idProofLabelsMatch,
   inputPropsForFieldType,
-  isAttributeEnabled,
+  attributeVisibleForCheckout,
   isAttributeMandatory,
   isDateFieldType,
   type PlanAttributeKey,
@@ -47,6 +47,9 @@ type Props = {
   phoneError?: string
   isDashboard?: boolean
   variant?: "themed" | "plain"
+  /** Logged-in member: hide account fields and required answers they already have. */
+  existingMember?: boolean
+  profile?: Record<string, unknown> | null
 }
 
 const BASELINE: { key: keyof RegistrationFieldValues; label: string; required: true }[] = [
@@ -64,13 +67,18 @@ export function PlanRegistrationFields({
   phoneError,
   isDashboard = false,
   variant = "themed",
+  existingMember = false,
+  profile = null,
 }: Props) {
   const attrs = hydratePlanAttributes(attributes)
-  const show = (key: PlanAttributeKey) => isAttributeEnabled(attrs, key)
+  const clubMandates = String(clubTeamId ?? "").trim() === CLUB_MEMBER_ID_MANDATORY_TEAM_ID
+  const show = (key: PlanAttributeKey) =>
+    key === "club_member_id" && clubMandates
+      ? true
+      : attributeVisibleForCheckout(attrs, key, profile, existingMember)
   const required = (key: PlanAttributeKey) => isAttributeMandatory(attrs, key)
   const idProofTypes = attrs.idProofTypes
   const selectedIdProof = idProofTypes.find((t) => idProofLabelsMatch(t.label, values.id_proof_type))
-  const clubMandates = String(clubTeamId ?? "").trim() === CLUB_MEMBER_ID_MANDATORY_TEAM_ID
   const plain = variant === "plain"
 
   const labelCls = plain
@@ -138,6 +146,7 @@ export function PlanRegistrationFields({
                   )
             )}
           >
+            {!values.gender ? <option value="">Select</option> : null}
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="non-binary">Non-binary</option>
@@ -233,10 +242,15 @@ export function PlanRegistrationFields({
     return textField(key as keyof RegistrationFieldValues, label, { required: req })
   }
 
+  const customFields = attrs.customFields
+  const hasPlanFields = attrs.fields.some((f) => show(f.key as PlanAttributeKey)) || customFields.length > 0
+  if (existingMember && !hasPlanFields) return null
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {BASELINE.map((f) => textField(f.key, f.label, { required: true }))}
-
+      {!existingMember && BASELINE.map((f) => textField(f.key, f.label, { required: true }))}
+      {!existingMember && (
+      <>
       <div className="space-y-2">
         <Label htmlFor="email" className={labelCls}>
           Email Address{star(true)}
@@ -289,6 +303,8 @@ export function PlanRegistrationFields({
           {phoneError ? <p className="text-destructive text-sm">{phoneError}</p> : null}
         </div>
       </div>
+      </>
+      )}
 
       {attrs.fields.map((f) => extra(f.key as PlanAttributeKey))}
 

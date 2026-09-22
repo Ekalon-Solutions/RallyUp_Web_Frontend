@@ -701,7 +701,11 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   // Members also need the resolved feature flags so feature-gated nav items
   // (e.g. Guess the Score / predictions) are hidden when disabled for the club.
   // Uses the member-accessible endpoint; defaults to optimistically allowed while loading.
-  const { isEnabled: isMemberFeatureEnabled } = useClubFeatures(
+  const {
+    isEnabled: isMemberFeatureEnabled,
+    loading: memberFeaturesLoading,
+    config: memberFeaturesConfig,
+  } = useClubFeatures(
     isRegularUser ? clubId ?? null : null,
     { asMember: true }
   )
@@ -723,16 +727,26 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const ticketingInboxOverride =
     memberPageSection === "externalTicketing" &&
     (existingTickets.hasRequests || !existingTickets.loaded)
+  const memberEntitlementsKnown = Boolean(memberFeaturesConfig) || !memberFeaturesLoading
+  const memberPagePending = Boolean(
+    isRegularUser && clubId && memberPageSection && !memberEntitlementsKnown
+  )
   const memberPageUnavailable = Boolean(
     isRegularUser &&
       clubId &&
       !settingsLoading &&
+      memberEntitlementsKnown &&
       memberPageSection &&
       (!memberSectionVisible ||
         (memberPageFeatureKey &&
           !isMemberFeatureEnabled(memberPageFeatureKey) &&
           !ticketingInboxOverride))
   )
+
+  useEffect(() => {
+    if (!memberPageUnavailable || pathname === FEED_PATH) return
+    router.replace(FEED_PATH)
+  }, [memberPageUnavailable, pathname, router])
 
   // Shared dashboard shell has no auth check of its own — enforcement was
   // 100% delegated to each page opting into <ProtectedRoute>. Pages that
@@ -902,6 +916,9 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
         if (!isSectionVisible(section)) return false
         const featureKey = MEMBER_SECTION_TO_FEATURE[section]
         if (!featureKey) return true
+        // Unknown entitlements stay hidden. Showing the link, then a lock
+        // screen, is the generic error this gate is meant to avoid.
+        if (!memberEntitlementsKnown) return false
         return isMemberFeatureEnabled(featureKey as ClubFeatureKey)
       }
 
@@ -965,8 +982,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const currentPagePermissionBlocked = Boolean(
     currentPageModuleId && !getModuleAccess(user, clubId ?? null, currentPageModuleId).canView
   )
-  const currentPageUnavailable =
-    currentPageFeatureBlocked || currentPagePermissionBlocked || memberPageUnavailable
+  const adminPageUnavailable = currentPageFeatureBlocked || currentPagePermissionBlocked
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -1085,15 +1101,13 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
                   onDismiss={storageAlertStatus.alertLevel !== 'exceeded' ? () => setStorageBannerDismissed(true) : undefined}
                 />
               )}
-              {currentPageUnavailable ? (
+              {memberPageUnavailable || memberPagePending ? null : adminPageUnavailable ? (
                 <LockedFeaturePage
-                  featureKey={currentPageFeatureKey ?? memberPageFeatureKey ?? undefined}
+                  featureKey={currentPageFeatureKey ?? undefined}
                   featureLabel={
                     currentPageFeatureKey
                       ? FEATURE_LABELS[currentPageFeatureKey]
-                      : memberPageFeatureKey
-                        ? FEATURE_LABELS[memberPageFeatureKey]
-                        : undefined
+                      : undefined
                   }
                   clubId={clubId}
                   currentTier={clubFeatures?.billing_tier}
