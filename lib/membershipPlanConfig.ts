@@ -273,13 +273,155 @@ export function validateFieldValue(
     return EMAIL_PATTERN.test(value) ? null : `${label} must be a valid email address.`
   }
   if (type === 'number') {
-    return Number.isFinite(Number(value)) ? null : `${label} must be a number.`
+    return /^-?\d+(\.\d+)?$/.test(value) ? null : `${label} must be a number.`
   }
   if (type === 'date') {
     return isRealDate(value) ? null : `${label} must be a valid date.`
   }
   // Text and dropdown: presence/options are checked by the caller.
   return null
+}
+
+/** Placeholder written when registration used to invent an ID instead of leaving it blank. */
+const PLACEHOLDER_ID_PROOF = /^TEMP\d+$/i
+
+/** Profile answers the checkout can reuse. `id_proof` is stored as type + number. */
+export function readProfileValue(
+  profile: Record<string, unknown> | null | undefined,
+  key: string
+): string {
+  if (!profile) return ""
+  const raw = profile[key]
+  if (raw == null) return ""
+  const text =
+    raw instanceof Date
+      ? raw.toISOString().slice(0, 10)
+      : String(raw).trim()
+  if (!text) return ""
+  if (key === "date_of_birth") return text.slice(0, 10)
+  if (key === "id_proof_number" && PLACEHOLDER_ID_PROOF.test(text)) return ""
+  return text
+}
+
+/**
+ * New members see every field the plan collects.
+ * An existing member sees a required field only when their profile does not
+ * already have it. Club membership ID is per club, so it stays when the plan
+ * collects it. Custom fields are always collected — they belong to the plan,
+ * not the profile.
+ */
+export function attributeVisibleForCheckout(
+  attrs: Partial<PlanAttributes> | null | undefined,
+  key: PlanAttributeKey,
+  profile: Record<string, unknown> | null | undefined,
+  existingMember: boolean
+): boolean {
+  if (!isAttributeEnabled(attrs, key)) return false
+  if (!existingMember || key === "club_member_id") return true
+  if (!isAttributeMandatory(attrs, key)) return false
+  const storedKey = key === "id_proof" ? "id_proof_number" : key
+  return !readProfileValue(profile, storedKey)
+}
+
+/** First problem with one admin-defined field, or null. */
+export function validateCustomFieldAnswer(
+  field: PlanCustomField,
+  rawValue: unknown
+): string | null {
+  const value = typeof rawValue === "string" ? rawValue.trim() : rawValue == null ? "" : String(rawValue).trim()
+  if (field.mandatory && !value) return `${field.label} is required.`
+  if (field.type === "dropdown") {
+    if (value && !(field.options ?? []).includes(value)) {
+      return `${field.label} must be one of the configured options.`
+    }
+    return null
+  }
+  return validateFieldValue(field.type, value, field.label)
+}
+
+const BUILTIN_LABELS: Record<string, string> = Object.fromEntries(
+  PLAN_ATTRIBUTE_FIELDS.map((f) => [f.key, f.label])
+)
+
+/**
+ * Client-side check for the fields this plan actually collects.
+ * Pass the profile for a logged-in member so answers they already have are
+ * not asked for again.
+ */
+export function validateMembershipCheckout(input: {
+  attributes: Partial<PlanAttributes> | null | undefined
+  values: Record<string, string>
+  customFieldValues: Record<string, string>
+  profile?: Record<string, unknown> | null
+  existingMember?: boolean
+}): string | null {
+  const attrs = hydratePlanAttributes(input.attributes)
+  const existing = Boolean(input.existingMember)
+  const profile = input.profile
+
+  for (const field of attrs.fields) {
+    if (!field.enabled) continue
+    const label = BUILTIN_LABELS[field.key] ?? field.key
+
+    if (field.key === "id_proof") {
+      const visible = attributeVisibleForCheckout(attrs, "id_proof", profile, existing)
+      const number = (
+        visible
+          ? input.values.id_proof_number
+          : readProfileValue(profile, "id_proof_number")
+      )?.trim() ?? ""
+      if (field.mandatory && !number) return "ID Proof Number is required."
+      if (!number) continue
+      const typeLabel = (
+        input.values.id_proof_type || readProfileValue(profile, "id_proof_type")
+      ).trim()
+      const configured = attrs.idProofTypes.find((t) => idProofLabelsMatch(t.label, typeLabel))
+      if (typeLabel && !configured) return `${typeLabel} is not an accepted ID proof type for this plan.`
+      const idError = validateIdProofNumber(number, configured)
+      if (idError) return idError
+      continue
+    }
+
+    const visible = attributeVisibleForCheckout(attrs, field.key as PlanAttributeKey, profile, existing)
+    const value = (
+      visible ? input.values[field.key] : readProfileValue(profile, field.key)
+    )?.trim() ?? ""
+    if (field.mandatory && !value) return `${label} is required.`
+    if (field.key === "date_of_birth" && value) {
+      const dateError = validateFieldValue("date", value, label)
+      if (dateError) return dateError
+    }
+  }
+
+  for (const field of attrs.customFields) {
+    const error = validateCustomFieldAnswer(field, input.customFieldValues[field.label])
+    if (error) return error
+  }
+  return null
+}
+
+/** Non-empty profile answers from the checkout form, ready for the subscribe body. */
+export function checkoutFieldValues(values: Record<string, string>): Record<string, string> {
+  const keys = [
+    "username",
+    "date_of_birth",
+    "gender",
+    "address_line1",
+    "address_line2",
+    "city",
+    "state_province",
+    "zip_code",
+    "country",
+    "id_proof_type",
+    "id_proof_number",
+  ]
+  const out: Record<string, string> = {}
+  for (const key of keys) {
+    const value = String(values[key] ?? "").trim()
+    if (!value || (key === "id_proof_number" && PLACEHOLDER_ID_PROOF.test(value))) continue
+    out[key] = key === "date_of_birth" ? value.slice(0, 10) : value
+  }
+  return out
 }
 
 /** Returns an error message, or null when the value fits the configured type. */

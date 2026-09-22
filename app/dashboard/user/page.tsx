@@ -286,11 +286,17 @@ export default function UserDashboardPage() {
   const userClub = (activeMembership as any)?.club_id || (activeMembership as any)?.club || null
 
   const { settings: clubSettings, isSectionVisible: isSettingsSectionVisible } = useClubSettings(clubId || undefined)
-  const { isEnabled: isMemberFeatureEnabled } = useClubFeatures(clubId || null, { asMember: true })
+  const {
+    isEnabled: isMemberFeatureEnabled,
+    loading: memberFeaturesLoading,
+    config: memberFeaturesConfig,
+  } = useClubFeatures(clubId || null, { asMember: true })
+  const memberEntitlementsKnown = Boolean(memberFeaturesConfig) || !memberFeaturesLoading
   const isSectionVisible = (section: WebsiteSectionKey) => {
     if (!isSettingsSectionVisible(section)) return false
     const featureKey = MEMBER_SECTION_TO_FEATURE[section]
     if (!featureKey) return true
+    if (!memberEntitlementsKnown) return false
     return isMemberFeatureEnabled(featureKey as ClubFeatureKey)
   }
 
@@ -329,10 +335,14 @@ export default function UserDashboardPage() {
     }
   }, [user])
 
+  const showEvents = isSectionVisible('events')
+  const showNews = isSectionVisible('news')
+
   useEffect(() => {
     if (authLoading) return
+    if (!memberEntitlementsKnown) return
     fetchData()
-  }, [clubId, user, authLoading])
+  }, [clubId, user, authLoading, memberEntitlementsKnown, showEvents, showNews])
 
   useEffect(() => {
     if (user) {
@@ -352,11 +362,11 @@ export default function UserDashboardPage() {
       }
 
       const [eventsResponse, newsResponse] = await Promise.all([
-        apiClient.getPublicEvents(clubId),
-        apiClient.getNewsByUserClub(clubId)
+        showEvents ? apiClient.getPublicEvents(clubId) : Promise.resolve({ success: false as const }),
+        showNews ? apiClient.getNewsByUserClub(clubId) : Promise.resolve({ success: false as const }),
       ])
 
-      if (eventsResponse.success && eventsResponse.data) {
+      if (showEvents && eventsResponse.success && eventsResponse.data) {
         const eventsData = Array.isArray(eventsResponse.data) ? eventsResponse.data : (eventsResponse.data as any).events || []
         const sortedEvents = [...eventsData].sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
         setEvents(sortedEvents)
@@ -386,12 +396,12 @@ export default function UserDashboardPage() {
         setUserRegistrations(new Map())
       }
 
-      if (newsResponse.success && newsResponse.data) {
+      if (showNews && newsResponse.success && newsResponse.data) {
         const newsData = Array.isArray(newsResponse.data) ? newsResponse.data : (newsResponse.data as any).news || []
         setNews(newsData)
       }
     } catch (error) {
-      toast.error("Error loading dashboard data")
+      if (showEvents || showNews) toast.error("Error loading dashboard data")
     } finally {
       setLoading(false)
     }

@@ -42,14 +42,8 @@ import { PlanRegistrationFields } from "@/components/membership-plan/plan-regist
 import {
   fieldConfigSignature,
   hydratePlanAttributes,
-  inputPropsForFieldType,
   idProofLabelsMatch,
-  isAttributeEnabled,
-  isAttributeMandatory,
-  isDateFieldType,
-  validateFieldValue,
-  validateIdProofNumber,
-  type PlanAttributeKey,
+  validateMembershipCheckout,
 } from "@/lib/membershipPlanConfig"
 
 // ---------------------------------------------------------------------------
@@ -192,13 +186,7 @@ export function GuestRegistrationForm({
   // Which fields this plan collects, and which of them are required. A plan
   // with no attributes config (created before this existed) collects everything.
   const planAttributes = plan?.attributes
-  const showField = (key: PlanAttributeKey) => isAttributeEnabled(planAttributes, key)
-  const fieldRequired = (key: PlanAttributeKey) => isAttributeMandatory(planAttributes, key)
   const idProofTypes = planAttributes?.idProofTypes ?? []
-  const planCustomFields = planAttributes?.customFields ?? []
-  const selectedIdProof = idProofTypes.find((t) =>
-    idProofLabelsMatch(t.label, registrationData.id_proof_type)
-  )
 
   // Default the ID proof dropdown to the plan's first configured type, since the
   // hardcoded "Aadhar" fallback may not be one of the options the admin allowed.
@@ -208,40 +196,12 @@ export function GuestRegistrationForm({
     setRegistrationData((prev) => ({ ...prev, id_proof_type: idProofTypes[0].label }))
   }, [plan?._id, idProofTypes.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** Returns the first unmet plan-attribute requirement, or null. */
-  const validatePlanAttributes = (): string | null => {
-    const labels: Record<string, string> = {
-      username: "Username",
-      date_of_birth: "Date of Birth",
-      gender: "Gender",
-      address_line1: "Address Line 1",
-      address_line2: "Address Line 2",
-      city: "City",
-      state_province: "State / Province",
-      zip_code: "ZIP / Postal Code",
-      country: "Country",
-      club_member_id: "Club Membership ID",
-    }
-    for (const [key, label] of Object.entries(labels)) {
-      if (!fieldRequired(key as PlanAttributeKey)) continue
-      const value = (registrationData as any)[key]
-      if (!String(value ?? "").trim()) return `${label} is required.`
-    }
-    if (showField("id_proof")) {
-      if (fieldRequired("id_proof") && !registrationData.id_proof_number.trim()) {
-        return "ID Proof Number is required."
-      }
-      const idError = validateIdProofNumber(registrationData.id_proof_number, selectedIdProof)
-      if (idError) return idError
-    }
-    for (const field of planCustomFields) {
-      const value = String(customFieldValues[field.label] ?? "").trim()
-      if (field.mandatory && !value) return `${field.label} is required.`
-      const typeError = validateFieldValue(field.type, value, field.label)
-      if (typeError) return typeError
-    }
-    return null
-  }
+  const validatePlanAttributes = (): string | null =>
+    validateMembershipCheckout({
+      attributes: planAttributes,
+      values: registrationData,
+      customFieldValues,
+    })
 
   // referral state
   const [referralPhone, setReferralPhone] = useState("")

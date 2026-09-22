@@ -163,10 +163,7 @@ export default function ExternalTicketingPage() {
   }
 
   const openRequestDialog = (fixture: ExternalTicketFixture) => {
-    if (!canSubmitNewRequest) {
-      toast.error('Your current plan does not include new ticket requests.')
-      return
-    }
+    if (!canSubmitNewRequest) return
     const profilePhone = (user as any)?.phoneNumber || ''
     const profileCountryCode = (user as any)?.countryCode || ''
     const profileName = user?.name || ''
@@ -202,20 +199,10 @@ export default function ExternalTicketingPage() {
               <p className="text-muted-foreground">
                 {canSubmitNewRequest
                   ? "Browse published fixtures for your club and request tickets"
-                  : "Your current plan does not include new ticket requests. Applications you already submitted stay valid."}
+                  : "Applications you already submitted."}
               </p>
             </div>
           </div>
-
-          {!canSubmitNewRequest && !featuresLoading ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">
-                  You can still track existing applications below. Upgrade your membership plan to submit new requests.
-                </p>
-              </CardContent>
-            </Card>
-          ) : null}
 
           {canSubmitNewRequest && isLoading ? (
             <div className="flex items-center justify-center min-h-[400px]">
