@@ -76,6 +76,21 @@ export default function UserProfilePage() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [resendLoading, setResendLoading] = useState<"whatsapp" | "sms" | null>(null)
   const [resendCooldown, setResendCooldown] = useState(0)
+  type ContactChannel = "email" | "phone"
+  const [contactOtp, setContactOtp] = useState<{
+    steps: ContactChannel[]
+    index: number
+    sessionInfo: string | null
+    code: string
+    target: string
+  } | null>(null)
+  const [contactOtpBusy, setContactOtpBusy] = useState(false)
+  const contactTokensRef = React.useRef<{
+    emailToken?: string
+    phoneToken?: string
+    email?: string
+    phoneContact?: string
+  }>({})
   const cooldownRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
 
   const startCooldown = () => {
@@ -284,44 +299,167 @@ export default function UserProfilePage() {
     }
   }
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const normalizeCc = (code: string) => {
+    const raw = (code || "").trim()
+    if (!raw) return ""
+    return raw.startsWith("+") ? raw : `+${raw}`
+  }
+
+  const memberContactDiff = () => {
+    const email = profileForm.email.trim().toLowerCase()
+    const phone = profileForm.phoneNumber.replace(/\D/g, "")
+    const cc = normalizeCc(profileForm.countryCode)
+    const emailChanged = isMember(user?.role) && email !== (user?.email || "").trim().toLowerCase()
+    const phoneChanged = isMember(user?.role) && (
+      phone !== (user?.phoneNumber || "").replace(/\D/g, "") || cc !== normalizeCc(user?.countryCode || "")
+    )
+    return { emailChanged, phoneChanged, email, phone, cc, phoneContact: `${cc}${phone}` }
+  }
+
+  const saveProfile = async (tokens?: { email?: string; phone?: string }) => {
     const clubId = currentClub?._id || activeClubId
     if (isMember(user?.role) && clubId && isClubMemberIdMandatory(clubTeamId) && !profileForm.club_member_id?.trim()) {
       toast.error(`Club Membership ID is required for ${currentClub?.name || "this club"}`)
-      return
+      return false
     }
     setLoading(true)
-
     try {
       const result = await updateProfile({
         name: profileForm.name,
         email: profileForm.email,
-        phoneNumber: profileForm.phoneNumber,
-        countryCode: profileForm.countryCode,
+        phoneNumber: profileForm.phoneNumber.replace(/\D/g, "") || profileForm.phoneNumber,
+        countryCode: normalizeCc(profileForm.countryCode),
         address_line1: profileForm.address_line1 || undefined,
         address_line2: profileForm.address_line2 || undefined,
         city: profileForm.city || undefined,
         state_province: profileForm.state_province || undefined,
         zip_code: profileForm.zip_code || undefined,
         country: profileForm.country || undefined,
+        ...(tokens?.email ? { emailChangeToken: tokens.email } : {}),
+        ...(tokens?.phone ? { phoneChangeToken: tokens.phone } : {}),
         ...(isMember(user?.role) && clubId
           ? { club_member_id: profileForm.club_member_id.trim(), clubId: String(clubId) }
           : {}),
       })
-
       if (result.success) {
+        contactTokensRef.current = {}
+        setContactOtp(null)
         toast.success("Profile updated successfully")
         setIsEditing(false)
         await checkAuth()
-      } else {
-        toast.error(result.error || "Failed to update profile")
+        return true
       }
-    } catch (error) {
+      toast.error(result.error || "Failed to update profile")
+      return false
+    } catch {
       toast.error("Error updating profile")
+      return false
     } finally {
       setLoading(false)
     }
+  }
+
+  const sendContactOtp = async (
+    steps: Array<"email" | "phone">,
+    index: number,
+    delivery?: "whatsapp" | "sms",
+  ) => {
+    const diff = memberContactDiff()
+    const channel = steps[index]
+    const target = channel === "email" ? diff.email : `${diff.cc} ${diff.phone}`
+    setContactOtpBusy(true)
+    try {
+      const res = await apiClient.requestProfileContactOtp(
+        channel === "email"
+          ? { channel, email: diff.email }
+          : { channel, phoneNumber: diff.phone, countryCode: diff.cc, delivery },
+      )
+      if (!res.success) {
+        toast.error(res.error || "Failed to send OTP. Please try again.")
+        if (res.status === 400) setContactOtp(null)
+        else setContactOtp({ steps, index, sessionInfo: null, code: "", target })
+        return false
+      }
+      setContactOtp({
+        steps,
+        index,
+        sessionInfo: res.data?.sessionInfo ?? null,
+        code: "",
+        target,
+      })
+      startCooldown()
+      toast.success(channel === "email" ? "OTP sent to your new email address" : "OTP sent to your new mobile number")
+      return true
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send OTP. Please try again.")
+      return false
+    } finally {
+      setContactOtpBusy(false)
+    }
+  }
+
+  const handleConfirmContactOtp = async () => {
+    if (!contactOtp) return
+    if (contactOtp.code.length < 6) {
+      toast.error("Please enter a valid 6-digit OTP")
+      return
+    }
+    const diff = memberContactDiff()
+    const channel = contactOtp.steps[contactOtp.index]
+    setContactOtpBusy(true)
+    try {
+      const res = await apiClient.verifyProfileContactOtp(
+        channel === "email"
+          ? { channel, email: diff.email, otp: contactOtp.code }
+          : { channel, phoneNumber: diff.phone, countryCode: diff.cc, otp: contactOtp.code, sessionInfo: contactOtp.sessionInfo || undefined },
+      )
+      if (!res.success || !res.data?.contactChangeToken) {
+        toast.error(res.error || "Invalid or expired code. Please request a new one.")
+        return
+      }
+      const tokens = {
+        email: channel === "email" ? res.data.contactChangeToken : contactTokensRef.current.emailToken,
+        phone: channel === "phone" ? res.data.contactChangeToken : contactTokensRef.current.phoneToken,
+      }
+      contactTokensRef.current = {
+        emailToken: tokens.email,
+        phoneToken: tokens.phone,
+        email: diff.email,
+        phoneContact: diff.phoneContact,
+      }
+      const next = contactOtp.index + 1
+      if (next < contactOtp.steps.length) {
+        await sendContactOtp(contactOtp.steps, next)
+        return
+      }
+      const saved = await saveProfile(tokens)
+      if (!saved) {
+        setContactOtp(null)
+        toast("Your code is still valid. Tap Save to try again.")
+      }
+    } finally {
+      setContactOtpBusy(false)
+    }
+  }
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (contactOtp) return
+    const diff = memberContactDiff()
+    const held = contactTokensRef.current
+    const emailReady = !diff.emailChanged || (held.emailToken && held.email === diff.email)
+    const phoneReady = !diff.phoneChanged || (held.phoneToken && held.phoneContact === diff.phoneContact)
+    if ((diff.emailChanged || diff.phoneChanged) && (!emailReady || !phoneReady)) {
+      const steps: Array<"email" | "phone"> = []
+      if (diff.emailChanged && !emailReady) steps.push("email")
+      if (diff.phoneChanged && !phoneReady) steps.push("phone")
+      await sendContactOtp(steps, 0)
+      return
+    }
+    await saveProfile({
+      email: diff.emailChanged ? held.emailToken : undefined,
+      phone: diff.phoneChanged ? held.phoneToken : undefined,
+    })
   }
 
   const formatDate = (dateString: string) => formatDisplayDate(dateString)
@@ -464,7 +602,10 @@ export default function UserProfilePage() {
               <p className="text-muted-foreground">Manage your personal information and account settings</p>
             </div>
             <Button
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => {
+                if (isEditing) setContactOtp(null)
+                setIsEditing(!isEditing)
+              }}
               variant={isEditing ? "outline" : "default"}
               className="shrink-0"
             >
@@ -542,6 +683,7 @@ export default function UserProfilePage() {
                             value={profileForm.email}
                             onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
                             required
+                            disabled={!!contactOtp}
                           />
                         </div>
                       </div>
@@ -554,6 +696,7 @@ export default function UserProfilePage() {
                             value={profileForm.phoneNumber}
                             onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
                             required
+                            disabled={!!contactOtp}
                           />
                         </div>
                         <div className="space-y-2">
@@ -562,6 +705,7 @@ export default function UserProfilePage() {
                             id="countryCode"
                             value={profileForm.countryCode}
                             onValueChange={(value) => setProfileForm({ ...profileForm, countryCode: value })}
+                            disabled={!!contactOtp}
                           />
                         </div>
                       </div>
@@ -643,19 +787,78 @@ export default function UserProfilePage() {
                           </div>
                         </>
                       )}
+                      {contactOtp ? (
+                        <div className="rounded-lg border p-4 space-y-3">
+                          <p className="text-sm">
+                            Enter the code sent to <span className="font-medium">{contactOtp.target}</span>. Your current email and mobile stay active until this is verified.
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              placeholder="6-digit code"
+                              value={contactOtp.code}
+                              onChange={(e) => setContactOtp({ ...contactOtp, code: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                              className="h-9 w-36"
+                              maxLength={6}
+                              inputMode="numeric"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  handleConfirmContactOtp()
+                                }
+                              }}
+                            />
+                            <Button type="button" size="sm" onClick={handleConfirmContactOtp} disabled={contactOtpBusy || loading}>
+                              {contactOtpBusy || loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                              Verify
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setContactOtp(null)}>
+                              Back
+                            </Button>
+                          </div>
+                          {resendCooldown > 0 ? (
+                            <p className="text-xs text-muted-foreground">Resend in <span className="font-medium">{resendCooldown}s</span></p>
+                          ) : (
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                disabled={contactOtpBusy}
+                                onClick={() => sendContactOtp(contactOtp.steps, contactOtp.index, contactOtp.steps[contactOtp.index] === "phone" ? "whatsapp" : undefined)}
+                              >
+                                Resend code
+                              </Button>
+                              {contactOtp.steps[contactOtp.index] === "phone" && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  disabled={contactOtpBusy}
+                                  onClick={() => sendContactOtp(contactOtp.steps, contactOtp.index, "sms")}
+                                >
+                                  Resend via SMS
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
                       <div className="flex gap-2">
-                        <Button type="submit" disabled={loading}>
+                        <Button type="submit" disabled={loading || contactOtpBusy}>
                           {loading ? "Saving..." : "Save Changes"}
                           <Save className="w-4 h-4 ml-2" />
                         </Button>
                         <Button 
                           type="button" 
                           variant="outline" 
-                          onClick={() => setIsEditing(false)}
+                          onClick={() => { setContactOtp(null); setIsEditing(false) }}
                         >
                           Cancel
                         </Button>
                       </div>
+                      )}
                     </form>
                   ) : (
                     <div className="space-y-4">
