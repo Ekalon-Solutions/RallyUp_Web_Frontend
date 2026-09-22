@@ -1889,7 +1889,7 @@ class ApiClient {
       try {
         if (userRole === 'system_owner') {
           endpoint = '/system-owner/profile';
-        } else if (userRole === 'admin' || userRole === 'super_admin') {
+        } else if (userRole === 'admin' || userRole === 'super_admin' || userRole === 'vendor') {
           endpoint = '/admin/profile';
         }
       } catch (e) {
