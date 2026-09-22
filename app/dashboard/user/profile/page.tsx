@@ -309,9 +309,12 @@ export default function UserProfilePage() {
     const email = profileForm.email.trim().toLowerCase()
     const phone = profileForm.phoneNumber.replace(/\D/g, "")
     const cc = normalizeCc(profileForm.countryCode)
-    const emailChanged = isMember(user?.role) && email !== (user?.email || "").trim().toLowerCase()
-    const phoneChanged = isMember(user?.role) && (
-      phone !== (user?.phoneNumber || "").replace(/\D/g, "") || cc !== normalizeCc(user?.countryCode || "")
+    const currentEmail = (user?.email || "").trim().toLowerCase()
+    const currentPhone = (user?.phoneNumber || "").replace(/\D/g, "")
+    const currentCc = normalizeCc(user?.countryCode || "")
+    const emailChanged = Boolean(email && email !== currentEmail)
+    const phoneChanged = Boolean(
+      phone && (phone !== currentPhone || (cc && cc !== currentCc))
     )
     return { emailChanged, phoneChanged, email, phone, cc, phoneContact: `${cc}${phone}` }
   }
@@ -372,7 +375,13 @@ export default function UserProfilePage() {
       const res = await apiClient.requestProfileContactOtp(
         channel === "email"
           ? { channel, email: diff.email }
-          : { channel, phoneNumber: diff.phone, countryCode: diff.cc, delivery },
+          : {
+              channel,
+              phoneNumber: diff.phone,
+              countryCode: diff.cc,
+              email: diff.emailChanged ? diff.email : undefined,
+              delivery,
+            },
       )
       if (!res.success) {
         toast.error(res.error || "Failed to send OTP. Please try again.")
@@ -447,19 +456,47 @@ export default function UserProfilePage() {
     if (contactOtp) return
     const diff = memberContactDiff()
     const held = contactTokensRef.current
-    const emailReady = !diff.emailChanged || (held.emailToken && held.email === diff.email)
     const phoneReady = !diff.phoneChanged || (held.phoneToken && held.phoneContact === diff.phoneContact)
-    if ((diff.emailChanged || diff.phoneChanged) && (!emailReady || !phoneReady)) {
-      const steps: Array<"email" | "phone"> = []
-      if (diff.emailChanged && !emailReady) steps.push("email")
-      if (diff.phoneChanged && !phoneReady) steps.push("phone")
-      await sendContactOtp(steps, 0)
+    const emailReady = !diff.emailChanged || (held.emailToken && held.email === diff.email)
+
+    // Case 1: Both changed simultaneously -> send OTP ONLY to mobile number and verify it
+    if (diff.phoneChanged && diff.emailChanged) {
+      if (!phoneReady) {
+        await sendContactOtp(["phone"], 0)
+        return
+      }
+      await saveProfile({
+        phone: held.phoneToken,
+      })
       return
     }
-    await saveProfile({
-      email: diff.emailChanged ? held.emailToken : undefined,
-      phone: diff.phoneChanged ? held.phoneToken : undefined,
-    })
+
+    // Case 2: Only phone changed -> send OTP to mobile number and verify
+    if (diff.phoneChanged) {
+      if (!phoneReady) {
+        await sendContactOtp(["phone"], 0)
+        return
+      }
+      await saveProfile({
+        phone: held.phoneToken,
+      })
+      return
+    }
+
+    // Case 3: Only email changed -> send OTP to email and verify
+    if (diff.emailChanged) {
+      if (!emailReady) {
+        await sendContactOtp(["email"], 0)
+        return
+      }
+      await saveProfile({
+        email: held.emailToken,
+      })
+      return
+    }
+
+    // Case 4: Neither changed -> Save directly without OTP
+    await saveProfile({})
   }
 
   const formatDate = (dateString: string) => formatDisplayDate(dateString)
@@ -788,9 +825,21 @@ export default function UserProfilePage() {
                         </>
                       )}
                       {contactOtp ? (
-                        <div className="rounded-lg border p-4 space-y-3">
+                        <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
                           <p className="text-sm">
-                            Enter the code sent to <span className="font-medium">{contactOtp.target}</span>. Your current email and mobile stay active until this is verified.
+                            {memberContactDiff().phoneChanged && memberContactDiff().emailChanged ? (
+                              <>
+                                Both mobile number and email address are being updated. Enter the 6-digit verification code sent to your new mobile number <span className="font-semibold">{contactOtp.target}</span> to verify and save your changes.
+                              </>
+                            ) : contactOtp.steps[contactOtp.index] === "phone" ? (
+                              <>
+                                Enter the 6-digit verification code sent to your new mobile number <span className="font-semibold">{contactOtp.target}</span>.
+                              </>
+                            ) : (
+                              <>
+                                Enter the 6-digit verification code sent to your new email address <span className="font-semibold">{contactOtp.target}</span>.
+                              </>
+                            )}
                           </p>
                           <div className="flex flex-wrap items-center gap-2">
                             <Input
@@ -800,6 +849,7 @@ export default function UserProfilePage() {
                               className="h-9 w-36"
                               maxLength={6}
                               inputMode="numeric"
+                              autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.preventDefault()
@@ -809,10 +859,10 @@ export default function UserProfilePage() {
                             />
                             <Button type="button" size="sm" onClick={handleConfirmContactOtp} disabled={contactOtpBusy || loading}>
                               {contactOtpBusy || loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-                              Verify
+                              Verify & Save
                             </Button>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => setContactOtp(null)}>
-                              Back
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setContactOtp(null)} disabled={contactOtpBusy || loading}>
+                              Cancel
                             </Button>
                           </div>
                           {resendCooldown > 0 ? (
