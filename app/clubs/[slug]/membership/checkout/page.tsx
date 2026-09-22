@@ -29,11 +29,28 @@ import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
 import { LoginModal } from "@/components/login-modal"
 import { cn } from "@/lib/utils"
 import {
+  hydratePlanAttributes,
+  isAttributeEnabled,
+  isAttributeMandatory,
   validateFieldValue,
+  validateIdProofNumber,
+  isDateFieldType,
+  idProofLabelsMatch,
+  PLAN_FEATURES,
+  type PlanAttributeKey,
   type PlanAttributes,
   type PlanCustomField,
   type PublicPlanConfig,
 } from "@/lib/membershipPlanConfig"
+import { extractClubTeamId, isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
+
+const FEATURE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  matchday_tickets: Ticket,
+  events_store_discounts: Tag,
+  news_updates: Bell,
+  polls: BarChart2,
+  gallery_access: ImageIcon,
+}
 
 export interface JoinablePlan extends PublicPlanConfig {
   _id: string
@@ -58,6 +75,10 @@ interface Club {
   name: string
   logo?: string
   platformFeePercent?: number
+  sports?: {
+    teamId?: string
+    teamName?: string
+  }
 }
 
 interface ClubSettings {
@@ -88,6 +109,7 @@ const EMPTY_FORM = {
   state_province: "",
   zip_code: "",
   country: "",
+  club_member_id: "",
   id_proof_type: "",
   id_proof_number: "",
 }
@@ -222,8 +244,16 @@ function CheckoutContent() {
           )
           const activePlans = ((match as any)?.membershipPlans || []).filter((p: any) => p.isActive)
           setPlans(activePlans as JoinablePlan[])
-          if (requestedPlanId && activePlans.some((p: any) => p._id === requestedPlanId)) {
-            setSelectedPlanId(requestedPlanId)
+          if (requestedPlanId) {
+            const hasRequested = activePlans.some((p: any) => p._id === requestedPlanId)
+            if (hasRequested) {
+              setSelectedPlanId(requestedPlanId)
+            } else {
+              toast.error("The requested membership plan could not be found or is not active.")
+              if (activePlans.length > 0) {
+                setSelectedPlanId(activePlans[0]._id)
+              }
+            }
           } else if (activePlans.length > 0) {
             setSelectedPlanId(activePlans[0]._id)
           }
@@ -259,14 +289,38 @@ function CheckoutContent() {
     [plans, selectedPlanId]
   )
 
-  const planCustomFields: PlanCustomField[] = useMemo(
-    () => selectedPlan?.attributes?.customFields ?? [],
-    [selectedPlan]
+  const planAttributes = useMemo(
+    () => hydratePlanAttributes(selectedPlan?.attributes),
+    [selectedPlan?.attributes]
   )
+
+  const showField = (key: PlanAttributeKey) => isAttributeEnabled(planAttributes, key)
+  const fieldRequired = (key: PlanAttributeKey) => isAttributeMandatory(planAttributes, key)
+  const idProofTypes = planAttributes.idProofTypes
+  const planCustomFields: PlanCustomField[] = planAttributes.customFields
+
+  const clubTeamId = extractClubTeamId(club)
+  const clubMandatesMemberId = isClubMemberIdMandatory(clubTeamId)
+
+  const selectedIdProof = useMemo(
+    () => idProofTypes.find((t) => idProofLabelsMatch(t.label, formData.id_proof_type)) || idProofTypes[0] || null,
+    [idProofTypes, formData.id_proof_type]
+  )
+
+  useEffect(() => {
+    if (!idProofTypes.length) return
+    if (idProofTypes.some((t) => idProofLabelsMatch(t.label, formData.id_proof_type))) return
+    setFormData((prev) => ({ ...prev, id_proof_type: idProofTypes[0].label }))
+  }, [selectedPlan?._id, idProofTypes])
 
   useEffect(() => {
     setCustomFieldValues({})
   }, [selectedPlan?._id])
+
+  const handleSelectPlan = (planId: string) => {
+    setSelectedPlanId(planId)
+    router.replace(`/clubs/${slug}/membership/checkout?planId=${planId}`, { scroll: false })
+  }
 
   const updateCustomField = (label: string, value: string) => {
     setCustomFieldValues((prev) => ({ ...prev, [label]: value }))
@@ -492,6 +546,51 @@ function CheckoutContent() {
       return
     }
 
+    // Validate built-in attributes based on plan configuration
+    const attributeLabels: Record<string, string> = {
+      username: "Username",
+      date_of_birth: "Date of birth",
+      gender: "Gender",
+      address_line1: "Address line 1",
+      address_line2: "Address line 2",
+      city: "City",
+      state_province: "State / province",
+      zip_code: "ZIP / postal code",
+      country: "Country",
+    }
+
+    for (const [key, label] of Object.entries(attributeLabels)) {
+      if (showField(key as PlanAttributeKey) && fieldRequired(key as PlanAttributeKey)) {
+        if (!String((formData as any)[key] ?? "").trim()) {
+          toast.error(`${label} is required`)
+          return
+        }
+      }
+    }
+
+    // Club membership ID validation
+    if (showField("club_member_id") || clubMandatesMemberId) {
+      if ((fieldRequired("club_member_id") || clubMandatesMemberId) && !formData.club_member_id.trim()) {
+        toast.error("Club Membership ID is required")
+        return
+      }
+    }
+
+    // ID proof validation
+    if (showField("id_proof")) {
+      if (fieldRequired("id_proof") && !formData.id_proof_number.trim()) {
+        toast.error("ID proof number is required")
+        return
+      }
+      if (formData.id_proof_number.trim()) {
+        const idErr = validateIdProofNumber(formData.id_proof_number, selectedIdProof ?? undefined)
+        if (idErr) {
+          toast.error(idErr)
+          return
+        }
+      }
+    }
+
     // Validate plan custom fields
     for (const field of planCustomFields) {
       const val = (customFieldValues[field.label] ?? "").trim()
@@ -543,6 +642,7 @@ function CheckoutContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...formData,
+            club_member_id: formData.club_member_id.trim() || undefined,
             membershipPlanId: selectedPlan._id,
             customFieldValues: Object.keys(customFieldValues).length ? customFieldValues : undefined,
           }),
@@ -566,7 +666,7 @@ function CheckoutContent() {
           undefined,
           undefined,
           appliedCoupon?.code,
-          undefined,
+          formData.club_member_id.trim() || undefined,
           Object.keys(customFieldValues).length ? customFieldValues : undefined
         )
         if (subscribeRes.success) {
@@ -616,7 +716,7 @@ function CheckoutContent() {
         undefined,
         undefined,
         appliedCoupon?.code,
-        undefined,
+        formData.club_member_id.trim() || undefined,
         Object.keys(customFieldValues).length ? customFieldValues : undefined
       )
 
@@ -677,7 +777,7 @@ function CheckoutContent() {
               undefined,
               undefined,
               appliedCoupon?.code,
-              undefined,
+              formData.club_member_id.trim() || undefined,
               Object.keys(customFieldValues).length ? customFieldValues : undefined
             )
 
@@ -734,6 +834,23 @@ function CheckoutContent() {
   }, [formData.first_name, formData.last_name, user?.name])
 
   const displayValidThru = useMemo(() => computeValidThru(selectedPlan), [selectedPlan])
+
+  const visiblePlanFeatures = useMemo(() => {
+    if (!selectedPlan) return []
+    const featuresMap = selectedPlan.planFeatures
+    return PLAN_FEATURES.filter((f) => {
+      if (!featuresMap) return true
+      return featuresMap[f.key] !== false
+    })
+  }, [selectedPlan])
+
+  const hasAddressFields =
+    showField("address_line1") ||
+    showField("address_line2") ||
+    showField("city") ||
+    showField("state_province") ||
+    showField("zip_code") ||
+    showField("country")
 
   if (loading) {
     return (
@@ -890,95 +1007,50 @@ function CheckoutContent() {
             <div className="bg-card text-card-foreground rounded-2xl border border-border p-6 shadow-sm">
               <h3 className="font-bold text-sm text-foreground mb-4">Membership benefits</h3>
               <div className="space-y-3.5">
-                {/* Matchday tickets */}
-                <div className="flex items-start gap-3 pb-3 border-b border-border/60">
-                  <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
-                    <Ticket className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground leading-tight">
-                      Matchday tickets
+                {visiblePlanFeatures.map((feat) => {
+                  const IconComp = FEATURE_ICONS[feat.key] || Star
+                  return (
+                    <div
+                      key={feat.key}
+                      className="flex items-start gap-3 pb-3 border-b border-border/60 last:border-b-0 last:pb-0"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-foreground leading-tight">
+                          {feat.label}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                          {feat.memberDescription}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                      Priority access and exclusive member rates.
-                    </div>
-                  </div>
-                </div>
+                  )
+                })}
 
-                {/* Events & store discounts */}
-                <div className="flex items-start gap-3 pb-3 border-b border-border/60">
-                  <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
-                    <Tag className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground leading-tight">
-                      Events & store discounts
+                {/* Custom Features */}
+                {(selectedPlan?.customFeatures ?? []).map((perk, idx) => (
+                  <div
+                    key={`custom-perk-${idx}`}
+                    className="flex items-start gap-3 pb-3 border-b border-border/60 last:border-b-0 last:pb-0"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+                      <Star className="w-4 h-4" />
                     </div>
-                    <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                      Special rates on events, merch and partner offers.
+                    <div>
+                      <div className="text-xs font-bold text-foreground leading-tight">
+                        {perk}
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
 
-                {/* News & updates */}
-                <div className="flex items-start gap-3 pb-3 border-b border-border/60">
-                  <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
-                    <Bell className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground leading-tight">
-                      News & updates
-                    </div>
-                    <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                      Stay informed on the latest club announcements.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Polls */}
-                <div className="flex items-start gap-3 pb-3 border-b border-border/60">
-                  <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
-                    <BarChart2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground leading-tight">
-                      Polls
-                    </div>
-                    <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                      Vote in member polls and have your say in club decisions.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Gallery Access */}
-                <div className="flex items-start gap-3 pb-3 border-b border-border/60">
-                  <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
-                    <ImageIcon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground leading-tight">
-                      Gallery Access
-                    </div>
-                    <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                      Access exclusive photo galleries and behind -the scene content.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Additional perks */}
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
-                    <Star className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground leading-tight">
-                      Additional perks
-                    </div>
-                    <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                      List all custom fields added by the Admin.
-                    </div>
-                  </div>
-                </div>
+                {visiblePlanFeatures.length === 0 && (selectedPlan?.customFeatures?.length ?? 0) === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedPlan?.description || "Access to all standard club member benefits."}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -988,6 +1060,36 @@ function CheckoutContent() {
             onSubmit={handleSubmit}
             className="bg-card text-card-foreground rounded-2xl border border-border p-6 sm:p-8 shadow-sm flex-1 w-full"
           >
+            {/* Plan Selector if multiple plans exist */}
+            {plans.length > 1 && (
+              <div className="mb-6 p-3.5 rounded-xl border border-border bg-muted/20">
+                <label className="block text-xs font-semibold text-foreground mb-2">
+                  Membership Plan
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {plans.map((p) => {
+                    const isSelected = p._id === selectedPlan?._id
+                    return (
+                      <button
+                        key={p._id}
+                        type="button"
+                        onClick={() => handleSelectPlan(p._id)}
+                        className={cn(
+                          "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                          isSelected
+                            ? "text-white shadow-xs border-transparent"
+                            : "bg-background text-foreground border-border hover:bg-muted"
+                        )}
+                        style={isSelected ? { backgroundColor: primaryColor } : undefined}
+                      >
+                        {p.name} · {formatPrice(p.price, p.currency || "INR")}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Section 1: Personal details */}
             <div className="flex items-center gap-2.5 mb-5">
               <div
@@ -1033,46 +1135,6 @@ function CheckoutContent() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/90">Username</label>
-                <Input
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => updateField("username", e.target.value)}
-                  className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/90">Date of birth</label>
-                <div className="relative">
-                  <Input
-                    type="date"
-                    placeholder="mm/dd/yyyy"
-                    value={formData.date_of_birth}
-                    onChange={(e) => updateField("date_of_birth", e.target.value)}
-                    className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground dark:[color-scheme:dark] focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/90">Gender</label>
-                <div className="relative">
-                  <select
-                    value={formData.gender}
-                    onChange={(e) => updateField("gender", e.target.value)}
-                    className="w-full h-10 appearance-none rounded-lg border border-input bg-background pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-                  >
-                    <option value="">Select</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground/90">
                   Email address{" "}
                   <span className="font-semibold" style={{ color: primaryColor }}>
@@ -1087,6 +1149,103 @@ function CheckoutContent() {
                   className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
                 />
               </div>
+
+              {showField("username") && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground/90">
+                    Username{" "}
+                    {fieldRequired("username") && (
+                      <span className="font-semibold" style={{ color: primaryColor }}>
+                        *
+                      </span>
+                    )}
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => updateField("username", e.target.value)}
+                    required={fieldRequired("username")}
+                    className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                  />
+                </div>
+              )}
+
+              {showField("date_of_birth") && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground/90">
+                    Date of birth{" "}
+                    {fieldRequired("date_of_birth") && (
+                      <span className="font-semibold" style={{ color: primaryColor }}>
+                        *
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="date"
+                      placeholder="mm/dd/yyyy"
+                      value={formData.date_of_birth}
+                      onChange={(e) => updateField("date_of_birth", e.target.value)}
+                      required={fieldRequired("date_of_birth")}
+                      className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground dark:[color-scheme:dark] focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showField("gender") && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground/90">
+                    Gender{" "}
+                    {fieldRequired("gender") && (
+                      <span className="font-semibold" style={{ color: primaryColor }}>
+                        *
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={formData.gender}
+                      onChange={(e) => updateField("gender", e.target.value)}
+                      required={fieldRequired("gender")}
+                      className="w-full h-10 appearance-none rounded-lg border border-input bg-background pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                    >
+                      <option value="">{fieldRequired("gender") ? "Select" : "Optional"}</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+              )}
+
+              {(showField("club_member_id") || clubMandatesMemberId) && (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs font-medium text-foreground/90">
+                    Club Membership ID{" "}
+                    {fieldRequired("club_member_id") || clubMandatesMemberId ? (
+                      <span className="font-semibold" style={{ color: primaryColor }}>
+                        *
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground font-normal">(optional)</span>
+                    )}
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData.club_member_id}
+                    onChange={(e) => updateField("club_member_id", e.target.value)}
+                    required={fieldRequired("club_member_id") || clubMandatesMemberId}
+                    placeholder={
+                      clubMandatesMemberId
+                        ? "Arsenal Membership No. (Digital or Red)"
+                        : "Optional — as registered on official site"
+                    }
+                    className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="my-6 border-t border-border" />
@@ -1099,7 +1258,9 @@ function CheckoutContent() {
               >
                 2
               </div>
-              <h2 className="text-sm font-bold text-foreground">Contact & address</h2>
+              <h2 className="text-sm font-bold text-foreground">
+                {hasAddressFields ? "Contact & address" : "Contact details"}
+              </h2>
             </div>
 
             <div className="space-y-4">
@@ -1140,69 +1301,135 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/90">Address line 1</label>
-                <Input
-                  type="text"
-                  value={formData.address_line1}
-                  onChange={(e) => updateField("address_line1", e.target.value)}
-                  className="h-10 w-full rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
-                />
-              </div>
+              {showField("address_line1") && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground/90">
+                    Address line 1{" "}
+                    {fieldRequired("address_line1") ? (
+                      <span className="font-semibold" style={{ color: primaryColor }}>
+                        *
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground font-normal">(optional)</span>
+                    )}
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData.address_line1}
+                    onChange={(e) => updateField("address_line1", e.target.value)}
+                    required={fieldRequired("address_line1")}
+                    className="h-10 w-full rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                  />
+                </div>
+              )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/90">
-                  Address line 2 <span className="text-muted-foreground font-normal">(optional)</span>
-                </label>
-                <Input
-                  type="text"
-                  value={formData.address_line2}
-                  onChange={(e) => updateField("address_line2", e.target.value)}
-                  className="h-10 w-full rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
-                />
-              </div>
+              {showField("address_line2") && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground/90">
+                    Address line 2{" "}
+                    {fieldRequired("address_line2") ? (
+                      <span className="font-semibold" style={{ color: primaryColor }}>
+                        *
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground font-normal">(optional)</span>
+                    )}
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData.address_line2}
+                    onChange={(e) => updateField("address_line2", e.target.value)}
+                    required={fieldRequired("address_line2")}
+                    className="h-10 w-full rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                  />
+                </div>
+              )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground/90">City</label>
-                  <Input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) => updateField("city", e.target.value)}
-                    className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
-                  />
+              {(showField("city") || showField("state_province")) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {showField("city") && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground/90">
+                        City{" "}
+                        {fieldRequired("city") && (
+                          <span className="font-semibold" style={{ color: primaryColor }}>
+                            *
+                          </span>
+                        )}
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.city}
+                        onChange={(e) => updateField("city", e.target.value)}
+                        required={fieldRequired("city")}
+                        className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                      />
+                    </div>
+                  )}
+                  {showField("state_province") && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground/90">
+                        State / province{" "}
+                        {fieldRequired("state_province") && (
+                          <span className="font-semibold" style={{ color: primaryColor }}>
+                            *
+                          </span>
+                        )}
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.state_province}
+                        onChange={(e) => updateField("state_province", e.target.value)}
+                        required={fieldRequired("state_province")}
+                        className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                      />
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground/90">State / province</label>
-                  <Input
-                    type="text"
-                    value={formData.state_province}
-                    onChange={(e) => updateField("state_province", e.target.value)}
-                    className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
-                  />
-                </div>
-              </div>
+              )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground/90">ZIP / postal code</label>
-                  <Input
-                    type="text"
-                    value={formData.zip_code}
-                    onChange={(e) => updateField("zip_code", e.target.value)}
-                    className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
-                  />
+              {(showField("zip_code") || showField("country")) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {showField("zip_code") && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground/90">
+                        ZIP / postal code{" "}
+                        {fieldRequired("zip_code") && (
+                          <span className="font-semibold" style={{ color: primaryColor }}>
+                            *
+                          </span>
+                        )}
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.zip_code}
+                        onChange={(e) => updateField("zip_code", e.target.value)}
+                        required={fieldRequired("zip_code")}
+                        className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                      />
+                    </div>
+                  )}
+                  {showField("country") && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground/90">
+                        Country{" "}
+                        {fieldRequired("country") && (
+                          <span className="font-semibold" style={{ color: primaryColor }}>
+                            *
+                          </span>
+                        )}
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.country}
+                        onChange={(e) => updateField("country", e.target.value)}
+                        required={fieldRequired("country")}
+                        className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                      />
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground/90">Country</label>
-                  <Input
-                    type="text"
-                    value={formData.country}
-                    onChange={(e) => updateField("country", e.target.value)}
-                    className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
-                  />
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Step 3 (if additional fields exist): Additional fields */}
@@ -1284,38 +1511,67 @@ function CheckoutContent() {
               >
                 {planCustomFields.length > 0 ? 4 : 3}
               </div>
-              <h2 className="text-sm font-bold text-foreground">Identity & payment</h2>
+              <h2 className="text-sm font-bold text-foreground">
+                {showField("id_proof") ? "Identity & payment" : "Payment & promo code"}
+              </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/90">ID proof type</label>
-                <div className="relative">
-                  <select
-                    value={formData.id_proof_type}
-                    onChange={(e) => updateField("id_proof_type", e.target.value)}
-                    className="w-full h-10 appearance-none rounded-lg border border-input bg-background pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-                  >
-                    <option value="">Select</option>
-                    <option value="Aadhar">Aadhaar</option>
-                    <option value="Passport">Passport</option>
-                    <option value="Driving License">Driving License</option>
-                    <option value="Voter ID">Voter ID</option>
-                    <option value="PAN">PAN</option>
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            {showField("id_proof") && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground/90">
+                    ID proof type{" "}
+                    {fieldRequired("id_proof") && (
+                      <span className="font-semibold" style={{ color: primaryColor }}>
+                        *
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={formData.id_proof_type}
+                      onChange={(e) => updateField("id_proof_type", e.target.value)}
+                      required={fieldRequired("id_proof")}
+                      className="w-full h-10 appearance-none rounded-lg border border-input bg-background pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                    >
+                      {idProofTypes.length === 0 ? (
+                        <option value="">No ID proof types configured</option>
+                      ) : (
+                        idProofTypes.map((t) => (
+                          <option key={t.label} value={t.label}>
+                            {t.label}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground/90">
+                    ID proof number{" "}
+                    {fieldRequired("id_proof") && (
+                      <span className="font-semibold" style={{ color: primaryColor }}>
+                        *
+                      </span>
+                    )}
+                  </label>
+                  <Input
+                    type={selectedIdProof?.format === "date" ? "date" : "text"}
+                    inputMode={selectedIdProof?.format === "numeric" ? "numeric" : undefined}
+                    maxLength={
+                      selectedIdProof && !isDateFieldType(selectedIdProof.format)
+                        ? selectedIdProof.maxLength
+                        : undefined
+                    }
+                    value={formData.id_proof_number}
+                    onChange={(e) => updateField("id_proof_number", e.target.value)}
+                    required={fieldRequired("id_proof")}
+                    className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
+                  />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/90">ID proof number</label>
-                <Input
-                  type="text"
-                  value={formData.id_proof_number}
-                  onChange={(e) => updateField("id_proof_number", e.target.value)}
-                  className="h-10 rounded-lg border-input bg-background px-3 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-offset-0 transition-colors"
-                />
-              </div>
-            </div>
+            )}
 
             {/* Coupon Box */}
             <div className="rounded-xl border border-border p-4 mt-5 bg-muted/20 dark:bg-muted/10">
