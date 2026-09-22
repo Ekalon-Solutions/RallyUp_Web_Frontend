@@ -268,6 +268,129 @@ function PlanPreview({
   )
 }
 
+function DropdownOptionsEditor({
+  options,
+  onChange,
+}: {
+  options: string[]
+  onChange: (options: string[]) => void
+}) {
+  const [draft, setDraft] = useState("")
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
+
+  const handleAdd = () => {
+    const raw = draft.trim()
+    if (!raw) return
+    const newItems = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    let updated = [...options]
+    for (const item of newItems) {
+      if (updated.some((o) => o.toLowerCase() === item.toLowerCase())) {
+        toast.error(`"${item}" is already in the options list.`)
+        continue
+      }
+      if (updated.length >= MAX_DROPDOWN_OPTIONS) {
+        toast.error(`Maximum of ${MAX_DROPDOWN_OPTIONS} options allowed.`)
+        break
+      }
+      updated.push(item)
+    }
+    onChange(updated)
+    setDraft("")
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleAdd()
+    }
+  }
+
+  const moveOption = (from: number, to: number) => {
+    if (from === to || to < 0 || to >= options.length) return
+    const next = reorderList(options, from, to)
+    onChange(next)
+  }
+
+  const removeOption = (idx: number) => {
+    onChange(options.filter((_, i) => i !== idx))
+  }
+
+  return (
+    <div className="space-y-2 pt-1">
+      <div className="flex gap-2">
+        <Input
+          placeholder="Enter option name and press Enter"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="h-9 text-sm"
+        />
+        <Button type="button" size="sm" onClick={handleAdd}>
+          Add
+        </Button>
+      </div>
+      {options.length > 0 && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {options.map((opt, idx) => (
+            <span
+              key={`${opt}-${idx}`}
+              draggable
+              tabIndex={0}
+              role="button"
+              aria-label={`${opt}, position ${idx + 1} of ${options.length}. Use arrow keys to reorder.`}
+              onDragStart={(e) => {
+                e.stopPropagation()
+                setDraggedIdx(idx)
+              }}
+              onDragEnd={(e) => {
+                e.stopPropagation()
+                setDraggedIdx(null)
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                if (draggedIdx !== null) moveOption(draggedIdx, idx)
+                setDraggedIdx(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return
+                e.preventDefault()
+                moveOption(idx, e.key === "ArrowLeft" ? idx - 1 : idx + 1)
+                e.currentTarget.focus()
+              }}
+              className={cn(
+                "flex cursor-grab items-center gap-1.5 rounded-full border bg-background px-3 py-1 text-sm text-foreground transition-opacity active:cursor-grabbing",
+                draggedIdx === idx && "opacity-40"
+              )}
+            >
+              <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              {opt}
+              <button
+                type="button"
+                aria-label={`Remove ${opt}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  removeOption(idx)
+                }}
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -293,7 +416,6 @@ function MembershipPlanWizard() {
     maxLength: "",
   })
   const [draggedIdProof, setDraggedIdProof] = useState<number | null>(null)
-  const [draggedField, setDraggedField] = useState<number | null>(null)
   const [draggedCustom, setDraggedCustom] = useState<number | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -426,6 +548,13 @@ function MembershipPlanWizard() {
     }
     if (idProofOn && attributes.idProofTypes.length === 0) {
       toast.error("Add at least one ID proof type, or turn the ID Proof field off.")
+      return
+    }
+    const emptyDropdownField = attributes.customFields.find(
+      (f) => f.label.trim() && f.type === "dropdown" && (!f.options || f.options.length === 0)
+    )
+    if (emptyDropdownField) {
+      toast.error(`Please add at least one option for dropdown field "${emptyDropdownField.label}".`)
       return
     }
     if (!isEdit && !activeClubId) {
@@ -810,7 +939,7 @@ function MembershipPlanWizard() {
                 <div className="space-y-3">
                   <SectionHeading
                     title="Additional Information"
-                    subtitle="Turn a field on to collect it during purchase. Drag to set the order members see. Name and contact cannot be removed. If two admins save at once, the last save wins."
+                    subtitle="Turn a field on to collect it during purchase. Name and contact cannot be removed. If two admins save at once, the last save wins."
                     badge={`${enabledAttributeCount} of ${attributes.fields.length} on`}
                   />
                   <div className="grid grid-cols-[minmax(0,1fr)_96px_96px] items-center gap-2 border-b pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -818,34 +947,16 @@ function MembershipPlanWizard() {
                     <span className="text-center">Turn on/off</span>
                     <span className="text-center">Mandatory</span>
                   </div>
-                  {attributes.fields.map((state, i) => {
+                  {attributes.fields.map((state) => {
                     const field = PLAN_ATTRIBUTE_FIELDS.find((f) => f.key === state.key)
                     if (!field) return null
                     const isSensitive = "sensitive" in field && field.sensitive
                     return (
                       <div
                         key={state.key}
-                        draggable
-                        onDragStart={() => setDraggedField(i)}
-                        onDragEnd={() => setDraggedField(null)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault()
-                          if (draggedField !== null) {
-                            setAttributes((prev) => ({
-                              ...prev,
-                              fields: reorderList(prev.fields, draggedField, i),
-                            }))
-                          }
-                          setDraggedField(null)
-                        }}
-                        className={cn(
-                          "grid grid-cols-[minmax(0,1fr)_96px_96px] items-center gap-2 border-b py-3",
-                          draggedField === i && "opacity-40"
-                        )}
+                        className="grid grid-cols-[minmax(0,1fr)_96px_96px] items-center gap-2 border-b py-3"
                       >
                         <span className="flex items-center gap-2 text-sm text-foreground">
-                          <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground" />
                           {field.label}
                           {isSensitive && (
                             <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -1064,21 +1175,16 @@ function MembershipPlanWizard() {
                         </Button>
                       </div>
                       {field.type === "dropdown" && (
-                        <Input
-                          placeholder="Dropdown options, comma-separated (e.g. S, M, L)"
-                          value={(field.options ?? []).join(", ")}
-                          onChange={(e) => {
-                            const options = e.target.value
-                              .split(",")
-                              .map((o) => o.trim())
-                              .filter(Boolean)
+                        <DropdownOptionsEditor
+                          options={field.options ?? []}
+                          onChange={(newOptions) =>
                             setAttributes((prev) => ({
                               ...prev,
                               customFields: prev.customFields.map((f, idx) =>
-                                idx === i ? { ...f, options } : f
+                                idx === i ? { ...f, options: newOptions } : f
                               ),
                             }))
-                          }}
+                          }
                         />
                       )}
                     </div>

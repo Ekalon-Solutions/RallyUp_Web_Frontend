@@ -158,21 +158,19 @@ export function defaultPlanAttributes(): PlanAttributes {
 /** Fills in any field the stored plan predates, so older plans render complete. */
 export function hydratePlanAttributes(raw: Partial<PlanAttributes> | null | undefined): PlanAttributes {
   const storedList = raw?.fields ?? []
-  const seen = new Set<string>()
-  const fields: PlanAttributeField[] = []
+  const map = new Map<string, PlanAttributeField>()
   for (const hit of storedList) {
-    if (!PLAN_ATTRIBUTE_FIELDS.some((f) => f.key === hit.key) || seen.has(hit.key)) continue
-    seen.add(hit.key)
-    fields.push({
+    if (!PLAN_ATTRIBUTE_FIELDS.some((f) => f.key === hit.key)) continue
+    map.set(hit.key, {
       key: hit.key,
       enabled: Boolean(hit.enabled),
       mandatory: Boolean(hit.enabled) && Boolean(hit.mandatory),
     })
   }
-  for (const f of PLAN_ATTRIBUTE_FIELDS) {
-    if (seen.has(f.key)) continue
-    fields.push({ key: f.key, enabled: true, mandatory: false })
-  }
+  const fields: PlanAttributeField[] = PLAN_ATTRIBUTE_FIELDS.map((f) => {
+    const existing = map.get(f.key)
+    return existing ?? { key: f.key, enabled: true, mandatory: false }
+  })
   return {
     fields,
     idProofTypes: raw?.idProofTypes?.length ? raw.idProofTypes : DEFAULT_ID_PROOF_TYPES.map((t) => ({ ...t })),
