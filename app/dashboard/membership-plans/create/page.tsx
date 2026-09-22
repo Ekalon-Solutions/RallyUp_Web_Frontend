@@ -206,11 +206,13 @@ function PlanPreview({
   planFeatures,
   customFeatures,
   entitlementRules,
+  step,
 }: {
   details: BasicDetails
   planFeatures: Record<string, boolean>
   customFeatures: string[]
   entitlementRules: EntitlementRule[]
+  step: number
 }) {
   const winningDiscount = pickWinningPercentRule(entitlementRules)
   const benefits = [
@@ -257,7 +259,7 @@ function PlanPreview({
             <p className="text-sm text-muted-foreground">{validity}</p>
           </div>
         </div>
-        {benefits.length > 0 && (
+        {step > 0 && benefits.length > 0 && (
           <div className="flex items-start gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
               <Tag className="h-4 w-4 text-muted-foreground" />
@@ -1333,6 +1335,7 @@ function MembershipPlanWizard() {
           planFeatures={planFeatures}
           customFeatures={customFeatures}
           entitlementRules={entitlementRules}
+          step={step}
         />
       </div>
     </div>
