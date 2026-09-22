@@ -584,7 +584,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
             <div className="space-y-0.5">
               <Label htmlFor="isAutoApply" className="text-base font-medium">Auto Apply Discount</Label>
               <p className="text-sm text-muted-foreground">
-                Automatically apply this coupon to active members' checkouts if eligible.
+                Automatically apply this coupon to active members' checkouts if eligible. If their plan discount is higher, that is applied instead.
               </p>
               {formData.isAutoApply && (
                 <p className="text-xs text-amber-600 font-medium mt-1">
