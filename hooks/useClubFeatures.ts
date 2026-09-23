@@ -17,6 +17,54 @@ import {
 import { useSocket } from '@/contexts/socket-context';
 import { toast } from 'sonner';
 
+type MemberClubAvailability = { clubId: string; features: Record<string, boolean> };
+
+const MEMBER_LIST_TTL_MS = 5 * 60 * 1000;
+let memberClubsCache: { clubs: MemberClubAvailability[]; at: number } | null = null;
+let memberClubsInflight: Promise<MemberClubAvailability[] | null> | null = null;
+
+function clearMemberClubsCache() {
+  memberClubsCache = null;
+}
+
+function memberConfig(clubId: string, features: Record<string, boolean> | undefined): ResolvedClubFeatures {
+  return {
+    clubId,
+    features_schema_version: 0,
+    billing_tier: 'free',
+    billing_status: 'active',
+    feature_constraints: {},
+    flags: Object.entries(features ?? {}).map(([key, enabled]) => ({
+      key: key as ClubFeatureKey,
+      enabled: enabled === true,
+      state: enabled === true ? 'active' : 'inactive',
+      label: key,
+    })),
+    experimental_flags: {},
+    platformFeePercent: 0,
+    estimated_monthly_usd: 0,
+    synced_at: new Date().toISOString(),
+  };
+}
+
+/** One in-flight request shared by every member screen. Club switches read the list. */
+async function fetchMemberClubs(): Promise<MemberClubAvailability[] | null> {
+  if (memberClubsCache && Date.now() - memberClubsCache.at < MEMBER_LIST_TTL_MS) {
+    return memberClubsCache.clubs;
+  }
+  if (!memberClubsInflight) {
+    memberClubsInflight = apiClient.getMyMemberFeatureAvailability()
+      .then((res) => {
+        const clubs = res.success && Array.isArray(res.data?.clubs) ? res.data.clubs : null;
+        if (clubs) memberClubsCache = { clubs, at: Date.now() };
+        return clubs;
+      })
+      .catch(() => null)
+      .finally(() => { memberClubsInflight = null; });
+  }
+  return memberClubsInflight;
+}
+
 /** Route to navigate to when "Take a Look" is pressed for a newly-enabled feature. */
 const FEATURE_NAV_ROUTE: Partial<Record<ClubFeatureKey, string>> = Object.fromEntries(
   Object.entries(ADMIN_NAV_FEATURE_MAP)
@@ -85,9 +133,21 @@ export function useClubFeatures(
     setLoadFailed(false);
 
     try {
-      const res = asMember
-        ? await apiClient.getMyClubFeaturesAsMember(clubId)
-        : await apiClient.getMyClubFeatures(clubId);
+      if (asMember) {
+        const clubs = await fetchMemberClubs();
+        if (requestId !== requestIdRef.current) return;
+        if (!clubs) {
+          setLoadFailed(true);
+          applyConfig(lockedSafeConfig(clubId));
+          return;
+        }
+        const hit = clubs.find((club) => String(club.clubId) === String(clubId));
+        const normalized = normalizeResolvedClubFeatures(memberConfig(clubId, hit?.features));
+        if (normalized) applyConfig(normalized);
+        return;
+      }
+
+      const res = await apiClient.getMyClubFeatures(clubId);
 
       if (requestId !== requestIdRef.current) return;
 
@@ -143,7 +203,7 @@ export function useClubFeatures(
   // changing club config, so re-resolve on the member's own entitlement event.
   useEffect(() => {
     if (!asMember || !clubId || typeof window === 'undefined') return;
-    const onChanged = () => { void load(); };
+    const onChanged = () => { clearMemberClubsCache(); void load(); };
     window.addEventListener(MEMBER_ENTITLEMENTS_CHANGED_EVENT, onChanged);
     return () => window.removeEventListener(MEMBER_ENTITLEMENTS_CHANGED_EVENT, onChanged);
   }, [asMember, clubId, load]);
@@ -157,7 +217,10 @@ export function useClubFeatures(
     const onSync = (payload: { clubId?: string; config?: ResolvedClubFeatures; syncedAt?: string }) => {
       if (payload.clubId && String(payload.clubId) !== String(clubId)) return;
 
-      if (!payload.config) {
+      // Club pushes are the club's own flags. A member's plan can withhold
+      // some of those, so re-resolve instead of painting the raw config.
+      if (asMember || !payload.config) {
+        if (asMember) clearMemberClubsCache();
         load();
         return;
       }
@@ -196,7 +259,7 @@ export function useClubFeatures(
       socket.emit('leave-club-config', clubId);
       socket.off('club:config-sync', onSync);
     };
-  }, [socket, isConnected, clubId, load, applyConfig]);
+  }, [socket, isConnected, clubId, asMember, load, applyConfig]);
 
   const scopedConfig =
     config && clubId && String(config.clubId) === String(clubId) ? config : null;
@@ -208,10 +271,11 @@ export function useClubFeatures(
       if (scopedConfig) {
         return clubFeatureFlags(scopedConfig).find((f) => f.key === key)?.enabled ?? false;
       }
-      // No config yet — stay unlocked so a failed first fetch cannot freeze nav.
-      return true;
+      // Members stay hidden until the plan-narrowed config is known.
+      // Admins stay unlocked so a failed fetch cannot freeze the dashboard.
+      return !asMember;
     },
-    [scopedConfig]
+    [asMember, scopedConfig]
   );
 
   return { config: scopedConfig, loading, loadFailed, isEnabled, reload: load };

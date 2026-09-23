@@ -5185,6 +5185,13 @@ class ApiClient {
     return res;
   }
 
+  /** Every club this member belongs to, with features already judged available or not. */
+  async getMyMemberFeatureAvailability(): Promise<ApiResponse<{ clubs: { clubId: string; features: Record<string, boolean> }[] }>> {
+    const res = await this.request<any>('/club-features/my-clubs/member');
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
+  }
+
   async submitFeatureUpgradeInquiry(body: {
     clubId: string;
     featureKey: string;
