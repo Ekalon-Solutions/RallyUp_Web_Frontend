@@ -727,7 +727,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const ticketingInboxOverride =
     memberPageSection === "externalTicketing" &&
     (existingTickets.hasRequests || !existingTickets.loaded)
-  const memberEntitlementsKnown = Boolean(memberFeaturesConfig) || !memberFeaturesLoading
+  const memberEntitlementsKnown = Boolean(memberFeaturesConfig)
   const memberPagePending = Boolean(
     isRegularUser && clubId && memberPageSection && !memberEntitlementsKnown
   )
@@ -948,8 +948,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
           return canShowSection('leaderboard')
         }
         if (item.name === 'External Ticketing') {
-          if (canShowSection('externalTicketing')) return true
-          return isSectionVisible('externalTicketing') && existingTickets.hasRequests
+          return canShowSection('externalTicketing')
         }
         if (item.name === 'Volunteer') {
           return canShowSection('volunteer')

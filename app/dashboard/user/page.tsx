@@ -291,7 +291,7 @@ export default function UserDashboardPage() {
     loading: memberFeaturesLoading,
     config: memberFeaturesConfig,
   } = useClubFeatures(clubId || null, { asMember: true })
-  const memberEntitlementsKnown = Boolean(memberFeaturesConfig) || !memberFeaturesLoading
+  const memberEntitlementsKnown = Boolean(memberFeaturesConfig)
   const isSectionVisible = (section: WebsiteSectionKey) => {
     if (!isSettingsSectionVisible(section)) return false
     const featureKey = MEMBER_SECTION_TO_FEATURE[section]
