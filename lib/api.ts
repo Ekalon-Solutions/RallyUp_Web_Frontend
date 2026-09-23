@@ -80,6 +80,68 @@ export interface ClubPickupAddress {
   isDefault?: boolean;
 }
 
+export interface GTSLeagueOption {
+  idLeague: string;
+  name: string;
+  badge: string;
+  members: number;
+  joined: boolean;
+}
+
+export interface GTSJoinedLeague {
+  competitionId: string;
+  idLeague: string;
+  name: string;
+  badge: string;
+  season: string;
+  status: 'active' | 'left' | null;
+  syncStatus: 'ok' | 'degraded';
+  lastSyncedAt: string | null;
+}
+
+export type GTSFixtureStatus = 'scheduled' | 'live' | 'finished' | 'postponed' | 'cancelled' | 'abandoned';
+
+export interface GTSLeagueFixture {
+  idEvent: string;
+  strEvent: string;
+  strHomeTeam: string;
+  strAwayTeam: string;
+  strHomeTeamBadge?: string | null;
+  strAwayTeamBadge?: string | null;
+  dateEvent: string;
+  strTime: string;
+  strTimestamp?: string;
+  intHomeScore: string | null;
+  intAwayScore: string | null;
+  strStatus: string;
+  strLeague?: string | null;
+  status: GTSFixtureStatus;
+  round: number | null;
+  matchdayKey: string;
+  locked: boolean;
+}
+
+export interface GTSLeaguePrediction {
+  _id: string;
+  fixtureId: string;
+  homeScore: number;
+  awayScore: number;
+  pointsEarned?: number | null;
+  result?: 'exact' | 'close' | 'correct_outcome' | 'incorrect' | null;
+}
+
+export interface GTSBoardEntry {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  clubName: string;
+  points: number;
+  exact: number;
+  close: number;
+  correct: number;
+  rank: number;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -6715,90 +6777,59 @@ class ApiClient {
     return this.post('/gts/consent', data);
   }
 
-  async optInGlobalLeague(clubId: string): Promise<ApiResponse<any>> {
-    return this.post('/gts/global-league/opt-in', { clubId });
-  }
-
-  async optOutGlobalLeague(clubId: string): Promise<ApiResponse<any>> {
-    return this.post('/gts/global-league/opt-out', { clubId });
-  }
-
-  async getGTSFixtures(clubId: string): Promise<ApiResponse<{
-    fixtures: Array<{
-      idEvent: string;
-      strEvent: string;
-      strHomeTeam: string;
-      strAwayTeam: string;
-      strHomeTeamBadge?: string;
-      strAwayTeamBadge?: string;
-      dateEvent: string;
-      strTime: string;
-      strTimestamp?: string;
-      intHomeScore: string | null;
-      intAwayScore: string | null;
-      strStatus: string;
-      idLeague?: string;
-      strLeague?: string;
-    }>;
+  async searchGTSLeagues(q: string, clubId: string): Promise<ApiResponse<{
+    popular: GTSLeagueOption[];
+    results: GTSLeagueOption[];
   }>> {
-    return this.request(`/gts/fixtures?clubId=${encodeURIComponent(clubId)}`);
+    const qs = new URLSearchParams({ q, clubId });
+    return this.request(`/gts/leagues/search?${qs.toString()}`);
   }
 
-  async submitGTSPrediction(data: {
+  async getMyGTSLeagues(clubId: string): Promise<ApiResponse<{ leagues: GTSJoinedLeague[] }>> {
+    return this.request(`/gts/leagues/mine?clubId=${encodeURIComponent(clubId)}`);
+  }
+
+  async joinGTSLeague(idLeague: string, clubId: string): Promise<ApiResponse<{ league: GTSJoinedLeague }>> {
+    return this.post(`/gts/leagues/${encodeURIComponent(idLeague)}/join`, { clubId });
+  }
+
+  async leaveGTSLeague(competitionId: string, clubId: string): Promise<ApiResponse<{ league: GTSJoinedLeague }>> {
+    return this.post(`/gts/leagues/${encodeURIComponent(competitionId)}/leave`, { clubId });
+  }
+
+  async getGTSLeagueFixtures(competitionId: string, clubId: string): Promise<ApiResponse<{
+    league: GTSJoinedLeague;
+    fixtures: GTSLeagueFixture[];
+    predictions: GTSLeaguePrediction[];
+    currentMatchdayKey: string | null;
+  }>> {
+    return this.request(`/gts/leagues/${encodeURIComponent(competitionId)}/fixtures?clubId=${encodeURIComponent(clubId)}`);
+  }
+
+  async submitGTSLeaguePrediction(data: {
     fixtureId: string;
-    strTime: string;
-    dateEvent: string;
     homeScore: number;
     awayScore: number;
     clubId: string;
-    homeTeam: string;
-    awayTeam: string;
+  }): Promise<ApiResponse<{ _id: string; fixtureId: string; homeScore: number; awayScore: number; lockedAt: string }>> {
+    return this.post('/gts/leagues/predictions', data);
+  }
+
+  /** competitionId "all" = overall board across every joined league. */
+  async getGTSLeagueLeaderboard(params: {
+    competitionId: string;
+    scope: 'global' | 'club';
+    clubId: string;
   }): Promise<ApiResponse<{
-    _id: string;
-    fixtureId: string;
-    homeScore: number;
-    awayScore: number;
-    lockedAt: string;
+    season: string;
+    scope: 'global' | 'club';
+    total: number;
+    leaderboard: GTSBoardEntry[];
+    me: GTSBoardEntry | null;
+    updatedAt: string | null;
   }>> {
-    return this.post('/gts/predictions', data);
-  }
-
-  async getMyGTSPredictions(clubId: string, season?: string): Promise<ApiResponse<{
-    predictions: Array<{
-      _id: string;
-      fixtureId: string;
-      homeTeam: string;
-      awayTeam: string;
-      homeScore: number;
-      awayScore: number;
-      matchDate: string;
-      lockedAt?: string;
-      pointsEarned?: number | null;
-      result?: 'exact' | 'close' | 'correct_outcome' | 'incorrect' | null;
-    }>;
-  }>> {
-    const qs = new URLSearchParams({ clubId, ...(season ? { season } : {}) });
-    return this.request(`/gts/predictions/me?${qs.toString()}`);
-  }
-
-  async getGTSLeaderboard(params: { clubId: string; type: 'club' | 'global'; season?: string }): Promise<ApiResponse<{
-    leaderboard: Array<{
-      userId: string;
-      firstName: string;
-      lastName: string;
-      clubName: string;
-      points: number;
-      rank: number;
-    }>;
-    userRank?: number;
-    userPoints?: number;
-  }>> {
-    const qs = new URLSearchParams({ clubId: params.clubId, type: params.type, ...(params.season ? { season: params.season } : {}) });
-    return this.request(`/gts/leaderboard?${qs.toString()}`);
-  }
-
-  async calculateGTSPoints(fixtureId: string, clubId: string): Promise<ApiResponse<any>> {
-    return this.post('/gts/calculate', { fixtureId, clubId });
+    const qs = new URLSearchParams(params);
+    return this.request(`/gts/leagues/leaderboard?${qs.toString()}`);
   }
 
   async listNotificationTemplates(clubId: string): Promise<
