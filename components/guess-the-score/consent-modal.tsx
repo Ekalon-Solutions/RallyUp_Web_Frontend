@@ -374,52 +374,6 @@ function GlobalConfirmStep({
   )
 }
 
-// ─── Standalone join-from-settings modal (EULA → Confirm) ────────────────────
-
-interface GlobalLeagueJoinModalProps {
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  onConfirmed: () => void
-  submitting: boolean
-}
-
-export function GlobalLeagueJoinModal({
-  open,
-  onOpenChange,
-  onConfirmed,
-  submitting,
-}: GlobalLeagueJoinModalProps) {
-  const [step, setStep] = useState<"eula" | "confirm">("eula")
-
-  const handleClose = () => {
-    setStep("eula")
-    onOpenChange(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
-      <DialogContent className="max-w-lg gap-4" onEscapeKeyDown={handleClose}>
-        {step === "eula" ? (
-          <EulaStep
-            onAccept={() => setStep("confirm")}
-            onReject={handleClose}
-            submitting={submitting}
-          />
-        ) : (
-          <GlobalConfirmStep
-            onConfirm={() => {
-              onConfirmed()
-              setStep("eula")
-            }}
-            onReject={handleClose}
-            submitting={submitting}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 // ─── Root modal ──────────────────────────────────────────────────────────────
 
 export function ConsentModal({ open, clubId, canJoinGlobal, onAccepted }: ConsentModalProps) {
