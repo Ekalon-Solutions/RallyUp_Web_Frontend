@@ -337,11 +337,6 @@ function CheckoutContent() {
     setCustomFieldValues({})
   }, [selectedPlan?._id])
 
-  const handleSelectPlan = (planId: string) => {
-    setSelectedPlanId(planId)
-    router.replace(`/clubs/${slug}/membership/checkout?planId=${planId}`, { scroll: false })
-  }
-
   const updateCustomField = (label: string, value: string) => {
     setCustomFieldValues((prev) => ({ ...prev, [label]: value }))
   }
@@ -1061,36 +1056,6 @@ function CheckoutContent() {
             onSubmit={handleSubmit}
             className="bg-card text-card-foreground rounded-2xl border border-border p-6 sm:p-8 shadow-sm flex-1 w-full"
           >
-            {/* Plan Selector if multiple plans exist */}
-            {plans.length > 1 && (
-              <div className="mb-6 p-3.5 rounded-xl border border-border bg-muted/20">
-                <label className="block text-xs font-semibold text-foreground mb-2">
-                  Membership Plan
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {plans.map((p) => {
-                    const isSelected = p._id === selectedPlan?._id
-                    return (
-                      <button
-                        key={p._id}
-                        type="button"
-                        onClick={() => handleSelectPlan(p._id)}
-                        className={cn(
-                          "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all border",
-                          isSelected
-                            ? "text-white shadow-xs border-transparent"
-                            : "bg-background text-foreground border-border hover:bg-muted"
-                        )}
-                        style={isSelected ? { backgroundColor: primaryColor } : undefined}
-                      >
-                        {p.name} · {formatPrice(p.price, p.currency || "INR")}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
             {existingMember && (
               <p className="mb-5 text-sm text-muted-foreground">
                 Buying as {user?.name || formData.email}. This plan only asks for details your account is still missing.
