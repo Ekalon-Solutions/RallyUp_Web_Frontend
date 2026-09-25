@@ -26,6 +26,7 @@ import { Loader2, ExternalLink, Image as ImageIcon } from "lucide-react"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
 import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
+import { getClubSiteUrl } from "@/lib/config"
 
 export default function WebsitePage() {
   const { user } = useAuth()
@@ -99,7 +100,7 @@ export default function WebsitePage() {
 
         setWebsiteSettings({
           published: websiteSetup.isPublished || false,
-          url: clubSlug ? `${window.location.origin}/clubs/${clubSlug}` : "",
+          url: clubSlug ? getClubSiteUrl(clubSlug) : "",
           navigation: sanitizeWebsiteSections(websiteSetup.sections || {}),
           welcomeText: websiteSetup.description || "",
           socialLinks: {
