@@ -179,3 +179,9 @@ export const debugLog = (message: string, data?: any) => {
 };
 
 export default currentConfig;
+
+/** Public club site: <slug>.<NEXT_PUBLIC_ROOT_DOMAIN> when subdomains are on, else /clubs/<slug> on this origin. Browser only. */
+export const getClubSiteUrl = (slug: string): string => {
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN
+  return root ? `${window.location.protocol}//${slug}.${root}` : `${window.location.origin}/clubs/${slug}`
+};

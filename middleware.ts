@@ -182,12 +182,53 @@ function isStaticOrInternalPath(pathname: string): boolean {
   )
 }
 
+// Club sites live at <slug>.<ROOT_DOMAIN> (e.g. democlub.wingman-pro.com). Unset = path URLs only (local dev).
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.toLowerCase()
+const DNS_LABEL_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/
+// Pages that exist under app/clubs/[slug]; every other path on a club subdomain (login, _next, ...) is served as-is.
+const CLUB_SITE_PATH_RE = /^\/(?:$|events\/|membership(?:\/|$)|refunds$|venue-switch$)/
+
+function clubSlugFromHost(request: NextRequest): string | null {
+  if (!ROOT_DOMAIN) return null
+  const host = (request.headers.get('host') || '').toLowerCase()
+  if (!host.endsWith(`.${ROOT_DOMAIN}`)) return null
+  const slug = host.slice(0, -ROOT_DOMAIN.length - 1)
+  return slug !== 'www' && DNS_LABEL_RE.test(slug) ? slug : null
+}
+
+/** /clubs/democlub/events/x on any host -> 308 to democlub.<ROOT_DOMAIN>/events/x */
+function legacyClubPathRedirect(request: NextRequest): NextResponse | null {
+  if (!ROOT_DOMAIN) return null
+  const match = request.nextUrl.pathname.match(/^\/clubs\/([^/]+)(\/.*)?$/)
+  const slug = match?.[1].toLowerCase()
+  // Slugs that aren't valid DNS labels keep working on the old path until ops renames them.
+  if (!slug || !DNS_LABEL_RE.test(slug)) return null
+  const proto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '')
+  const target = new URL(`${proto}://${slug}.${ROOT_DOMAIN}${match![2] || '/'}`)
+  target.search = request.nextUrl.search
+  return NextResponse.redirect(target, 308)
+}
+
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const redirect = legacyClubPathRedirect(request)
+  if (redirect) return redirect
+
+  const clubSlug = clubSlugFromHost(request)
+  const clubPath = clubSlug && CLUB_SITE_PATH_RE.test(request.nextUrl.pathname)
+    ? `/clubs/${clubSlug}${request.nextUrl.pathname === '/' ? '' : request.nextUrl.pathname}`
+    : null
+  // Everything below checks the real app path; `pass()` serves the club page when on a club subdomain.
+  const pathname = clubPath ?? request.nextUrl.pathname
+  const pass = () => {
+    if (!clubPath) return NextResponse.next()
+    const url = request.nextUrl.clone()
+    url.pathname = clubPath
+    return NextResponse.rewrite(url)
+  }
 
   // Public pages + static assets skip bot checks and rate limiting entirely
   if (PUBLIC_BYPASS_PATHS.has(pathname) || isStaticOrInternalPath(pathname)) {
-    return NextResponse.next()
+    return pass()
   }
 
   if (
@@ -197,7 +238,7 @@ export function middleware(request: NextRequest) {
     request.nextUrl.searchParams.has('token') ||
     request.nextUrl.searchParams.has('authToken')
   ) {
-    const res = applySecurityHeaders(NextResponse.next(), pathname)
+    const res = applySecurityHeaders(pass(), pathname)
     if (request.nextUrl.searchParams.has('ssoTicket') || request.nextUrl.searchParams.has('token')) {
       res.cookies.set(AUTH_SESSION_COOKIE, '1', { path: '/' })
     }
@@ -228,7 +269,7 @@ export function middleware(request: NextRequest) {
     }
   }
   
-  return applySecurityHeaders(NextResponse.next(), pathname)
+  return applySecurityHeaders(pass(), pathname)
 }
 
 function cameraPermissionsPolicy(pathname: string): string {

@@ -30,6 +30,7 @@ import {
   Plus
 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { getClubSiteUrl } from "@/lib/config"
 
 interface Club {
   _id: string
@@ -168,7 +169,7 @@ export default function MyClubsPage() {
       clubSlug ||
       (clubName ? clubName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : '')
     if (slug && typeof window !== 'undefined') {
-      window.open(`${window.location.origin}/clubs/${slug}`, '_blank', 'noopener,noreferrer')
+      window.open(getClubSiteUrl(slug), '_blank', 'noopener,noreferrer')
     }
   }
 
