@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { AUTH_SESSION_COOKIE } from '@/lib/auth-session-cookie'
+import { isCanonicalHost } from '@/lib/canonical-host'
 
 const BLOCKED_USER_AGENTS = [
   'wget',
@@ -182,12 +183,30 @@ function isStaticOrInternalPath(pathname: string): boolean {
   )
 }
 
+/**
+ * Deploy URLs (*.vercel.app, previews, staging) serve the same pages as
+ * production, so search engines index them as a duplicate site. Telling them
+ * `noindex` on every non-canonical host gets those URLs dropped from the index.
+ * Note this deliberately does *not* go in robots.txt: a `Disallow` would stop
+ * crawlers fetching the page at all, so they would never see the noindex and
+ * already-indexed URLs would linger as bare links in the results.
+ */
+function blockIndexing(response: NextResponse): NextResponse {
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet')
+  return response
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const onCanonicalHost = isCanonicalHost(
+    request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+  )
+  const finalize = (response: NextResponse) =>
+    onCanonicalHost ? response : blockIndexing(response)
 
   // Public pages + static assets skip bot checks and rate limiting entirely
   if (PUBLIC_BYPASS_PATHS.has(pathname) || isStaticOrInternalPath(pathname)) {
-    return NextResponse.next()
+    return finalize(NextResponse.next())
   }
 
   if (
@@ -201,7 +220,7 @@ export function middleware(request: NextRequest) {
     if (request.nextUrl.searchParams.has('ssoTicket') || request.nextUrl.searchParams.has('token')) {
       res.cookies.set(AUTH_SESSION_COOKIE, '1', { path: '/' })
     }
-    return res
+    return finalize(res)
   }
   
   const userAgent = request.headers.get('user-agent') || ''
@@ -212,7 +231,7 @@ export function middleware(request: NextRequest) {
   }
   
   if (isProtectedPath(pathname) && isSuspiciousRequest(request)) {
-    return NextResponse.redirect(new URL('/challenge', request.url))
+    return finalize(NextResponse.redirect(new URL('/challenge', request.url)))
   }
 
   if (!isNextJsNavigationRequest(request)) {
@@ -228,7 +247,7 @@ export function middleware(request: NextRequest) {
     }
   }
   
-  return applySecurityHeaders(NextResponse.next(), pathname)
+  return finalize(applySecurityHeaders(NextResponse.next(), pathname))
 }
 
 function cameraPermissionsPolicy(pathname: string): string {

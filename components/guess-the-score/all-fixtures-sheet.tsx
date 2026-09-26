@@ -16,7 +16,16 @@ import { Separator } from "@/components/ui/separator"
 import { Lock, CheckCircle2, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
-import { isPredictionDeadlinePassed, formatMatchDateTime, getMatchDeadline } from "./utils"
+import {
+  isPredictionDeadlinePassed,
+  formatMatchDateTime,
+  getMatchDeadline,
+  isFinishedFixture,
+  isLiveFixture,
+  isUpcomingFixture,
+  isOffFixture,
+  sortByKickoff,
+} from "./utils"
 
 export interface GTSFixture {
   idEvent: string
@@ -77,16 +86,8 @@ function FixtureRow({
   const [isEditing, setIsEditing] = useState(false)
 
   const deadlinePassed = isPredictionDeadlinePassed(fixture)
-  const isFinished =
-    fixture.strStatus === "Match Finished" ||
-    fixture.strStatus === "FT" ||
-    fixture.strStatus === "AET" ||
-    fixture.strStatus === "PEN"
-  const isLive =
-    !isFinished &&
-    fixture.strStatus !== "Not Started" &&
-    fixture.strStatus !== "" &&
-    fixture.strStatus != null
+  const isFinished = isFinishedFixture(fixture)
+  const isLive = isLiveFixture(fixture)
   const hasPrediction = !!prediction
 
   const handleSubmit = async () => {
@@ -267,23 +268,14 @@ export function AllFixturesModal({
 }: AllFixturesModalProps) {
   const predMap = new Map(predictions.map((p) => [p.fixtureId, p]))
 
-  const live = fixtures.filter(
-    (f) =>
-      f.strStatus !== "Not Started" &&
-      f.strStatus !== "" &&
-      f.strStatus !== "Match Finished" &&
-      f.strStatus !== "FT" &&
-      f.strStatus !== "AET" &&
-      f.strStatus !== "PEN"
-  )
-  const upcoming = fixtures.filter((f) => f.strStatus === "Not Started" || f.strStatus === "")
-  const finished = fixtures.filter(
-    (f) =>
-      f.strStatus === "Match Finished" ||
-      f.strStatus === "FT" ||
-      f.strStatus === "AET" ||
-      f.strStatus === "PEN"
-  )
+  const live = sortByKickoff(fixtures.filter(isLiveFixture))
+  const upcoming = sortByKickoff(fixtures.filter(isUpcomingFixture))
+  const off = sortByKickoff(fixtures.filter(isOffFixture))
+  // Anything left has kicked off and isn't live: played, or carrying a status
+  // the feed never updated. Either way it belongs with the completed matches.
+  const played = sortByKickoff(
+    fixtures.filter((f) => !isLiveFixture(f) && !isUpcomingFixture(f) && !isOffFixture(f))
+  ).reverse()
 
   const renderGroup = (title: string, items: GTSFixture[]) => {
     if (items.length === 0) return null
@@ -327,7 +319,8 @@ export function AllFixturesModal({
               <>
                 {renderGroup("Live", live)}
                 {renderGroup("Upcoming", upcoming)}
-                {renderGroup("Finished", finished)}
+                {renderGroup("Finished", played)}
+                {renderGroup("Postponed & cancelled", off)}
               </>
             )}
           </div>

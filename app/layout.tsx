@@ -14,6 +14,7 @@ import { EkalonBranding } from "@/components/ekalon-branding"
 import { DashboardThemeProvider } from "@/components/dashboard-theme-provider"
 import { AppUpdateWatcher } from "@/components/app-update-watcher"
 import Script from "next/script"
+import { CANONICAL_ORIGIN } from "@/lib/canonical-host"
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -30,7 +31,15 @@ const purplePurse = Purple_Purse({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://wingman-pro.com'),
+  // Always the production origin, never the deploy URL: NEXT_PUBLIC_SITE_URL
+  // points at the Vercel deployment, which would make every canonical and OG
+  // URL advertise that host to search engines.
+  metadataBase: new URL(CANONICAL_ORIGIN),
+  // Self-referencing canonical on every page, so the copies served from deploy
+  // URLs point back at wingman-pro.com instead of competing with it.
+  alternates: {
+    canonical: './',
+  },
   title: {
     default: "Wingman Pro - Intelligent Sports Club Management Software",
     template: "%s | Wingman Pro"

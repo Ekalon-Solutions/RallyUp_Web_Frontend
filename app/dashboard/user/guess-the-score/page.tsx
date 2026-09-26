@@ -51,7 +51,15 @@ import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { ConsentModal, GlobalLeagueJoinModal } from "@/components/guess-the-score/consent-modal"
 import { AllFixturesModal, type GTSFixture, type GTSPrediction } from "@/components/guess-the-score/all-fixtures-sheet"
 import { GTSLeaderboard } from "@/components/guess-the-score/gts-leaderboard"
-import { isPredictionDeadlinePassed, formatMatchDateTime, getMatchDeadline } from "@/components/guess-the-score/utils"
+import {
+  isPredictionDeadlinePassed,
+  formatMatchDateTime,
+  getMatchDeadline,
+  isFinishedFixture,
+  isLiveFixture,
+  getNextFixture,
+  sortByKickoff,
+} from "@/components/guess-the-score/utils"
 
 /** Fallback fixture refresh (when socket is disconnected) – 10 minutes */
 const FIXTURE_REFRESH_MS = 10 * 60 * 1000
@@ -120,16 +128,8 @@ function FixtureCard({
   const [isEditing, setIsEditing] = useState(false)
 
   const deadlinePassed = isPredictionDeadlinePassed(fixture)
-  const isFinished =
-    fixture.strStatus === "Match Finished" ||
-    fixture.strStatus === "FT" ||
-    fixture.strStatus === "AET" ||
-    fixture.strStatus === "PEN"
-  const isLive =
-    !isFinished &&
-    fixture.strStatus !== "Not Started" &&
-    fixture.strStatus !== "" &&
-    fixture.strStatus != null
+  const isFinished = isFinishedFixture(fixture)
+  const isLive = isLiveFixture(fixture)
 
   const hasPrediction = !!prediction
   const resultMeta = (prediction?.result && isFinished) ? RESULT_META[prediction.result] : null
@@ -734,31 +734,18 @@ export default function GuessTheScorePage() {
     return "incorrect"
   }
 
-  const FINISHED = new Set(["Match Finished", "FT", "AET", "PEN", "Post"])
-  const isUpcoming = (f: GTSFixture) => {
-    if (FINISHED.has(f.strStatus)) return false
-    if (f.strStatus === "Not Started" || f.strStatus === "") return true
-    // date-based fallback: treat as upcoming if kick-off is in the future
-    const ko = new Date(`${f.dateEvent}T${f.strTime || "00:00:00"}Z`)
-    return ko.getTime() > Date.now()
-  }
-  const isLiveStatus = (f: GTSFixture) =>
-    !FINISHED.has(f.strStatus) && f.strStatus !== "Not Started" && f.strStatus !== ""
-
-  // Next actionable fixture (live first, then upcoming)
-  const nextFixture =
-    fixtures.find(isLiveStatus) ?? fixtures.find(isUpcoming)
+  // Next actionable fixture (live first, then the soonest upcoming kick-off)
+  const nextFixture = getNextFixture(fixtures)
 
   const nextPrediction = nextFixture
     ? predictions.find((p) => p.fixtureId === nextFixture.idEvent)
     : undefined
 
   // Finished fixtures that the user predicted on, newest first
-  const pastPredictions = fixtures
-    .filter((f) => FINISHED.has(f.strStatus))
+  const pastPredictions = sortByKickoff(fixtures.filter(isFinishedFixture))
+    .reverse()
     .map((f) => ({ fixture: f, prediction: predictions.find((p) => p.fixtureId === f.idEvent) }))
     .filter(({ prediction }) => !!prediction)
-    .reverse()
 
   // ── Loading state ──────────────────────────────────────────────────────────
 
@@ -920,7 +907,7 @@ export default function GuessTheScorePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {pastPredictions.map(({ fixture, prediction }) => {
                         const resultKey = prediction?.result ?? (
-                          FINISHED.has(fixture.strStatus) && fixture.intHomeScore != null && fixture.intAwayScore != null
+                          fixture.intHomeScore != null && fixture.intAwayScore != null
                             ? computeDisplayResult(
                               prediction!.homeScore, prediction!.awayScore,
                               Number(fixture.intHomeScore), Number(fixture.intAwayScore)
