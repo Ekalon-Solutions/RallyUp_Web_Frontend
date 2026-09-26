@@ -56,8 +56,13 @@ export function resolveCheckoutCharge(
   feeHandlingType: FeeHandlingType | undefined | null,
   platformFeePercent?: number
 ): CheckoutChargeResult {
-  const feeBreakdown = netAmount > 0 ? calculateTransactionFees(netAmount, platformFeePercent) : null
   const feesAbsorbed = feeHandlingType === "absorb"
+  const feeBreakdown =
+    netAmount <= 0
+      ? null
+      : feesAbsorbed
+        ? calculateAbsorbedTransactionFees(netAmount, platformFeePercent)
+        : calculateTransactionFees(netAmount, platformFeePercent)
   const amountToCharge = feesAbsorbed
     ? netAmount
     : feeBreakdown
@@ -71,7 +76,7 @@ export function resolveCheckoutCharge(
  * gross − platform fee (incl. GST) − PG fee (incl. GST).
  */
 export function estimateNetPerTicket(grossPrice: number, platformFeePercent?: number): number {
-  const { totalFees, baseAmount } = calculateTransactionFees(grossPrice, platformFeePercent)
+  const { totalFees, baseAmount } = calculateAbsorbedTransactionFees(grossPrice, platformFeePercent)
   return roundMoney(Math.max(0, baseAmount - totalFees))
 }
 
@@ -94,34 +99,68 @@ export function computeMembershipPlanCharge(params: {
   return { isUpgrade, ...calculateTransactionFees(baseAmount, params.platformFeePercent) }
 }
 
+/** Razorpay's cut of whatever is charged, GST included: 2% × 1.18 = 2.36%. */
+const PG_RATE_WITH_GST = (RAZORPAY_FEE_PERCENT / 100) * (1 + GST_PERCENT / 100)
+
+/** Split a GST-inclusive PG amount back into fee + GST so the parts sum exactly. */
+function splitPgFee(pgWithGst: number) {
+  const razorpayFee = roundMoney(pgWithGst / (1 + GST_PERCENT / 100))
+  return { razorpayFee, razorpayFeeGst: roundMoney(pgWithGst - razorpayFee) }
+}
+
+/**
+ * Fees passed to the buyer (mirrors the backend transactionFeeService). Razorpay
+ * takes 2.36% of the amount actually charged — fees included — so the total is
+ * grossed up:  Total = (TicketPrice + PlatformFee + PlatformFee × 0.18) / (1 − 0.0236)
+ * The platform fee stays a % of the ticket price.
+ */
 export function calculateTransactionFees(
   baseAmount: number,
   platformFeePercent?: number
 ): TransactionFeesBreakdown {
   const base = Math.max(0, baseAmount)
-  const feePercent = platformFeePercent ?? PLATFORM_FEE_PERCENT
+  const feePercent =
+    platformFeePercent != null && Number.isFinite(platformFeePercent) ? platformFeePercent : PLATFORM_FEE_PERCENT
 
-  // Keep full precision through the GST calculation, then round each
-  // GST-inclusive fee once. Rounding the fee before calculating GST can
-  // overcharge small transactions (for example ₹1 at 5.5% becomes ₹0.07
-  // instead of ₹0.06).
+  // Round the GST-inclusive platform fee once (rounding fee then GST overcharges tiny amounts).
   const platform = calculateFeeWithGst(base, feePercent)
-  const razorpay = calculateFeeWithGst(base, RAZORPAY_FEE_PERCENT)
-  const platformFee = platform.fee
-  const platformFeeGst = platform.gst
-  const razorpayFee = razorpay.fee
-  const razorpayFeeGst = razorpay.gst
-
-  const totalFees = roundMoney(platform.totalWithGst + razorpay.totalWithGst)
-  const finalAmount = roundMoney(base + totalFees)
+  const beforePg = base + platform.totalWithGst
+  const finalAmount = roundMoney(beforePg / (1 - PG_RATE_WITH_GST))
+  const pgWithGst = roundMoney(finalAmount - roundMoney(beforePg))
+  const { razorpayFee, razorpayFeeGst } = splitPgFee(pgWithGst)
 
   return {
     baseAmount: roundMoney(base),
-    platformFee,
-    platformFeeGst,
+    platformFee: platform.fee,
+    platformFeeGst: platform.gst,
     razorpayFee,
     razorpayFeeGst,
-    totalFees,
+    totalFees: roundMoney(platform.totalWithGst + pgWithGst),
     finalAmount,
+  }
+}
+
+/**
+ * Fees when the club absorbs them: the buyer pays `chargedAmount` only, and
+ * Razorpay's 2.36% + the platform fee come out of that same amount.
+ */
+export function calculateAbsorbedTransactionFees(
+  chargedAmount: number,
+  platformFeePercent?: number
+): TransactionFeesBreakdown {
+  const charged = Math.max(0, chargedAmount)
+  const feePercent =
+    platformFeePercent != null && Number.isFinite(platformFeePercent) ? platformFeePercent : PLATFORM_FEE_PERCENT
+  const platform = calculateFeeWithGst(charged, feePercent)
+  const razorpay = calculateFeeWithGst(charged, RAZORPAY_FEE_PERCENT)
+
+  return {
+    baseAmount: roundMoney(charged),
+    platformFee: platform.fee,
+    platformFeeGst: platform.gst,
+    razorpayFee: razorpay.fee,
+    razorpayFeeGst: razorpay.gst,
+    totalFees: roundMoney(platform.totalWithGst + razorpay.totalWithGst),
+    finalAmount: roundMoney(charged),
   }
 }
