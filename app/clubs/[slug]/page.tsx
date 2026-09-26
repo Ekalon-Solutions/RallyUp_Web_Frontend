@@ -1106,8 +1106,10 @@ export default function PublicClubPage() {
                                   </CardHeader>
                                   <CardContent className="space-y-3">
                                     {chant.fileType === "text" && chant.content && (
-                                      <div className="text-sm whitespace-pre-wrap text-muted-foreground line-clamp-6">
-                                        {chant.content}
+                                      <div className="bg-muted p-4 rounded-lg">
+                                        <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed font-sans text-muted-foreground">
+                                          {chant.content}
+                                        </pre>
                                       </div>
                                     )}
                                     {chant.fileType === "image" && chant.fileUrl && (
