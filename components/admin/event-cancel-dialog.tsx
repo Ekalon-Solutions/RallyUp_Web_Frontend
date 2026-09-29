@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
@@ -24,34 +25,49 @@ export type EventCancelIntent =
   | { kind: "refund_all" }
   | { kind: "delete" }
 
+export type CancelDialogVenue = { _id: string; name: string; cancelledAt?: string }
+
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   eventTitle: string
+  /** Multi-venue events get a venue picker; single-venue events cancel the whole event. */
+  venues?: CancelDialogVenue[]
   intent: EventCancelIntent | null
   loading?: boolean
-  onConfirm: (result: { mode?: CancelMode; reason?: string }) => void
+  onConfirm: (result: { mode?: CancelMode; reason?: string; venueIds?: string[] }) => void
 }
 
-export function EventCancelDialog({ open, onOpenChange, eventTitle, intent, loading = false, onConfirm }: Props) {
+export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [], intent, loading = false, onConfirm }: Props) {
   const [mode, setMode] = useState<CancelMode>("cancel")
   const [reason, setReason] = useState("")
+  const [selected, setSelected] = useState<string[]>([])
+
+  const multiVenue = venues.length > 1
+  const openVenues = venues.filter((v) => !v.cancelledAt)
 
   useEffect(() => {
     if (!open) return
     setMode(intent?.kind === "cancel" ? intent.mode : "cancel")
     setReason("")
+    setSelected(openVenues.map((v) => v._id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, intent])
 
   if (!intent) return null
 
   const isCancel = intent.kind === "cancel"
+  const toggle = (id: string, on: boolean) => setSelected((cur) => (on ? [...cur, id] : cur.filter((x) => x !== id)))
+  const wholeEvent = !multiVenue || selected.length === openVenues.length
+  const nothingSelected = isCancel && multiVenue && selected.length === 0
   const feeNote = "Platform and gateway fees are charged to the club, not deducted from ticket holders."
   const copy = {
     cancel: {
-      title: `Cancel "${eventTitle}"?`,
-      body: "Every unscanned ticket is cancelled and holders are notified. Tickets already checked in are left as they are. This cannot be undone.",
-      cta: mode === "cancel_refund" ? "Cancel event & refund" : "Cancel event",
+      title: wholeEvent ? `Cancel "${eventTitle}"?` : `Cancel ${selected.length === 1 ? "this venue" : `${selected.length} venues`} for "${eventTitle}"?`,
+      body: wholeEvent
+        ? "Every unscanned ticket is cancelled and holders are notified. Tickets already checked in are left as they are. This cannot be undone."
+        : "Only tickets for the selected venues are cancelled and their holders notified. The event stays live for the other venues. This cannot be undone.",
+      cta: `${wholeEvent ? "Cancel event" : "Cancel venue"}${mode === "cancel_refund" ? " & refund" : ""}`,
     },
     refund_all: {
       title: `Refund every ticket for "${eventTitle}"?`,
@@ -78,6 +94,30 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, intent, load
 
         {isCancel && (
           <div className="flex flex-col gap-4">
+            {multiVenue && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Venues to cancel</Label>
+                <div className="flex flex-col gap-2 rounded-md border p-3">
+                  {venues.map((v) => {
+                    const done = Boolean(v.cancelledAt)
+                    return (
+                      <label key={v._id} className={`flex items-center gap-2 text-sm ${done ? "text-muted-foreground" : "cursor-pointer"}`}>
+                        <Checkbox
+                          checked={done || selected.includes(v._id)}
+                          disabled={done}
+                          onCheckedChange={(c) => toggle(v._id, c === true)}
+                        />
+                        <span>{v.name}</span>
+                        {done && <span className="text-xs">(already cancelled)</span>}
+                      </label>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {wholeEvent ? "All venues selected — the whole event will be cancelled." : "Unselected venues keep their tickets and stay open for booking."}
+                </p>
+              </div>
+            )}
             <RadioGroup value={mode} onValueChange={(v) => setMode(v as CancelMode)} className="gap-3">
               <label htmlFor="cancel-mode-only" className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
                 <RadioGroupItem id="cancel-mode-only" value="cancel" className="mt-0.5" />
@@ -114,8 +154,14 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, intent, load
           <AlertDialogCancel disabled={loading}>Keep event</AlertDialogCancel>
           <Button
             variant="destructive"
-            disabled={loading}
-            onClick={() => onConfirm(isCancel ? { mode, reason: reason.trim() || undefined } : {})}
+            disabled={loading || nothingSelected}
+            onClick={() =>
+              onConfirm(
+                isCancel
+                  ? { mode, reason: reason.trim() || undefined, venueIds: multiVenue && !wholeEvent ? selected : undefined }
+                  : {}
+              )
+            }
           >
             {loading ? "Working…" : copy.cta}
           </Button>
