@@ -484,7 +484,12 @@ function RefundsPageInner() {
                             {refund.currency} {refund.estimatedRefund.toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            {getStatusBadge(refund.status)}
+                            <div className="flex flex-col gap-1 items-start">
+                              {getStatusBadge(refund.status)}
+                              {refund.status === 'requested' && refund.adminNotes?.includes('GATEWAY REFUND FAILED') && (
+                                <Badge variant="destructive" className="text-[10px]" title={refund.adminNotes}>Gateway failed — retry needed</Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">

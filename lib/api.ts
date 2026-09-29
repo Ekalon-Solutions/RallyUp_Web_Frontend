@@ -2740,15 +2740,15 @@ class ApiClient {
     return this.request(`/events/${eventId}/refund-policy/history?limit=${limit}`);
   }
 
-  async cancelEvent(id: string, mode: 'cancel' | 'cancel_refund', reason?: string, venueIds?: string[]): Promise<ApiResponse<{
+  async cancelEvent(id: string, mode: 'cancel' | 'cancel_refund', reason?: string, venueIds?: string[], refundBasis: 'policy' | 'full' = 'policy'): Promise<ApiResponse<{
     message: string;
     data: { ticketsCancelled: number; pendingCancelled: number; urgent: boolean; venueIds: string[] | null; refunds: { processed: number; failed: number } | null; cancellation: Event['cancellation'] };
   }>> {
-    return this.request(`/events/${id}/cancel`, { method: 'POST', body: JSON.stringify({ mode, reason, venueIds }) });
+    return this.request(`/events/${id}/cancel`, { method: 'POST', body: JSON.stringify({ mode, reason, venueIds, refundBasis }) });
   }
 
-  async refundAllEventTickets(id: string): Promise<ApiResponse<{ message: string; data: { processed: number; failed: number; skipped: number; status: 'cancelled' | 'refunded' } }>> {
-    return this.request(`/events/${id}/refund-all`, { method: 'POST' });
+  async refundAllEventTickets(id: string, refundBasis: 'policy' | 'full' = 'policy'): Promise<ApiResponse<{ message: string; data: { processed: number; failed: number; skipped: number; status: 'cancelled' | 'refunded' } }>> {
+    return this.request(`/events/${id}/refund-all`, { method: 'POST', body: JSON.stringify({ refundBasis }) });
   }
 
   async toggleEventStatus(id: string, isActive: boolean): Promise<ApiResponse<{ message: string; event: Event }>> {
