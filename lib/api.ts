@@ -890,6 +890,13 @@ export interface Event {
   refund_cutoff_hours?: number;
   refundTiers?: { daysBefore: number; hoursBefore?: number; unit?: 'days' | 'hours'; refundPercentage: number }[];
   refundPolicyLastUpdated?: string;
+  /** Present once an admin has cancelled the venue/event. Irreversible. */
+  cancellation?: {
+    status: 'cancelled' | 'refunded';
+    cancelledAt: string;
+    reason?: string;
+    refundSummary?: { processed: number; failed: number; lastRunAt: string };
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -2710,6 +2717,17 @@ class ApiClient {
     }>;
   }>> {
     return this.request(`/events/${eventId}/refund-policy/history?limit=${limit}`);
+  }
+
+  async cancelEvent(id: string, mode: 'cancel' | 'cancel_refund', reason?: string): Promise<ApiResponse<{
+    message: string;
+    data: { ticketsCancelled: number; pendingCancelled: number; urgent: boolean; refunds: { processed: number; failed: number } | null; cancellation: Event['cancellation'] };
+  }>> {
+    return this.request(`/events/${id}/cancel`, { method: 'POST', body: JSON.stringify({ mode, reason }) });
+  }
+
+  async refundAllEventTickets(id: string): Promise<ApiResponse<{ message: string; data: { processed: number; failed: number; skipped: number; status: 'cancelled' | 'refunded' } }>> {
+    return this.request(`/events/${id}/refund-all`, { method: 'POST' });
   }
 
   async toggleEventStatus(id: string, isActive: boolean): Promise<ApiResponse<{ message: string; event: Event }>> {
