@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3 } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3, XOctagon, RotateCcw } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
@@ -142,6 +142,44 @@ export default function EventsPage() {
       }
     } catch {
       toast.error("Error deleting event")
+    }
+  }
+
+  const handleCancelEvent = async (event: Event, mode: 'cancel' | 'cancel_refund') => {
+    const what = mode === 'cancel_refund'
+      ? `Cancel "${event.title}" AND refund every unscanned ticket in full? Platform and gateway fees will be charged to the club. This cannot be undone.`
+      : `Cancel "${event.title}"? All unscanned tickets will be cancelled (no refunds issued yet). This cannot be undone.`
+    if (!confirm(what)) return
+    try {
+      const response = await apiClient.cancelEvent(event._id, mode)
+      if (response.success) {
+        const d = response.data?.data
+        const failed = d?.refunds?.failed ?? 0
+        if (failed > 0) toast.warning(`Event cancelled — ${failed} refund(s) failed at the gateway. See refund requests.`)
+        else toast.success(mode === 'cancel_refund' ? 'Event cancelled and refunds processed' : 'Event cancelled')
+        fetchEvents()
+      } else {
+        toast.error(response.error || 'Failed to cancel event')
+      }
+    } catch {
+      toast.error('Error cancelling event')
+    }
+  }
+
+  const handleRefundAll = async (event: Event) => {
+    if (!confirm(`Refund every unrefunded ticket for "${event.title}" in full? Platform and gateway fees will be charged to the club.`)) return
+    try {
+      const response = await apiClient.refundAllEventTickets(event._id)
+      if (response.success) {
+        const d = response.data?.data
+        if (d?.failed) toast.warning(`${d.processed} refunded, ${d.failed} failed at the gateway. See refund requests.`)
+        else toast.success('All tickets refunded')
+        fetchEvents()
+      } else {
+        toast.error(response.error || 'Failed to process refunds')
+      }
+    } catch {
+      toast.error('Error processing refunds')
     }
   }
 
@@ -472,7 +510,9 @@ export default function EventsPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
-                              {!event.isActive && (
+                              {event.cancellation ? (
+                                <Badge variant="destructive">{event.cancellation.status === 'refunded' ? 'Cancelled · Refunded' : 'Cancelled'}</Badge>
+                              ) : !event.isActive && (
                                 <Badge variant="secondary">Inactive</Badge>
                               )}
                               {(() => {
@@ -534,6 +574,21 @@ export default function EventsPage() {
                                       <ScanLine className="w-4 h-4 mr-2" />
                                       Scan QR
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      disabled={Boolean(event.cancellation)}
+                                      onClick={() => handleCancelEvent(event, 'cancel')}
+                                    >
+                                      <XOctagon className="w-4 h-4 mr-2" />
+                                      Cancel Venue/Event
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      disabled={event.cancellation?.status === 'refunded'}
+                                      onClick={() => event.cancellation ? handleRefundAll(event) : handleCancelEvent(event, 'cancel_refund')}
+                                    >
+                                      <RotateCcw className="w-4 h-4 mr-2" />
+                                      {event.cancellation ? 'Process Refund for All Tickets' : 'Cancel and Refund All Tickets'}
+                                    </DropdownMenuItem>
+                                    {!event.cancellation && (
                                     <DropdownMenuItem onClick={() => handleToggleStatus(event._id, event.isActive)}>
                                       {event.isActive ? (
                                         <>
@@ -547,6 +602,7 @@ export default function EventsPage() {
                                         </>
                                       )}
                                     </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem onClick={() => { setRefundPolicyEvent(event); setRefundPolicyModalOpen(true) }}>
                                       {event.isRefundAllowed !== false && event.is_refund_allowed !== false ? (
                                         <>
