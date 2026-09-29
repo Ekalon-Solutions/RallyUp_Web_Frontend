@@ -42,24 +42,25 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
   const [mode, setMode] = useState<CancelMode>("cancel")
   const [reason, setReason] = useState("")
   const [selected, setSelected] = useState<string[]>([])
+  const [entireEvent, setEntireEvent] = useState(false)
 
   const multiVenue = venues.length > 1
-  const openVenues = venues.filter((v) => !v.cancelledAt)
 
   useEffect(() => {
     if (!open) return
     setMode(intent?.kind === "cancel" ? intent.mode : "cancel")
     setReason("")
-    setSelected(openVenues.map((v) => v._id))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setSelected([])
+    setEntireEvent(false)
   }, [open, intent])
 
   if (!intent) return null
 
   const isCancel = intent.kind === "cancel"
   const toggle = (id: string, on: boolean) => setSelected((cur) => (on ? [...cur, id] : cur.filter((x) => x !== id)))
-  const wholeEvent = !multiVenue || selected.length === openVenues.length
-  const nothingSelected = isCancel && multiVenue && selected.length === 0
+  // Multi-venue: only the ticked venues are cancelled unless the admin explicitly picks the entire event.
+  const wholeEvent = !multiVenue || entireEvent
+  const nothingSelected = isCancel && multiVenue && !entireEvent && selected.length === 0
   const feeNote = "Platform and gateway fees are charged to the club, not deducted from ticket holders."
   const copy = {
     cancel: {
@@ -96,15 +97,15 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
           <div className="flex flex-col gap-4">
             {multiVenue && (
               <div className="flex flex-col gap-1.5">
-                <Label>Venues to cancel</Label>
+                <Label>What to cancel</Label>
                 <div className="flex flex-col gap-2 rounded-md border p-3">
                   {venues.map((v) => {
                     const done = Boolean(v.cancelledAt)
                     return (
-                      <label key={v._id} className={`flex items-center gap-2 text-sm ${done ? "text-muted-foreground" : "cursor-pointer"}`}>
+                      <label key={v._id} className={`flex items-center gap-2 text-sm ${done || entireEvent ? "text-muted-foreground" : "cursor-pointer"}`}>
                         <Checkbox
                           checked={done || selected.includes(v._id)}
-                          disabled={done}
+                          disabled={done || entireEvent}
                           onCheckedChange={(c) => toggle(v._id, c === true)}
                         />
                         <span>{v.name}</span>
@@ -112,9 +113,15 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
                       </label>
                     )
                   })}
+                  <label className="mt-1 flex items-center gap-2 border-t pt-2 text-sm font-medium cursor-pointer">
+                    <Checkbox checked={entireEvent} onCheckedChange={(c) => setEntireEvent(c === true)} />
+                    <span>Entire event (all venues)</span>
+                  </label>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {wholeEvent ? "All venues selected — the whole event will be cancelled." : "Unselected venues keep their tickets and stay open for booking."}
+                  {entireEvent
+                    ? "The event is marked cancelled and every unscanned ticket is cancelled."
+                    : "Only tickets for the ticked venues are cancelled. The event stays live and unticked venues keep taking bookings."}
                 </p>
               </div>
             )}
