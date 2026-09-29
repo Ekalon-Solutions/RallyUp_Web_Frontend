@@ -147,9 +147,9 @@ export default function EventsPage() {
     }
   }
 
-  const handleCancelEvent = async (event: Event, mode: 'cancel' | 'cancel_refund', reason?: string, venueIds?: string[]) => {
+  const handleCancelEvent = async (event: Event, mode: 'cancel' | 'cancel_refund', reason?: string, venueIds?: string[], refundBasis: 'policy' | 'full' = 'policy') => {
     try {
-      const response = await apiClient.cancelEvent(event._id, mode, reason, venueIds)
+      const response = await apiClient.cancelEvent(event._id, mode, reason, venueIds, refundBasis)
       if (response.success) {
         const d = response.data?.data
         const failed = d?.refunds?.failed ?? 0
@@ -165,23 +165,23 @@ export default function EventsPage() {
     }
   }
 
-  const confirmCancelDialog = async ({ mode, reason, venueIds }: { mode?: 'cancel' | 'cancel_refund'; reason?: string; venueIds?: string[] }) => {
+  const confirmCancelDialog = async ({ mode, reason, venueIds, refundBasis }: { mode?: 'cancel' | 'cancel_refund'; reason?: string; venueIds?: string[]; refundBasis?: 'policy' | 'full' }) => {
     if (!cancelTarget) return
     const { event, intent } = cancelTarget
     setCancelLoading(true)
     try {
       if (intent.kind === 'delete') await handleDeleteEvent(event._id)
-      else if (intent.kind === 'refund_all') await handleRefundAll(event)
-      else await handleCancelEvent(event, mode ?? intent.mode, reason, venueIds)
+      else if (intent.kind === 'refund_all') await handleRefundAll(event, refundBasis)
+      else await handleCancelEvent(event, mode ?? intent.mode, reason, venueIds, refundBasis)
     } finally {
       setCancelLoading(false)
       setCancelTarget(null)
     }
   }
 
-  const handleRefundAll = async (event: Event) => {
+  const handleRefundAll = async (event: Event, refundBasis: 'policy' | 'full' = 'policy') => {
     try {
-      const response = await apiClient.refundAllEventTickets(event._id)
+      const response = await apiClient.refundAllEventTickets(event._id, refundBasis)
       if (response.success) {
         const d = response.data?.data
         if (d?.failed) toast.warning(`${d.processed} refunded, ${d.failed} failed at the gateway. See refund requests.`)

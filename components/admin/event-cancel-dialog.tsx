@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { AlertTriangle } from "lucide-react"
 
 export type CancelMode = "cancel" | "cancel_refund"
+export type RefundBasis = "policy" | "full"
 
 /** Which admin action the dialog is confirming. */
 export type EventCancelIntent =
@@ -35,7 +36,7 @@ type Props = {
   venues?: CancelDialogVenue[]
   intent: EventCancelIntent | null
   loading?: boolean
-  onConfirm: (result: { mode?: CancelMode; reason?: string; venueIds?: string[] }) => void
+  onConfirm: (result: { mode?: CancelMode; reason?: string; venueIds?: string[]; refundBasis?: RefundBasis }) => void
 }
 
 export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [], intent, loading = false, onConfirm }: Props) {
@@ -43,6 +44,7 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
   const [reason, setReason] = useState("")
   const [selected, setSelected] = useState<string[]>([])
   const [entireEvent, setEntireEvent] = useState(false)
+  const [fullRefund, setFullRefund] = useState(false)
 
   const multiVenue = venues.length > 1
 
@@ -52,6 +54,7 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
     setReason("")
     setSelected([])
     setEntireEvent(false)
+    setFullRefund(false)
   }, [open, intent])
 
   if (!intent) return null
@@ -62,6 +65,7 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
   const wholeEvent = !multiVenue || entireEvent
   const nothingSelected = isCancel && multiVenue && !entireEvent && selected.length === 0
   const feeNote = "Platform and gateway fees are charged to the club, not deducted from ticket holders."
+  const refundsOn = (isCancel && mode === "cancel_refund") || intent.kind === "refund_all"
   const copy = {
     cancel: {
       title: wholeEvent ? `Cancel "${eventTitle}"?` : `Cancel ${selected.length === 1 ? "this venue" : `${selected.length} venues`} for "${eventTitle}"?`,
@@ -72,7 +76,7 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
     },
     refund_all: {
       title: `Refund every ticket for "${eventTitle}"?`,
-      body: `Every unrefunded, unscanned ticket is refunded in full to the original payment method. ${feeNote}`,
+      body: "Every unrefunded, unscanned ticket is refunded to the original payment method — per the club's refund policy, or in full if you choose below.",
       cta: "Refund all tickets",
     },
     delete: {
@@ -139,7 +143,7 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
                 <RadioGroupItem id="cancel-mode-refund" value="cancel_refund" className="mt-0.5" />
                 <span className="flex flex-col gap-0.5">
                   <span className="text-sm font-medium">Cancel and refund all tickets</span>
-                  <span className="text-xs text-muted-foreground">Full refunds are issued immediately. {feeNote}</span>
+                  <span className="text-xs text-muted-foreground">Refunds are issued immediately per the club's refund policy at this point in time.</span>
                 </span>
               </label>
             </RadioGroup>
@@ -157,17 +161,26 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
           </div>
         )}
 
+        {refundsOn && (
+          <label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
+            <Checkbox className="mt-0.5" checked={fullRefund} onCheckedChange={(c) => setFullRefund(c === true)} />
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">Refund in full, ignoring the refund policy</span>
+              <span className="text-xs text-muted-foreground">Holders get back everything they paid. {feeNote}</span>
+            </span>
+          </label>
+        )}
+
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>Keep event</AlertDialogCancel>
           <Button
             variant="destructive"
             disabled={loading || nothingSelected}
             onClick={() =>
-              onConfirm(
-                isCancel
-                  ? { mode, reason: reason.trim() || undefined, venueIds: multiVenue && !wholeEvent ? selected : undefined }
-                  : {}
-              )
+              onConfirm({
+                ...(isCancel ? { mode, reason: reason.trim() || undefined, venueIds: multiVenue && !wholeEvent ? selected : undefined } : {}),
+                ...(refundsOn ? { refundBasis: fullRefund ? "full" : "policy" } : {}),
+              })
             }
           >
             {loading ? "Working…" : copy.cta}
