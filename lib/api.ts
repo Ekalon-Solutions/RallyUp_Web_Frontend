@@ -1684,11 +1684,20 @@ class ApiClient {
     });
   }
 
-  async verifyEmailOTP(params: { email: string; otp: string; role?: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
-    return this.request('/otp/verify-email-otp', {
+  async verifyEmailOTP(params: { email: string; otp: string; role?: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string; otpProof?: string } & (User | Admin | SystemOwner)>> {
+    const res = await this.request<{ token: string; otpProof?: string } & (User | Admin | SystemOwner)>('/otp/verify-email-otp', {
       method: 'POST',
       body: JSON.stringify(params),
     });
+    this.rememberOtpProof(res);
+    return res;
+  }
+
+  /** The backend's /login endpoints refuse to mint a session without this proof. */
+  private rememberOtpProof(res: ApiResponse<{ otpProof?: string }>): void {
+    if (res.success && res.data?.otpProof && typeof window !== 'undefined') {
+      window.otpProof = res.data.otpProof;
+    }
   }
 
   async verifyOTP(params: { 
@@ -1701,15 +1710,25 @@ class ApiClient {
   }): Promise<ApiResponse<{
     verified: boolean;
     token?: string;
+    otpProof?: string;
     channel?: string;
     idToken?: string;
     /** Present only when the backend issued a token; `userData.role` is the caller's real role. */
     userData?: { _id: string; name?: string; email?: string; phoneNumber?: string; countryCode?: string; role?: string };
   }>> {
-    return this.request('/otp/verify', {
+    const res = await this.request<{
+      verified: boolean;
+      token?: string;
+      otpProof?: string;
+      channel?: string;
+      idToken?: string;
+      userData?: { _id: string; name?: string; email?: string; phoneNumber?: string; countryCode?: string; role?: string };
+    }>('/otp/verify', {
       method: 'POST',
       body: JSON.stringify(params),
     });
+    this.rememberOtpProof(res);
+    return res;
   }
 
   async resendOTP(data: {

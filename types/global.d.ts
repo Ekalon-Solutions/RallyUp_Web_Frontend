@@ -10,6 +10,8 @@ declare global {
     recaptchaVerifier?: RecaptchaVerifier;
     confirmationResult?: ConfirmationResult;
     otpSessionInfo?: string;
+    /** Short-lived server proof that the last OTP verified; sent with /login. */
+    otpProof?: string;
   }
 }
 
