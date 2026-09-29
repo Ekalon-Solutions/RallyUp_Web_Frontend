@@ -18,6 +18,17 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useSelectedClubId } from "@/hooks/useSelectedClubId"
 
+const ACTIVE_BADGE = 'bg-green-500 text-white hover:bg-green-600 border-transparent'
+
+// Plans defined by start/end dates have no `duration`, so fall back to the member's own card period.
+function getDurationMonths(c: PublicMembershipCardDisplay): number | null {
+  const d = Number(c.membershipPlan?.duration)
+  if (d > 0) return d
+  const start = new Date(c.card.issueDate).getTime()
+  const end = new Date(c.card.expiryDate).getTime()
+  if (!start || !end || end <= start) return null
+  return Math.max(1, Math.round((end - start) / (30.44 * 24 * 60 * 60 * 1000)))
+}
 
 export default function UserMembershipCardPage() {
   const [cards, setCards] = useState<PublicMembershipCardDisplay[]>([])
@@ -314,7 +325,7 @@ export default function UserMembershipCardPage() {
                     <div className="pt-3 border-t">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Status</span>
-                        <Badge variant={displaySelectedCard.card.status === 'active' ? 'default' : 'secondary'}>
+                        <Badge variant={displaySelectedCard.card.status === 'active' ? 'default' : 'secondary'} className={displaySelectedCard.card.status === 'active' ? ACTIVE_BADGE : undefined}>
                           {displaySelectedCard.card.status}
                         </Badge>
                       </div>
@@ -338,15 +349,12 @@ export default function UserMembershipCardPage() {
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <span>Duration</span>
-                            <span className="font-medium">{displaySelectedCard.membershipPlan.duration} months</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span>Access Level</span>
-                            <span className="font-medium">{displaySelectedCard.card.accessLevel}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span>Card Style</span>
-                            <span className="font-medium capitalize">{displaySelectedCard.card.cardStyle}</span>
+                            <span className="font-medium">
+                              {(() => {
+                                const m = getDurationMonths(displaySelectedCard)
+                                return m ? `${m} month${m === 1 ? '' : 's'}` : 'Lifetime'
+                              })()}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -381,7 +389,6 @@ export default function UserMembershipCardPage() {
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-sm">{card.club?.name || 'Unknown Club'}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{card.card.cardStyle} style</p>
                         </div>
                       </div>
                       <div className="space-y-2 text-xs">
@@ -391,13 +398,9 @@ export default function UserMembershipCardPage() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Status:</span>
-                          <Badge variant={card.card.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                          <Badge variant={card.card.status === 'active' ? 'default' : 'secondary'} className={`text-xs ${card.card.status === 'active' ? ACTIVE_BADGE : ''}`}>
                             {card.card.status}
                           </Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Access:</span>
-                          <span className="capitalize">{card.card.accessLevel}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Expires:</span>
