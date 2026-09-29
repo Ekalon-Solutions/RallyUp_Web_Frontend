@@ -82,6 +82,16 @@ function RefundsPageInner() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const eventIdFilter = searchParams.get('eventId') || ''
+  const eventTitleFilter = searchParams.get('eventTitle') || ''
+  const clearEventFilter = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('eventId')
+    params.delete('eventTitle')
+    router.replace(`/dashboard/admin/refunds?${params.toString()}`)
+  }
   const [selectedRefund, setSelectedRefund] = useState<RefundRequest | null>(null)
   const [recalculated, setRecalculated] = useState<{ recalculatedRefund: number; percentage: number; differs: boolean } | null>(null)
   const [policyText, setPolicyText] = useState('')
@@ -97,8 +107,17 @@ function RefundsPageInner() {
   const [policyAnalyticsLoading, setPolicyAnalyticsLoading] = useState(false)
 
   useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter, debouncedSearch, eventIdFilter])
+
+  useEffect(() => {
     fetchRefunds()
-  }, [page, statusFilter, clubId])
+  }, [page, statusFilter, clubId, debouncedSearch, eventIdFilter])
 
   useEffect(() => {
     if (!clubId) return
@@ -196,6 +215,8 @@ function RefundsPageInner() {
         limit: 20,
         status: statusFilter,
         ...(clubId ? { clubId } : {}),
+        ...(eventIdFilter ? { eventId: eventIdFilter } : {}),
+        ...(debouncedSearch ? { q: debouncedSearch } : {}),
       })
 
       if (res.success && res.data) {
@@ -355,11 +376,18 @@ function RefundsPageInner() {
           <TabsContent value="requests" className="mt-4">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>Refunds</CardTitle>
                 <CardDescription>View and manage all refund requests</CardDescription>
               </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search event, member or order…"
+                className="w-full sm:w-[240px]"
+              />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by status" />
@@ -371,7 +399,16 @@ function RefundsPageInner() {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
+              </div>
             </div>
+            {eventIdFilter && (
+              <div className="mt-2">
+                <Badge variant="secondary" className="gap-1 pr-1">
+                  Event: {eventTitleFilter || refunds.find((r) => typeof r.eventId === 'object' && r.eventId)?.eventId?.title || eventIdFilter}
+                  <button type="button" onClick={clearEventFilter} aria-label="Clear event filter" className="ml-1 rounded-sm px-1 hover:bg-muted">×</button>
+                </Badge>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             {loading ? (

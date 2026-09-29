@@ -6600,6 +6600,8 @@ class ApiClient {
     limit?: number;
     status?: string;
     clubId?: string;
+    eventId?: string;
+    q?: string;
   }): Promise<ApiResponse<{
     refunds: any[];
     pagination: {
