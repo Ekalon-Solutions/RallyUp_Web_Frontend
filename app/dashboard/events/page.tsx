@@ -27,6 +27,7 @@ import { formatEventPriceDisplay, isEventPaid, getEventVenueDisplay, hasVenueTie
 import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus } from "@/lib/event-registration"
 import { RefundPolicyToggle } from "@/components/admin/refund-policy-toggle"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
+import { EventCancelDialog, EventCancelIntent } from "@/components/admin/event-cancel-dialog"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
 import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
@@ -52,6 +53,8 @@ export default function EventsPage() {
   const [showPolicyImpactDialog, setShowPolicyImpactDialog] = useState(false)
   const [pendingPolicyChange, setPendingPolicyChange] = useState<{ eventId: string; newPolicy: boolean; reason: string } | null>(null)
   const [policyChangeLoading, setPolicyChangeLoading] = useState(false)
+  const [cancelTarget, setCancelTarget] = useState<{ event: Event; intent: EventCancelIntent } | null>(null)
+  const [cancelLoading, setCancelLoading] = useState(false)
 
   useEffect(() => {
     fetchEvents()
@@ -129,7 +132,6 @@ export default function EventsPage() {
   }
 
   const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm("Are you sure you want to delete this event?")) return
     try {
       const response = await apiClient.deleteEvent(eventId)
       if (response.success) {
@@ -145,13 +147,9 @@ export default function EventsPage() {
     }
   }
 
-  const handleCancelEvent = async (event: Event, mode: 'cancel' | 'cancel_refund') => {
-    const what = mode === 'cancel_refund'
-      ? `Cancel "${event.title}" AND refund every unscanned ticket in full? Platform and gateway fees will be charged to the club. This cannot be undone.`
-      : `Cancel "${event.title}"? All unscanned tickets will be cancelled (no refunds issued yet). This cannot be undone.`
-    if (!confirm(what)) return
+  const handleCancelEvent = async (event: Event, mode: 'cancel' | 'cancel_refund', reason?: string) => {
     try {
-      const response = await apiClient.cancelEvent(event._id, mode)
+      const response = await apiClient.cancelEvent(event._id, mode, reason)
       if (response.success) {
         const d = response.data?.data
         const failed = d?.refunds?.failed ?? 0
@@ -166,8 +164,21 @@ export default function EventsPage() {
     }
   }
 
+  const confirmCancelDialog = async ({ mode, reason }: { mode?: 'cancel' | 'cancel_refund'; reason?: string }) => {
+    if (!cancelTarget) return
+    const { event, intent } = cancelTarget
+    setCancelLoading(true)
+    try {
+      if (intent.kind === 'delete') await handleDeleteEvent(event._id)
+      else if (intent.kind === 'refund_all') await handleRefundAll(event)
+      else await handleCancelEvent(event, mode ?? intent.mode, reason)
+    } finally {
+      setCancelLoading(false)
+      setCancelTarget(null)
+    }
+  }
+
   const handleRefundAll = async (event: Event) => {
-    if (!confirm(`Refund every unrefunded ticket for "${event.title}" in full? Platform and gateway fees will be charged to the club.`)) return
     try {
       const response = await apiClient.refundAllEventTickets(event._id)
       if (response.success) {
@@ -279,6 +290,15 @@ export default function EventsPage() {
               }}
             />
           )}
+
+          <EventCancelDialog
+            open={Boolean(cancelTarget)}
+            onOpenChange={(o) => { if (!o) setCancelTarget(null) }}
+            eventTitle={cancelTarget?.event.title ?? ''}
+            intent={cancelTarget?.intent ?? null}
+            loading={cancelLoading}
+            onConfirm={confirmCancelDialog}
+          />
 
           <EventRefundPolicyImpactDialog
             open={showPolicyImpactDialog}
@@ -576,14 +596,14 @@ export default function EventsPage() {
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       disabled={Boolean(event.cancellation)}
-                                      onClick={() => handleCancelEvent(event, 'cancel')}
+                                      onClick={() => setCancelTarget({ event, intent: { kind: 'cancel', mode: 'cancel' } })}
                                     >
                                       <XOctagon className="w-4 h-4 mr-2" />
                                       Cancel Venue/Event
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       disabled={event.cancellation?.status === 'refunded'}
-                                      onClick={() => event.cancellation ? handleRefundAll(event) : handleCancelEvent(event, 'cancel_refund')}
+                                      onClick={() => setCancelTarget({ event, intent: event.cancellation ? { kind: 'refund_all' } : { kind: 'cancel', mode: 'cancel_refund' } })}
                                     >
                                       <RotateCcw className="w-4 h-4 mr-2" />
                                       {event.cancellation ? 'Process Refund for All Tickets' : 'Cancel and Refund All Tickets'}
@@ -626,7 +646,7 @@ export default function EventsPage() {
                                       <BarChart3 className="w-4 h-4 mr-2" />
                                       Refund Report
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleDeleteEvent(event._id)}>
+                                    <DropdownMenuItem onClick={() => setCancelTarget({ event, intent: { kind: 'delete' } })}>
                                       <Trash2 className="w-4 h-4 mr-2" />
                                       Delete
                                     </DropdownMenuItem>
