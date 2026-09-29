@@ -371,6 +371,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         return { success: false, error: 'Please provide either email or phone number' };
       }
+      if (typeof window !== 'undefined' && window.otpProof) {
+        loginData.otpProof = window.otpProof;
+      }
 
       let response: any = null;
       let effectiveIsSystemOwner = isSystemOwner;
