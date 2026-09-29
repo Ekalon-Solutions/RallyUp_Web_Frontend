@@ -147,14 +147,15 @@ export default function EventsPage() {
     }
   }
 
-  const handleCancelEvent = async (event: Event, mode: 'cancel' | 'cancel_refund', reason?: string) => {
+  const handleCancelEvent = async (event: Event, mode: 'cancel' | 'cancel_refund', reason?: string, venueIds?: string[]) => {
     try {
-      const response = await apiClient.cancelEvent(event._id, mode, reason)
+      const response = await apiClient.cancelEvent(event._id, mode, reason, venueIds)
       if (response.success) {
         const d = response.data?.data
         const failed = d?.refunds?.failed ?? 0
-        if (failed > 0) toast.warning(`Event cancelled — ${failed} refund(s) failed at the gateway. See refund requests.`)
-        else toast.success(mode === 'cancel_refund' ? 'Event cancelled and refunds processed' : 'Event cancelled')
+        const what = d?.venueIds ? 'Venue' : 'Event'
+        if (failed > 0) toast.warning(`${what} cancelled — ${failed} refund(s) failed at the gateway. See refund requests.`)
+        else toast.success(mode === 'cancel_refund' ? `${what} cancelled and refunds processed` : `${what} cancelled`)
         fetchEvents()
       } else {
         toast.error(response.error || 'Failed to cancel event')
@@ -164,14 +165,14 @@ export default function EventsPage() {
     }
   }
 
-  const confirmCancelDialog = async ({ mode, reason }: { mode?: 'cancel' | 'cancel_refund'; reason?: string }) => {
+  const confirmCancelDialog = async ({ mode, reason, venueIds }: { mode?: 'cancel' | 'cancel_refund'; reason?: string; venueIds?: string[] }) => {
     if (!cancelTarget) return
     const { event, intent } = cancelTarget
     setCancelLoading(true)
     try {
       if (intent.kind === 'delete') await handleDeleteEvent(event._id)
       else if (intent.kind === 'refund_all') await handleRefundAll(event)
-      else await handleCancelEvent(event, mode ?? intent.mode, reason)
+      else await handleCancelEvent(event, mode ?? intent.mode, reason, venueIds)
     } finally {
       setCancelLoading(false)
       setCancelTarget(null)
@@ -295,6 +296,7 @@ export default function EventsPage() {
             open={Boolean(cancelTarget)}
             onOpenChange={(o) => { if (!o) setCancelTarget(null) }}
             eventTitle={cancelTarget?.event.title ?? ''}
+            venues={cancelTarget?.event.venues}
             intent={cancelTarget?.intent ?? null}
             loading={cancelLoading}
             onConfirm={confirmCancelDialog}

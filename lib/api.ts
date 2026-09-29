@@ -740,6 +740,8 @@ export interface EventVenue {
   _id: string;
   name: string;
   tiers: VenueTier[];
+  /** Set when an admin cancelled just this venue. */
+  cancelledAt?: string;
 }
 
 export interface VenueTierCartItem {
@@ -2738,11 +2740,11 @@ class ApiClient {
     return this.request(`/events/${eventId}/refund-policy/history?limit=${limit}`);
   }
 
-  async cancelEvent(id: string, mode: 'cancel' | 'cancel_refund', reason?: string): Promise<ApiResponse<{
+  async cancelEvent(id: string, mode: 'cancel' | 'cancel_refund', reason?: string, venueIds?: string[]): Promise<ApiResponse<{
     message: string;
-    data: { ticketsCancelled: number; pendingCancelled: number; urgent: boolean; refunds: { processed: number; failed: number } | null; cancellation: Event['cancellation'] };
+    data: { ticketsCancelled: number; pendingCancelled: number; urgent: boolean; venueIds: string[] | null; refunds: { processed: number; failed: number } | null; cancellation: Event['cancellation'] };
   }>> {
-    return this.request(`/events/${id}/cancel`, { method: 'POST', body: JSON.stringify({ mode, reason }) });
+    return this.request(`/events/${id}/cancel`, { method: 'POST', body: JSON.stringify({ mode, reason, venueIds }) });
   }
 
   async refundAllEventTickets(id: string): Promise<ApiResponse<{ message: string; data: { processed: number; failed: number; skipped: number; status: 'cancelled' | 'refunded' } }>> {
