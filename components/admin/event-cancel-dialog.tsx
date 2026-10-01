@@ -64,7 +64,6 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
   // Multi-venue: only the ticked venues are cancelled unless the admin explicitly picks the entire event.
   const wholeEvent = !multiVenue || entireEvent
   const nothingSelected = isCancel && multiVenue && !entireEvent && selected.length === 0
-  const feeNote = "Platform and gateway fees are charged to the club, not deducted from ticket holders."
   const refundsOn = (isCancel && mode === "cancel_refund") || intent.kind === "refund_all"
   const copy = {
     cancel: {
@@ -165,8 +164,8 @@ export function EventCancelDialog({ open, onOpenChange, eventTitle, venues = [],
           <label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
             <Checkbox className="mt-0.5" checked={fullRefund} onCheckedChange={(c) => setFullRefund(c === true)} />
             <span className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">Refund in full, ignoring the refund policy</span>
-              <span className="text-xs text-muted-foreground">Holders get back everything they paid. {feeNote}</span>
+              <span className="text-sm font-medium">Ignore the refund policy</span>
+              <span className="text-xs text-muted-foreground">Holders get 100% back regardless of the refund schedule. Platform and gateway fees are still deducted.</span>
             </span>
           </label>
         )}
