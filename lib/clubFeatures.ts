@@ -232,5 +232,5 @@ export const FEATURE_LABELS: Record<ClubFeatureKey, string> = {
   reporting:          'Reporting',
   wa_marketing:       'WhatsApp Marketing',
   ads:                'Ad Engine',
-  predictions:        'Guess the Score',
+  predictions:        'Wingman Predictor',
 };

@@ -393,7 +393,7 @@ export default function WingmanPredictorPage() {
               </div>
 
               {leagues && (
-                <GTSLeaderboard clubId={clubId} leagues={leagues} pageCompetitionId={selectedId} refreshKey={refreshKey} />
+                <GTSLeaderboard clubId={clubId} competitionId={selectedId} refreshKey={refreshKey} />
               )}
             </div>
           )}

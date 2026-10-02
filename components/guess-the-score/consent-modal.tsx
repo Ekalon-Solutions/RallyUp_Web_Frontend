@@ -50,7 +50,7 @@ function LeagueSelectionStep({
       <DialogHeader>
         <div className="flex items-center gap-2 mb-1">
           <Trophy className="w-5 h-5 text-primary" />
-          <DialogTitle>Welcome to Guess The Score</DialogTitle>
+          <DialogTitle>Welcome to Wingman Predictor</DialogTitle>
         </div>
         <DialogDescription>
           Predict match scores and earn points. Choose which league(s) you want to compete in.
@@ -158,7 +158,7 @@ function EulaStep({
         onScrollCapture={handleScroll}
       >
         <p className="font-semibold text-foreground mb-1">
-          Wingman Pro "Guess-the-Score" Global League
+          Wingman Pro "Wingman Predictor" Global League
         </p>
         <p className="text-xs text-muted-foreground mb-4">Last Updated: April 2, 2026</p>
 
@@ -210,7 +210,7 @@ function EulaStep({
           the purpose of:
         </p>
         <ol className="list-decimal pl-5 mb-3 space-y-1">
-          <li>Maintaining a transparent and competitive "Guess-the-Score" ranking system.</li>
+          <li>Maintaining a transparent and competitive "Wingman Predictor" ranking system.</li>
           <li>Verifying the authenticity of participants to prevent bot activity.</li>
           <li>Fostering community engagement across different supporters' groups.</li>
         </ol>

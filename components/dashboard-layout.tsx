@@ -207,7 +207,7 @@ const superAdminNavigation = [
 const userNavigation = [
   { name: "Feed", href: "/dashboard/user", icon: LayoutDashboard },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
-  { name: "Guess The Score", href: "/dashboard/user/guess-the-score", icon: Trophy },
+  { name: "Wingman Predictor", href: "/dashboard/user/guess-the-score", icon: Trophy },
   { name: "Gallery", href: "/dashboard/user/gallery", icon: Images },
   { name: "Club Chants", href: "/dashboard/user/chants", icon: Music },
   { name: "Leaderboard", href: "/dashboard/user/leaderboard", icon: ChartNoAxesColumn },
@@ -699,7 +699,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const isAuthenticated = Boolean(user)
 
   // Members also need the resolved feature flags so feature-gated nav items
-  // (e.g. Guess the Score / predictions) are hidden when disabled for the club.
+  // (e.g. Wingman Predictor) are hidden when disabled for the club.
   // Uses the member-accessible endpoint; defaults to optimistically allowed while loading.
   const {
     isEnabled: isMemberFeatureEnabled,
@@ -953,7 +953,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
         if (item.name === 'Volunteer') {
           return canShowSection('volunteer')
         }
-        if (item.name === 'Guess The Score') {
+        if (item.name === 'Wingman Predictor') {
           return canShowSection('guessTheScore')
         }
         return true

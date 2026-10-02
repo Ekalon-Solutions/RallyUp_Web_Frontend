@@ -63,7 +63,7 @@ const FEATURE_LABELS: Record<string, string> = {
   reporting:          "Reporting",
   wa_marketing:       "WhatsApp Marketing",
   ads:                "Ad Engine",
-  predictions:        "Guess the Score",
+  predictions:        "Wingman Predictor",
 }
 
 const ADDON_KEYS = [

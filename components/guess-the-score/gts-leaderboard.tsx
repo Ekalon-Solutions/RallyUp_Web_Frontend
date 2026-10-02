@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { Loader2, RefreshCw, Star, Trophy } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { apiClient, type GTSBoardEntry, type GTSJoinedLeague } from "@/lib/api"
+import { apiClient, type GTSBoardEntry } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 
 type Scope = "club" | "global"
@@ -29,29 +28,21 @@ function Row({ e, isMe }: { e: GTSBoardEntry; isMe: boolean }) {
   )
 }
 
-/**
- * Leaderboard with its own league filter: each joined league plus the overall
- * board across all of them, for the user's club or globally. Follows the
- * page's selected league until the user picks a different one here.
- */
-export function GTSLeaderboard({ clubId, leagues, pageCompetitionId, refreshKey }: {
+/** Leaderboard for the page's selected league, for the user's club or globally. */
+export function GTSLeaderboard({ clubId, competitionId, refreshKey }: {
   clubId: string
-  leagues: GTSJoinedLeague[]
-  pageCompetitionId: string | null
+  competitionId: string | null
   /** Bump to refetch (e.g. after join/leave or a scored result). */
   refreshKey: number
 }) {
   const { user } = useAuth()
   const userId = user?._id as string | undefined
-  const [competitionId, setCompetitionId] = useState<string>(pageCompetitionId ?? "all")
   const [scope, setScope] = useState<Scope>("club")
   const [data, setData] = useState<{ leaderboard: GTSBoardEntry[]; me: GTSBoardEntry | null; total: number } | null>(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => { if (pageCompetitionId) setCompetitionId(pageCompetitionId) }, [pageCompetitionId])
-
   const load = useCallback(async () => {
-    if (!clubId) return
+    if (!clubId || !competitionId) return
     setLoading(true)
     try {
       const res = await apiClient.getGTSLeagueLeaderboard({ competitionId, scope, clubId })
@@ -63,8 +54,6 @@ export function GTSLeaderboard({ clubId, leagues, pageCompetitionId, refreshKey 
 
   useEffect(() => { load() }, [load, refreshKey])
 
-  // Joined leagues, plus a left one while the page is showing its history.
-  const options = leagues.filter((l) => l.status === "active" || l.competitionId === competitionId)
   const meInTop = !!data?.me && data.leaderboard.some((e) => e.userId === data.me!.userId)
 
   return (
@@ -84,32 +73,19 @@ export function GTSLeaderboard({ clubId, leagues, pageCompetitionId, refreshKey 
         </button>
       </div>
 
-      <div className="mt-4 flex gap-2">
-        <Select value={competitionId} onValueChange={setCompetitionId}>
-          <SelectTrigger className="h-8 flex-1 text-xs" aria-label="Leaderboard league">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((l) => (
-              <SelectItem key={l.competitionId} value={l.competitionId} className="text-xs">{l.name}</SelectItem>
-            ))}
-            <SelectItem value="all" className="text-xs">All leagues (overall)</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="flex rounded-md border p-0.5 text-xs" role="tablist">
-          {(["club", "global"] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              role="tab"
-              aria-selected={scope === s}
-              onClick={() => setScope(s)}
-              className={cn("rounded px-2.5 py-1", scope === s ? "bg-foreground text-background" : "text-muted-foreground")}
-            >
-              {s === "club" ? "My club" : "Global"}
-            </button>
-          ))}
-        </div>
+      <div className="mt-4 flex rounded-md border p-0.5 text-xs" role="tablist">
+        {(["club", "global"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            role="tab"
+            aria-selected={scope === s}
+            onClick={() => setScope(s)}
+            className={cn("flex-1 rounded px-2.5 py-1", scope === s ? "bg-foreground text-background" : "text-muted-foreground")}
+          >
+            {s === "club" ? "My club" : "Global"}
+          </button>
+        ))}
       </div>
 
       <div className="mt-4 grid grid-cols-[3rem_1fr_auto_3rem] gap-2 pb-2 text-[11px] font-semibold text-muted-foreground">
