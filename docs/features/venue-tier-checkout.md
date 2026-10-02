@@ -29,6 +29,7 @@ Events in RallyUp can support either single-pricing tier schemas or a multi-dime
 3. **Discounts**:
    - Applies validated coupon discounts (`setCouponDiscount`).
    - Event-specific coupons carry an explicit list of club event IDs and are rejected when checkout does not supply a matching event ID.
+   - Coupon and plan discounts use the post-early-bird subtotal. Clearing an automatic discount sends `skipAutoDiscount` through pending and confirmed booking requests so the backend does not restore it.
    - Resolves points loyalty deduction (`validatePointsRedemptionInput`).
 4. **Fees Calculation**: Calculates dynamic PG charges using `resolveCheckoutCharge(...)`.
 5. **Razorpay Gate**: Submits a `POST /api/razorpay/create-order`, launches Razorpay client window, and confirms the signature on `/verify-payment` before routing to `/purchase/success`. `modal.ondismiss` is **not** treated as a cancel: VPA, netbanking, wallets, and pay-later close the sheet while payment is still running. `resolveRazorpayDismiss` waits for the tab to return, polls `/razorpay/check-order`, and only then cancels a pending booking.

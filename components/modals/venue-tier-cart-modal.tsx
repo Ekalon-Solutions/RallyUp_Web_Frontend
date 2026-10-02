@@ -1014,6 +1014,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           pointsDiscount: reservedDiscount || undefined,
           amountPaid: 0,
           attributed_club: attributedClub || undefined,
+          skipAutoDiscount: autoCouponRemoved && !couponApplied,
           waitlistToken: waitlistToken || undefined,
         })
         if (res.success) {
@@ -1054,6 +1055,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         earlyBirdDiscountAmt: simpleEarlyBirdDiscountTotal || undefined,
         pointsDiscount: reservedDiscount || undefined,
         attributed_club: attributedClub || undefined,
+        skipAutoDiscount: autoCouponRemoved && !couponApplied,
       }).catch((err) => console.warn("[VenueTierCart] Pending booking failed:", err))
 
       let checkoutSettled = false
@@ -1106,6 +1108,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               earlyBirdDiscountAmt: simpleEarlyBirdDiscountTotal || undefined,
               pointsDiscount: reservedDiscount || undefined,
               attributed_club: attributedClub || undefined,
+              skipAutoDiscount: autoCouponRemoved && !couponApplied,
               waitlistToken: waitlistToken || undefined,
             })
             if (res.success) {
@@ -1229,6 +1232,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           earlyBirdDiscountAmt: simpleEarlyBirdDiscountTotal || undefined,
           pointsDiscount: reservedDiscount || undefined,
           attributed_club: attributedClub || undefined,
+          skipAutoDiscount: autoCouponRemoved && !couponApplied,
         })
         if (res.success) {
           logTicketAnalytics(undefined, undefined, 0, ticketCount)
@@ -1270,6 +1274,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         earlyBirdDiscountAmt: simpleEarlyBirdDiscountTotal || undefined,
         pointsDiscount: reservedDiscount || undefined,
         attributed_club: attributedClub || undefined,
+        skipAutoDiscount: autoCouponRemoved && !couponApplied,
       })
 
       if (!pendingRes.success) {
@@ -1335,6 +1340,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               earlyBirdDiscountAmt: simpleEarlyBirdDiscountTotal || undefined,
               pointsDiscount: reservedDiscount || undefined,
               attributed_club: attributedClub || undefined,
+              skipAutoDiscount: autoCouponRemoved && !couponApplied,
             })
 
             if (res.success) {
@@ -1472,6 +1478,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           pointsDiscount: reservedDiscount || undefined,
           amountPaid: 0,
           attributed_club: attributedClub || undefined,
+          skipAutoDiscount: autoCouponRemoved && !couponApplied,
         })
         if (res.success) {
           logTicketAnalytics(undefined, undefined, 0, bookingAttendees.length)
@@ -1513,6 +1520,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
         pointsDiscount: reservedDiscount || undefined,
         attributed_club: attributedClub || undefined,
+        skipAutoDiscount: autoCouponRemoved && !couponApplied,
       })
       if (!pendingRes.success) {
         toast.error(pendingRes.error || "Unable to start checkout for this event.")
@@ -1571,6 +1579,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
               pointsDiscount: reservedDiscount || undefined,
               attributed_club: attributedClub || undefined,
+              skipAutoDiscount: autoCouponRemoved && !couponApplied,
             })
             if (res.success) {
               logTicketAnalytics(paymentId, orderId, amountToCharge, bookingAttendees.length)
@@ -1698,6 +1707,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           pointsDiscount: reservedDiscount || undefined,
           amountPaid: 0,
           attributed_club: attributedClub || undefined,
+          skipAutoDiscount: autoCouponRemoved && !couponApplied,
         })
         if (res.success) {
           logTicketAnalytics(undefined, undefined, 0, bookingAttendees.length)
@@ -1744,6 +1754,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
         pointsDiscount: reservedDiscount || undefined,
         attributed_club: attributedClub || undefined,
+        skipAutoDiscount: autoCouponRemoved && !couponApplied,
       }).catch((err) => console.warn("[VenueTierCart] Pending booking failed:", err))
 
       let checkoutSettled = false
@@ -1796,6 +1807,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
               pointsDiscount: reservedDiscount || undefined,
               attributed_club: attributedClub || undefined,
+              skipAutoDiscount: autoCouponRemoved && !couponApplied,
             })
             if (res.success) {
               logTicketAnalytics(paymentId, orderId, amountToCharge, bookingAttendees.length)

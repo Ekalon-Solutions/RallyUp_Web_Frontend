@@ -445,6 +445,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           },
           items: items.map(i => ({ productId: i._id, quantity: i.quantity })),
           couponCode: appliedCoupon?.code || undefined,
+          skipAutoDiscount: autoCouponRemoved && !appliedCoupon,
           paymentMethod: orderForm.paymentMethod,
           shippingMethod,
         }
@@ -457,7 +458,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       } catch (e) {
       }
     })()
-  }, [merchandiseSettings, subtotalAfterCoupon, orderForm.paymentMethod, shippingMethod, hasCompleteShippingAddress, orderForm.address, orderForm.city, orderForm.state, orderForm.country, orderForm.zipCode, appliedCoupon?.code, items, isOpen])
+  }, [merchandiseSettings, subtotalAfterCoupon, orderForm.paymentMethod, shippingMethod, hasCompleteShippingAddress, orderForm.address, orderForm.city, orderForm.state, orderForm.country, orderForm.zipCode, appliedCoupon, autoCouponRemoved, items, isOpen])
 
   const resolvedShippingCost = deliveryMethod === 'pickup'
     ? 0
@@ -646,6 +647,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         paymentMethod: orderForm.paymentMethod,
         notes: orderForm.notes,
         ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
+        ...(autoCouponRemoved && !appliedCoupon ? { skipAutoDiscount: true } : {}),
         deliveryMethod,
         ...(deliveryMethod === 'pickup'
           ? {

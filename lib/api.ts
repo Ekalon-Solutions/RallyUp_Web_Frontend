@@ -2719,10 +2719,10 @@ class ApiClient {
     });
   }
 
-  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string, reservationToken?: string, amountPaid?: number, couponDiscount?: number, earlyBirdDiscountAmt?: number, pointsDiscount?: number, attributed_club?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string, reservationToken?: string, amountPaid?: number, couponDiscount?: number, earlyBirdDiscountAmt?: number, pointsDiscount?: number, attributed_club?: string, skipAutoDiscount?: boolean): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken, reservationToken, amountPaid, couponDiscount, earlyBirdDiscountAmt, pointsDiscount, attributed_club }),
+      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken, reservationToken, amountPaid, couponDiscount, earlyBirdDiscountAmt, pointsDiscount, attributed_club, skipAutoDiscount }),
     });
   }
 
@@ -2742,6 +2742,7 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
+    skipAutoDiscount?: boolean;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/public/${eventId}/register`, {
       method: 'POST',
@@ -2760,6 +2761,7 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
+    skipAutoDiscount?: boolean;
   }): Promise<ApiResponse<{ registrationId?: string }>> {
     return this.request(`/events/${eventId}/register/pending`, {
       method: 'POST',
@@ -2780,6 +2782,7 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
+    skipAutoDiscount?: boolean;
   }): Promise<ApiResponse<{ registrationId?: string }>> {
     return this.request(`/events/public/${eventId}/register/pending`, {
       method: 'POST',
@@ -2883,6 +2886,7 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
+    skipAutoDiscount?: boolean;
     waitlistToken?: string;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/book-matrix`, {
@@ -2904,6 +2908,7 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
+    skipAutoDiscount?: boolean;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/public/${eventId}/book-matrix`, {
       method: 'POST',
@@ -2922,6 +2927,7 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
+    skipAutoDiscount?: boolean;
   }): Promise<ApiResponse<{ registrationId: string }>> {
     return this.request(`/events/${eventId}/book-matrix/pending`, {
       method: 'POST',
@@ -2942,6 +2948,7 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
+    skipAutoDiscount?: boolean;
   }): Promise<ApiResponse<{ registrationId: string }>> {
     return this.request(`/events/public/${eventId}/book-matrix/pending`, {
       method: 'POST',

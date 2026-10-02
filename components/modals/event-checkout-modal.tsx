@@ -479,6 +479,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
     try {
       const { orderTotalBeforeCoupon, earlyBirdDiscountTotal } = getOrderPricing()
+      const skipAutoDiscount = autoCouponRemoved && !couponApplied
 
       const eventSubtotalAfterCoupon = Math.max(orderTotalBeforeCoupon - couponDiscount, 0)
       const displayShipping = 0
@@ -508,6 +509,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               earlyBirdDiscountTotal || undefined,
               reservedDiscount || undefined,
               attributedClub || undefined,
+              skipAutoDiscount,
             )
           : await apiClient.registerForPublicEvent(String(event._id), {
               registrantName: attendees?.[0]?.name || 'Guest',
@@ -520,6 +522,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
               pointsDiscount: reservedDiscount || undefined,
               attributed_club: attributedClub || undefined,
+              skipAutoDiscount,
             })
 
         if (response.success) {
@@ -578,6 +581,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
             pointsDiscount: reservedDiscount || undefined,
             attributed_club: attributedClub || undefined,
+            skipAutoDiscount,
           })
         : await apiClient.createPendingPublicRegistration(String(event._id), {
             registrantName: attendees?.[0]?.name || 'Guest',
@@ -592,6 +596,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
             pointsDiscount: reservedDiscount || undefined,
             attributed_club: attributedClub || undefined,
+            skipAutoDiscount,
           })
 
       if (!pendingResponse.success) {
@@ -692,6 +697,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   earlyBirdDiscountTotal || undefined,
                   reservedDiscount || undefined,
                   attributedClub || undefined,
+                  skipAutoDiscount,
                 )
               : await apiClient.registerForPublicEvent(String(event._id), {
                   registrantName: attendees?.[0]?.name || 'Guest',
@@ -708,6 +714,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
                   pointsDiscount: reservedDiscount || undefined,
                   attributed_club: attributedClub || undefined,
+                  skipAutoDiscount,
                 })
 
             if (registerResponse.success) {
