@@ -161,10 +161,11 @@ export function hydratePlanAttributes(raw: Partial<PlanAttributes> | null | unde
   const map = new Map<string, PlanAttributeField>()
   for (const hit of storedList) {
     if (!PLAN_ATTRIBUTE_FIELDS.some((f) => f.key === hit.key)) continue
+    const enabled = hit.enabled == null ? true : Boolean(hit.enabled)
     map.set(hit.key, {
       key: hit.key,
-      enabled: Boolean(hit.enabled),
-      mandatory: Boolean(hit.enabled) && Boolean(hit.mandatory),
+      enabled,
+      mandatory: enabled && Boolean(hit.mandatory),
     })
   }
   const fields: PlanAttributeField[] = PLAN_ATTRIBUTE_FIELDS.map((f) => {
@@ -198,8 +199,11 @@ export function reorderList<T>(list: T[], from: number, to: number): T[] {
 
 export function hydratePlanFeatures(raw: Record<string, boolean> | null | undefined): Record<string, boolean> {
   const out = defaultPlanFeatures()
+  // No saved map, or an empty shell from a plan created before feature
+  // selection, keeps every feature on. Only an explicit false turns one off.
+  if (!raw || Object.keys(raw).length === 0) return out
   for (const key of PLAN_FEATURE_KEYS) {
-    if (raw && raw[key] !== undefined) out[key] = Boolean(raw[key])
+    if (raw[key] === true || raw[key] === false) out[key] = raw[key]
   }
   return out
 }
@@ -207,7 +211,9 @@ export function hydratePlanFeatures(raw: Record<string, boolean> | null | undefi
 /** Field is collected at checkout for this plan. Absent config = collect everything. */
 export function isAttributeEnabled(attrs: Partial<PlanAttributes> | null | undefined, key: PlanAttributeKey): boolean {
   const hit = attrs?.fields?.find((f) => f.key === key)
-  return hit ? Boolean(hit.enabled) : true
+  // Missing config, or a field saved before the enabled flag existed, stays on.
+  if (!hit || hit.enabled == null) return true
+  return Boolean(hit.enabled)
 }
 
 export function isAttributeMandatory(attrs: Partial<PlanAttributes> | null | undefined, key: PlanAttributeKey): boolean {
