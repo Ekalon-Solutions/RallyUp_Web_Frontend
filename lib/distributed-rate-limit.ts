@@ -9,6 +9,10 @@ const SCRIPT = `
 local count = redis.call('INCR', KEYS[1])
 if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end
 local ttl = redis.call('PTTL', KEYS[1])
+if ttl < 0 then
+  redis.call('PEXPIRE', KEYS[1], ARGV[1])
+  ttl = tonumber(ARGV[1])
+end
 return {count, ttl}
 `.trim()
 
@@ -17,13 +21,29 @@ interface LocalLimitRecord {
   resetTime: number
 }
 
-// Keep the development fallback alive across Next.js hot reloads. Production
-// must use Redis because an in-memory counter is not shared across instances.
+// Keep the fallback alive across Next.js hot reloads and warm edge invocations.
+// It also keeps the site available when Redis is missing or temporarily down;
+// Redis remains the distributed source of truth whenever it is configured.
 const globalRateLimit = globalThis as typeof globalThis & {
   __rallyUpRateLimitStore?: Map<string, LocalLimitRecord>
 }
 const localStore = globalRateLimit.__rallyUpRateLimitStore ?? new Map<string, LocalLimitRecord>()
 globalRateLimit.__rallyUpRateLimitStore = localStore
+const MAX_LOCAL_KEYS = 10_000
+
+function makeRoomInLocalStore(now: number): void {
+  if (localStore.size < MAX_LOCAL_KEYS) return
+
+  for (const [storedKey, record] of localStore) {
+    if (record.resetTime <= now) localStore.delete(storedKey)
+  }
+
+  while (localStore.size >= MAX_LOCAL_KEYS) {
+    const oldestKey = localStore.keys().next().value as string | undefined
+    if (!oldestKey) break
+    localStore.delete(oldestKey)
+  }
+}
 
 function checkLocalRateLimit(
   key: string,
@@ -32,6 +52,7 @@ function checkLocalRateLimit(
 ): DistributedLimitResult {
   const now = Date.now()
   const current = localStore.get(key)
+  if (!current) makeRoomInLocalStore(now)
   const record = !current || current.resetTime <= now
     ? { count: 0, resetTime: now + windowMs }
     : current
@@ -55,10 +76,7 @@ export async function checkDistributedRateLimit(
   const url = process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, '')
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url || !token) {
-    if (process.env.NODE_ENV !== 'production') {
-      return checkLocalRateLimit(key, windowMs, limit)
-    }
-    return { allowed: false, remaining: 0, retryAfterMs: windowMs, configured: false }
+    return checkLocalRateLimit(key, windowMs, limit)
   }
 
   try {
@@ -80,9 +98,6 @@ export async function checkDistributedRateLimit(
     }
   } catch (error) {
     console.error('[rate-limit] Distributed store unavailable:', error)
-    if (process.env.NODE_ENV !== 'production') {
-      return checkLocalRateLimit(key, windowMs, limit)
-    }
-    return { allowed: false, remaining: 0, retryAfterMs: windowMs, configured: true }
+    return checkLocalRateLimit(key, windowMs, limit)
   }
 }

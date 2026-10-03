@@ -62,20 +62,33 @@ function isBlockedUserAgent(userAgent: string): boolean {
   return BLOCKED_USER_AGENTS.some(blocked => ua.includes(blocked))
 }
 
-function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) {
-    return forwarded.split(',')[0]?.trim() || 'unknown'
+function getClientIp(request: NextRequest): string | null {
+  const headers = [
+    request.headers.get('x-vercel-forwarded-for'),
+    request.headers.get('cf-connecting-ip'),
+    request.headers.get('x-forwarded-for'),
+    request.headers.get('x-real-ip'),
+  ]
+
+  for (const value of headers) {
+    const ip = value?.split(',')[0]?.trim()
+    if (ip) return ip
   }
-  return request.headers.get('x-real-ip') || 'unknown'
+  return null
 }
 
 async function checkRateLimit(
-  ip: string,
+  ip: string | null,
   bucket: keyof typeof RATE_LIMITS,
 ): Promise<{ allowed: boolean; retryAfterMs: number }> {
   const { windowMs, maxRequests } = RATE_LIMITS[bucket]
-  const result = await checkDistributedRateLimit(`web:${bucket}:${ip}`, windowMs, maxRequests)
+  // Never merge unrelated visitors into a single "unknown" bucket. Hosting
+  // platforms normally provide one of the trusted forwarding headers above.
+  if (!ip) return { allowed: true, retryAfterMs: windowMs }
+
+  // Version the namespace so a deploy is not held hostage by stale counters
+  // created before the expiry-repair logic was added.
+  const result = await checkDistributedRateLimit(`web:v2:${bucket}:${ip}`, windowMs, maxRequests)
   return { allowed: result.allowed, retryAfterMs: result.retryAfterMs }
 }
 
