@@ -28,7 +28,6 @@ import {
   UserX,
   AlertTriangle,
 } from "lucide-react"
-import { CreateTopicModal } from "@/components/modals/create-topic-modal"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
@@ -151,7 +150,6 @@ export default function ForumPage() {
             <h1 className="text-2xl sm:text-3xl font-bold">Inter Club Forum Management</h1>
             <p className="text-muted-foreground">Manage discussions, moderation, and community interactions</p>
           </div>
-          <CreateTopicModal />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

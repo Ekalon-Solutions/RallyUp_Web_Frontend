@@ -1764,10 +1764,16 @@ class ApiClient {
     otp: string;
     sessionInfo: string;
   }): Promise<ApiResponse<{ verified: boolean; channel?: string; guestToken?: string }>> {
-    return this.request('/otp/verify-phone/verify', {
+    const response = await this.request<{ verified: boolean; channel?: string; guestToken?: string }>('/otp/verify-phone/verify', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    if (response.success && response.data?.guestToken && typeof window !== 'undefined') {
+      sessionStorage.setItem('rallyup_guest_verification_token', response.data.guestToken);
+      sessionStorage.setItem('rallyup_guest_verified_phone', data.phoneNumber.replace(/\D/g, ''));
+      sessionStorage.setItem('rallyup_guest_verified_country_code', data.countryCode);
+    }
+    return response;
   }
 
   async resendGuestPhoneVerificationOTP(data: {
@@ -2423,8 +2429,15 @@ class ApiClient {
     });
   }
 
-  async getPublicEvents(clubId?: string): Promise<ApiResponse<Event[]>> {
-    const endpoint = clubId ? `/events/public?clubId=${clubId}` : '/events/public';
+  async getPublicEvents(
+    clubId?: string,
+    options?: { includeHistory?: boolean }
+  ): Promise<ApiResponse<Event[]>> {
+    const params = new URLSearchParams();
+    if (clubId) params.set('clubId', clubId);
+    if (options?.includeHistory) params.set('includeHistory', 'true');
+    const query = params.toString();
+    const endpoint = query ? `/events/public?${query}` : '/events/public';
     return this.request(endpoint);
   }
 
@@ -5352,7 +5365,8 @@ class ApiClient {
   async searchUsers(query: string): Promise<ApiResponse<User[]>> {
     const endpoint = `/users/search?q=${encodeURIComponent(query)}`;
     const response = await this.request<any>(endpoint);
-    const users = response.success ? (Array.isArray(response.data) ? response.data : []) : [];
+    const payload = response.data?.data ?? response.data;
+    const users = response.success ? (Array.isArray(payload) ? payload : []) : [];
 
     return {
       success: response.success,
@@ -6348,6 +6362,15 @@ class ApiClient {
     return this.post('/support-tickets', data);
   }
 
+  async createContactInquiry(data: {
+    name: string;
+    email: string;
+    topic: string;
+    message: string;
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.post('/contact-inquiries', data);
+  }
+
   async searchSportsTeams(clubId: string, q: string): Promise<ApiResponse<any[]>> {
     return this.get(`/club-settings/${clubId}/sports/search`, { params: { q } });
   }
@@ -6487,6 +6510,7 @@ class ApiClient {
     cartSubtotal?: number;
     eventId?: string;
     purchaseType?: 'membership';
+    countryCode?: string;
   }): Promise<ApiResponse<{
     coupon: {
       /** Absent for plan-based discounts — there is no code to type in. */
@@ -6500,9 +6524,17 @@ class ApiClient {
       planId?: string;
     } | null;
   }>> {
+    const verifiedPhone = typeof window !== 'undefined' ? sessionStorage.getItem('rallyup_guest_verified_phone') : null;
+    const suppliedPhone = data.phone?.replace(/\D/g, '');
+    const guestVerificationToken = verifiedPhone && suppliedPhone === verifiedPhone && typeof window !== 'undefined'
+      ? sessionStorage.getItem('rallyup_guest_verification_token')
+      : null;
+    const countryCode = typeof window !== 'undefined'
+      ? sessionStorage.getItem('rallyup_guest_verified_country_code') || data.countryCode
+      : data.countryCode;
     return this.request('/coupons/highest-eligible', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, countryCode, guestVerificationToken }),
     });
   }
 

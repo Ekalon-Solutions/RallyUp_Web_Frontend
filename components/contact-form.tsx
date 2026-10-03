@@ -4,14 +4,28 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
+import { apiClient } from "@/lib/api"
 
 export function ContactForm() {
   const [form, setForm] = useState({ name: "", email: "", topic: "Product Support", message: "" })
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState("")
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSubmitted(true)
+    setSubmitting(true)
+    setError("")
+    try {
+      const response = await apiClient.createContactInquiry(form)
+      if (!response.success) throw new Error(response.error || response.message || "Submission failed")
+      setSubmitted(true)
+      setForm({ name: "", email: "", topic: "Product Support", message: "" })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to submit your message. Please try again.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (submitted) {
@@ -48,6 +62,7 @@ export function ContactForm() {
               placeholder="Enter your full name"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              required
               className="w-full h-12 pl-10 pr-4 border border-[#888888] rounded-[8px] text-xs placeholder-[#A09FA5] focus:outline-none focus:border-[#A5A2B5] bg-white shadow-sm"
             />
           </div>
@@ -67,6 +82,7 @@ export function ContactForm() {
               placeholder="Enter your email"
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              required
               className="w-full h-12 pl-10 pr-4 border border-[#888888] rounded-[8px] text-xs placeholder-[#A09FA5] focus:outline-none focus:border-[#A5A2B5] bg-white shadow-sm"
             />
           </div>
@@ -94,16 +110,19 @@ export function ContactForm() {
           value={form.message}
           onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           rows={4}
+          required
           className="w-full px-4 py-3 border border-[#888888] rounded-[8px] text-xs text-[#888] placeholder-[#A09FA5] focus:outline-none focus:border-[#A5A2B5] resize-none bg-white shadow-sm"
         />
       </div>
 
       <div className="flex flex-col gap-3 pt-2">
+        {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
         <Button
           type="submit"
+          disabled={submitting}
           className="bg-secondary hover:bg-[#C5B0D8] shadow-[0px_8px_16px_#DFDFFFB0] text-white h-12 rounded-[6px] font-bold text-xs hover:text-sm uppercase tracking-wider w-full transition-all duration-300"
         >
-          Submit
+          {submitting ? "Submitting…" : "Submit"}
         </Button>
         <Link href="/clubs" className="w-full">
           <Button

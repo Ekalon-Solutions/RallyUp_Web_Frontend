@@ -211,7 +211,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const triggerAutoCouponApply = useCallback(async (phoneNumber?: string, emailAddress?: string) => {
     if (autoCouponRemoved) return
 
-    const searchPhone = phoneNumber || orderForm.phone || user?.phoneNumber || localStorage.getItem("rallyup_verified_guest_phone") || ""
+    const searchPhone = phoneNumber || orderForm.phone || user?.phoneNumber || ""
     const searchEmail = emailAddress || orderForm.email || user?.email || ""
     const clubId = items.length > 0 ? (typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id) : null
 

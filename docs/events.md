@@ -308,7 +308,7 @@ Joint screening allows two or more clubs to co-host an event with shared seat al
 ### Public (optional auth / no auth)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/events/public` | List active upcoming events |
+| GET | `/api/events/public` | List active upcoming events; authenticated club-scoped requests may pass `includeHistory=true` for the member timeline |
 | GET | `/api/events/public/:id` | Get event by ID |
 | GET | `/api/events/public/:id/image-urls` | Presigned image URLs |
 | GET | `/api/events/public/:id/check-registration` | Check if user/guest is registered |

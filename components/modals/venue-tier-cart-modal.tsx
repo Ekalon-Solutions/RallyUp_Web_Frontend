@@ -506,7 +506,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const triggerAutoCouponApply = useCallback(async (currentSubtotal: number, phoneNumber?: string, emailAddress?: string) => {
     if (autoCouponRemoved) return
 
-    const searchPhone = phoneNumber || primaryPhone || user?.phoneNumber || localStorage.getItem("rallyup_verified_guest_phone") || ""
+    const searchPhone = phoneNumber || primaryPhone || user?.phoneNumber || ""
     const searchEmail = emailAddress || guestEmail || user?.email || ""
     const clubId = event?.clubId || (event as any)?.club?._id
 
@@ -551,8 +551,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   useEffect(() => {
     if (isOpen) {
-      const storedPhone = localStorage.getItem("rallyup_verified_guest_phone") || ""
-      triggerAutoCouponApply(subtotalForAuto, storedPhone)
+      triggerAutoCouponApply(subtotalForAuto)
     }
   }, [isOpen, triggerAutoCouponApply])
 

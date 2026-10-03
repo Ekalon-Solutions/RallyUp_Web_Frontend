@@ -439,11 +439,6 @@ export function PurchaseFlowModal({
   }
 
   const handleContinue = () => {
-    const digits = mobileNumber.replace(/\D/g, "")
-    if (digits) {
-      localStorage.setItem("rallyup_verified_guest_phone", digits)
-      localStorage.setItem("rallyup_verified_guest_country_code", countryCode.trim() || "+91")
-    }
     onClose()
     onContinueToPayment()
   }

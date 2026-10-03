@@ -242,11 +242,6 @@ function UserEventsPageInner() {
   const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false);
   const [venueTierEvent, setVenueTierEvent] = useState<Event | null>(null);
   const [userRegistrations, setUserRegistrations] = useState<Map<string, any>>(new Map());
-  // Raw rows from /my-registrations — cancelled events drop out of the public list, so ticket
-  // refund status is shown from here rather than from the event cards.
-  const [registrationRows, setRegistrationRows] = useState<any[]>([]);
-
-
   useEffect(() => {
     fetchEvents();
     if (user) {
@@ -348,7 +343,6 @@ function UserEventsPageInner() {
           registrationsMap.set(String(reg.eventId), reg.registration);
         });
         setUserRegistrations(registrationsMap);
-        setRegistrationRows(response.data);
       }
     } catch {
     }
@@ -363,7 +357,9 @@ function UserEventsPageInner() {
         return;
       }
 
-      const response = await apiClient.getPublicEvents(clubId);
+      const response = await apiClient.getPublicEvents(clubId, {
+        includeHistory: true,
+      });
 
       if (response.success && response.data) {
         const data: any = response.data;
@@ -485,22 +481,20 @@ function UserEventsPageInner() {
     return max !== null ? count >= max : false;
   };
 
-  const isEventUpcoming = (event: Event) => {
-    return new Date(event.startTime) > new Date();
-  };
-
   const isEventMembersOnly = (event: Event) => {
     return (event.memberOnly ? user?.memberships?.map(a => a?.club_id?._id).includes(event.clubId || "null") || false : true)
   }
 
-  const isEventPast = (event: Event) => {
-    return event.endTime ? new Date(event.endTime) < new Date() : false;
+  const isEventPast = (event: Event, now = Date.now()) => {
+    const eventEnd = event.endTime || event.startTime;
+    return new Date(eventEnd).getTime() <= now;
   };
 
   const isEventOngoing = (event: Event) => {
     const now = new Date();
     const start = new Date(event.startTime);
-    const end = event.endTime ? new Date(event.endTime) : new Date().setDate((new Date().getDate()) + 1);
+    if (!event.endTime) return false;
+    const end = new Date(event.endTime);
     return start <= now && now < end;
   };
 
@@ -694,41 +688,39 @@ function UserEventsPageInner() {
   const isEventCanceled = (event: Event) =>
     Boolean(event.cancellation) || event.isActive === false;
 
-  const upcomingEvents = filteredEvents.filter((event) =>
-    !isEventCanceled(event) && isEventUpcoming(event) && isEventMembersOnly(event)
-  );
-  const pastEvents = filteredEvents.filter(
-    (event) => !isEventCanceled(event) && isEventPast(event)
-  );
+  // Classify in one pass with one timestamp so an event can never appear in
+  // more than one tab. Cancellation wins over dates, and an ongoing event stays
+  // current/upcoming until its end time.
+  const eventListNow = Date.now();
+  const categorizedEvents = filteredEvents.reduce<{
+    upcoming: Event[];
+    past: Event[];
+    canceled: Event[];
+  }>((groups, event) => {
+    if (!isEventMembersOnly(event)) return groups;
 
-  const canceledEventItems: CanceledEventListItem[] = [
-    ...filteredEvents.filter(isEventCanceled).map((event) => ({
+    if (isEventCanceled(event)) {
+      groups.canceled.push(event);
+    } else if (isEventPast(event, eventListNow)) {
+      groups.past.push(event);
+    } else {
+      groups.upcoming.push(event);
+    }
+    return groups;
+  }, { upcoming: [], past: [], canceled: [] });
+
+  const upcomingEvents = categorizedEvents.upcoming;
+  const pastEvents = categorizedEvents.past;
+
+  const canceledEventItems: CanceledEventListItem[] = categorizedEvents.canceled
+    .map((event) => ({
       id: String(event._id),
       title: event.title,
       startTime: event.startTime,
       venue: getEventVenueDisplay(event),
       category: event.category,
       event,
-    })), ...registrationRows
-      .filter((row) => ["cancelled", "canceled", "refunded"].includes(
-        String(row?.registration?.status || "").toLowerCase()
-      ))
-      .filter((row) => {
-        const query = searchTerm.trim().toLowerCase();
-        const searchMatch = !query || [row?.eventTitle, row?.eventVenue]
-          .some((value) => String(value || "").toLowerCase().includes(query));
-        const categoryMatch = categoryFilter === "all" || row?.eventCategory === categoryFilter;
-        return searchMatch && categoryMatch;
-      })
-      .map((row) => ({
-        id: String(row.eventId),
-        title: row.eventTitle,
-        startTime: row.eventStartTime,
-        venue: row.eventVenue,
-        category: row.eventCategory,
-        event: undefined,
-      })),
-  ];
+    }));
 
   const canceledEvents = Array.from(
     new Map(canceledEventItems.map((item) => [item.id, item])).values()
