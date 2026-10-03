@@ -42,6 +42,10 @@ const RATE_LIMITS = {
     windowMs: 60 * 1000,
     maxRequests: 100,
   },
+  api: {
+    windowMs: 60 * 1000,
+    maxRequests: 60,
+  },
   dashboard: {
     windowMs: 60 * 1000,
     maxRequests: 400,
@@ -127,6 +131,10 @@ function isDashboardPath(pathname: string): boolean {
   return pathname.startsWith('/dashboard')
 }
 
+function isApiPath(pathname: string): boolean {
+  return pathname === '/api' || pathname.startsWith('/api/')
+}
+
 const PUBLIC_BYPASS_PATHS = new Set([
   '/',
   '/about',
@@ -155,7 +163,6 @@ const STATIC_ASSET_RE =
 
 function isStaticOrInternalPath(pathname: string): boolean {
   return (
-    pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/static/') ||
     STATIC_ASSET_RE.test(pathname)
@@ -224,7 +231,23 @@ export async function middleware(request: NextRequest) {
   const finalize = (response: NextResponse) =>
     onCanonicalHost || clubSlug ? response : blockIndexing(response)
 
-  // Public pages + static assets skip bot checks and rate limiting entirely
+  const ip = getClientIp(request)
+  if (isApiPath(pathname)) {
+    const limit = await checkRateLimit(ip, 'api')
+    if (!limit.allowed) {
+      const retryAfterSec = Math.max(1, Math.ceil(limit.retryAfterMs / 1000))
+      return new NextResponse('Too Many Requests', {
+        status: 429,
+        headers: { 'Retry-After': String(retryAfterSec) },
+      })
+    }
+
+    // API clients are not browsers, so they must not be sent through the
+    // browser-header challenge or user-agent filtering below.
+    return finalize(applySecurityHeaders(pass(), pathname))
+  }
+
+  // Public pages + static assets skip bot checks and rate limiting entirely.
   if (PUBLIC_BYPASS_PATHS.has(pathname) || isStaticOrInternalPath(pathname)) {
     return finalize(pass())
   }
@@ -234,7 +257,6 @@ export async function middleware(request: NextRequest) {
     ? await verifyBrowserCookie(request.cookies.get(VERIFIED_COOKIE)?.value, challengeSecret)
     : false
   const userAgent = request.headers.get('user-agent') || ''
-  const ip = getClientIp(request)
   
   if (!browserVerified && isBlockedUserAgent(userAgent)) {
     return new NextResponse('Access Denied', { status: 403 })
@@ -287,6 +309,6 @@ function applySecurityHeaders(response: NextResponse, pathname = '') {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }
