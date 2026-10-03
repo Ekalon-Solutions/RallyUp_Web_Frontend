@@ -63,12 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (err) {
             console.error('Failed to exchange SSO ticket:', err);
           }
-        } else {
-          const urlToken = searchParams.get('token') || searchParams.get('authToken');
-          if (urlToken) {
-            localStorage.setItem('token', urlToken);
-            localStorage.setItem('userType', 'user');
-          }
         }
 
         const urlClubId = searchParams.get('clubId');

@@ -9,6 +9,7 @@ import { Calendar, User, Eye, Tag, Building, X } from 'lucide-react'
 import { News } from '@/lib/api'
 import { getNewsImageUrl } from '@/lib/config'
 import { formatLocalDate } from '@/lib/timezone'
+import DOMPurify from 'dompurify'
 
 interface NewsReadMoreModalProps {
   news: News | null
@@ -126,7 +127,7 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
                   <h3 className="text-lg font-semibold mb-4 text-foreground">Content</h3>
                   <div 
                     className="prose prose-gray dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-line"
-                    dangerouslySetInnerHTML={{ __html: news.content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
                   />
                 </CardContent>
               </Card>

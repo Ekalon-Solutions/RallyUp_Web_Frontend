@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { AUTH_SESSION_COOKIE } from '@/lib/auth-session-cookie'
 import { isCanonicalHost } from '@/lib/canonical-host'
+import { checkDistributedRateLimit } from '@/lib/distributed-rate-limit'
+import { VERIFIED_COOKIE, verifyBrowserCookie } from '@/lib/verified-cookie'
 
 const BLOCKED_USER_AGENTS = [
   'wget',
@@ -36,8 +37,6 @@ const ALLOWED_BOTS = [
   'telegrambot',
 ]
 
-const requestCounts = new Map<string, { count: number; resetTime: number }>()
-
 const RATE_LIMITS = {
   default: {
     windowMs: 60 * 1000,
@@ -67,29 +66,13 @@ function getClientIp(request: NextRequest): string {
   return request.headers.get('x-real-ip') || 'unknown'
 }
 
-function checkRateLimit(
+async function checkRateLimit(
   ip: string,
   bucket: keyof typeof RATE_LIMITS,
-): boolean {
+): Promise<{ allowed: boolean; retryAfterMs: number }> {
   const { windowMs, maxRequests } = RATE_LIMITS[bucket]
-  const key = `${bucket}:${ip}`
-  const now = Date.now()
-  const record = requestCounts.get(key)
-  
-  if (!record || now > record.resetTime) {
-    requestCounts.set(key, {
-      count: 1,
-      resetTime: now + windowMs,
-    })
-    return true
-  }
-  
-  if (record.count >= maxRequests) {
-    return false
-  }
-  
-  record.count++
-  return true
+  const result = await checkDistributedRateLimit(`web:${bucket}:${ip}`, windowMs, maxRequests)
+  return { allowed: result.allowed, retryAfterMs: result.retryAfterMs }
 }
 
 function hasValidBrowserHeaders(request: NextRequest): boolean {
@@ -122,10 +105,6 @@ function isSuspiciousRequest(request: NextRequest): boolean {
   }
 
   return false
-}
-
-function isAuthenticatedSession(request: NextRequest): boolean {
-  return request.cookies.get(AUTH_SESSION_COOKIE)?.value === '1'
 }
 
 function isNextJsNavigationRequest(request: NextRequest): boolean {
@@ -223,7 +202,7 @@ function legacyClubPathRedirect(request: NextRequest): NextResponse | null {
   return NextResponse.redirect(target, 308)
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const redirect = legacyClubPathRedirect(request)
   if (redirect) return redirect
 
@@ -250,35 +229,26 @@ export function middleware(request: NextRequest) {
     return finalize(pass())
   }
 
-  if (
-    request.cookies.get('verified')?.value === 'true' ||
-    isAuthenticatedSession(request) ||
-    request.nextUrl.searchParams.has('ssoTicket') ||
-    request.nextUrl.searchParams.has('token') ||
-    request.nextUrl.searchParams.has('authToken')
-  ) {
-    const res = applySecurityHeaders(pass(), pathname)
-    if (request.nextUrl.searchParams.has('ssoTicket') || request.nextUrl.searchParams.has('token')) {
-      res.cookies.set(AUTH_SESSION_COOKIE, '1', { path: '/' })
-    }
-    return finalize(res)
-  }
-  
+  const challengeSecret = process.env.CHALLENGE_COOKIE_SECRET?.trim()
+  const browserVerified = challengeSecret
+    ? await verifyBrowserCookie(request.cookies.get(VERIFIED_COOKIE)?.value, challengeSecret)
+    : false
   const userAgent = request.headers.get('user-agent') || ''
   const ip = getClientIp(request)
   
-  if (isBlockedUserAgent(userAgent)) {
+  if (!browserVerified && isBlockedUserAgent(userAgent)) {
     return new NextResponse('Access Denied', { status: 403 })
   }
   
-  if (isProtectedPath(pathname) && isSuspiciousRequest(request)) {
+  if (!browserVerified && isProtectedPath(pathname) && isSuspiciousRequest(request)) {
     return finalize(NextResponse.redirect(new URL('/challenge', request.url)))
   }
 
   if (!isNextJsNavigationRequest(request)) {
     const bucket = isDashboardPath(pathname) ? 'dashboard' : 'default'
-    if (!checkRateLimit(ip, bucket)) {
-      const retryAfterSec = Math.ceil(RATE_LIMITS[bucket].windowMs / 1000)
+    const limit = await checkRateLimit(ip, bucket)
+    if (!limit.allowed) {
+      const retryAfterSec = Math.max(1, Math.ceil(limit.retryAfterMs / 1000))
       return new NextResponse('Too Many Requests', { 
         status: 429,
         headers: {

@@ -9,7 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Bus, MapPin, Clock, Users, Search, Calendar, Hotel, Plane } from "lucide-react"
-import { TravelBookingModal } from "@/components/modals/travel-booking-modal"
 
 const travelBookings = [
   {
@@ -73,7 +72,6 @@ export default function TravelPage() {
             <h1 className="text-2xl sm:text-3xl font-bold">Travel & Away Days</h1>
             <p className="text-muted-foreground">Organize group travel for away matches and tournaments</p>
           </div>
-          <TravelBookingModal />
         </div>
 
         {/* Travel Stats */}

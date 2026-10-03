@@ -304,7 +304,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const triggerAutoCouponApply = useCallback(async (phoneNumber?: string, emailAddress?: string) => {
     if (autoCouponRemoved) return
 
-    const searchPhone = phoneNumber || user?.phoneNumber || attendees?.[0]?.phone || localStorage.getItem("rallyup_verified_guest_phone") || ""
+    const searchPhone = phoneNumber || user?.phoneNumber || attendees?.[0]?.phone || ""
     const searchEmail = emailAddress || guestEmail || user?.email || ""
     const clubId = eventData?.clubId || event?.clubId || (event as any)?.club?._id
 
@@ -355,8 +355,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
   useEffect(() => {
     if (isOpen) {
-      const storedPhone = localStorage.getItem("rallyup_verified_guest_phone") || ""
-      triggerAutoCouponApply(storedPhone)
+      triggerAutoCouponApply()
     }
   }, [isOpen, triggerAutoCouponApply])
 

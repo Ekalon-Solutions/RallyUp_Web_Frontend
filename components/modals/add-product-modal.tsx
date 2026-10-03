@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -19,14 +18,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Upload } from "lucide-react"
+import { Plus } from "lucide-react"
+import { apiClient } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
 
 interface AddProductModalProps {
   trigger?: React.ReactNode
 }
 
 export function AddProductModal({ trigger }: AddProductModalProps) {
+  const { activeClubId } = useAuth()
   const [open, setOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -35,43 +39,49 @@ export function AddProductModal({ trigger }: AddProductModalProps) {
     weight: "",
     stock: "",
     status: "Live",
-    displayOn: {
-      web: false,
-      registration: false,
-    },
     memberOnly: false,
     preOrder: false,
-    customizable: false,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // console.log("Adding product:", formData)
-    setOpen(false)
-    // Reset form
-    setFormData({
-      name: "",
-      category: "",
-      description: "",
-      price: "",
-      weight: "",
-      stock: "",
-      status: "Live",
-      displayOn: {
-        web: false,
-        registration: false,
-      },
-      memberOnly: false,
-      preOrder: false,
-      customizable: false,
-    })
-  }
-
-  const handleDisplayOnChange = (platform: string, checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      displayOn: { ...prev.displayOn, [platform]: checked },
-    }))
+    if (!activeClubId) {
+      toast.error("Select a club before adding a product")
+      return
+    }
+    setSubmitting(true)
+    const payload = new FormData()
+    payload.set("name", formData.name)
+    payload.set("description", formData.description)
+    payload.set("price", formData.price)
+    payload.set("currency", "INR")
+    payload.set("category", formData.category || "other")
+    payload.set("stockQuantity", formData.stock)
+    payload.set("weight", formData.weight ? String(Number(formData.weight) / 1000) : "")
+    payload.set("isAvailable", String(formData.status === "Live"))
+    payload.set("memberOnly", String(formData.memberOnly))
+    payload.set("isPreorder", String(formData.preOrder))
+    try {
+      const response = await apiClient.createMerchandise(payload, activeClubId)
+      if (!response.success) throw new Error(response.error || response.message || "Failed to add product")
+      toast.success("Product added")
+      setOpen(false)
+      setFormData({
+        name: "",
+        category: "",
+        description: "",
+        price: "",
+        weight: "",
+        stock: "",
+        status: "Live",
+        memberOnly: false,
+        preOrder: false,
+      })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add product")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -108,13 +118,11 @@ export function AddProductModal({ trigger }: AddProductModalProps) {
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Jerseys">Jerseys</SelectItem>
-                <SelectItem value="Scarves">Scarves</SelectItem>
-                <SelectItem value="T-Shirts">T-Shirts</SelectItem>
-                <SelectItem value="Accessories">Accessories</SelectItem>
-                <SelectItem value="Memorabilia">Memorabilia</SelectItem>
-                <SelectItem value="Tickets">Tickets</SelectItem>
-                <SelectItem value="Fan Kits">Fan Kits</SelectItem>
+                <SelectItem value="apparel">Apparel</SelectItem>
+                <SelectItem value="accessories">Accessories</SelectItem>
+                <SelectItem value="collectibles">Collectibles</SelectItem>
+                <SelectItem value="digital">Digital</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -182,36 +190,6 @@ export function AddProductModal({ trigger }: AddProductModalProps) {
             </Select>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Display On</Label>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="web"
-                  checked={formData.displayOn.web}
-                  onCheckedChange={(checked) => handleDisplayOnChange("web", checked as boolean)}
-                />
-                <Label htmlFor="web">Web</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="registration"
-                  checked={formData.displayOn.registration}
-                  onCheckedChange={(checked) => handleDisplayOnChange("registration", checked as boolean)}
-                />
-                <Label htmlFor="registration">Registration</Label>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Product Image</Label>
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
-              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Click to upload product image</p>
-            </div>
-          </div>
-
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -237,24 +215,13 @@ export function AddProductModal({ trigger }: AddProductModalProps) {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="customizable">Customizable</Label>
-                <p className="text-sm text-muted-foreground">Allow name/number customization</p>
-              </div>
-              <Switch
-                id="customizable"
-                checked={formData.customizable}
-                onCheckedChange={(checked) => setFormData({ ...formData, customizable: checked })}
-              />
-            </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Add Product</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? "Adding…" : "Add Product"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
