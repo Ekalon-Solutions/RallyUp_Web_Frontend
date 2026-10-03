@@ -4125,7 +4125,21 @@ class ApiClient {
   }
 
   async getActiveMembersPerPlan(clubId: string): Promise<ApiResponse<Record<string, number>>> {
-    return this.request(`/user-memberships/active-per-plan?clubId=${encodeURIComponent(clubId)}`);
+    const res = await this.request<Record<string, number> | { data?: Record<string, number> }>(
+      `/user-memberships/active-per-plan?clubId=${encodeURIComponent(clubId)}`
+    );
+    if (!res.success || !res.data) return res as ApiResponse<Record<string, number>>;
+    const body = res.data as { data?: Record<string, number> } & Record<string, number>;
+    const counts = body.data && typeof body.data === 'object' && !Array.isArray(body.data)
+      ? body.data
+      : body;
+    const normalized: Record<string, number> = {};
+    for (const [planId, count] of Object.entries(counts)) {
+      if (planId === 'success' || planId === 'message') continue;
+      const n = Number(count);
+      if (Number.isFinite(n)) normalized[planId] = n;
+    }
+    return { success: true, data: normalized };
   }
 
   async checkReferralPhone(
