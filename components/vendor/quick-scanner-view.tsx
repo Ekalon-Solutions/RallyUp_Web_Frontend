@@ -235,7 +235,7 @@ export function QuickScannerView({
           return;
         }
         await queuePendingAttendance({
-          key,
+          key: `${key}:${scanMode}`,
           registrationId,
           attendeeId,
           clubId: activeAssignment?.clubId ?? clubId,
@@ -244,15 +244,15 @@ export function QuickScannerView({
           scanMode,
           queuedAt: Date.now(),
         });
+        const updatedPass = {
+          ...cached,
+          onPremise: scanMode === 'check_in',
+          attended: scanMode === 'check_in',
+          originalCheckInAt: scanMode === 'check_in' ? new Date().toISOString() : cached.originalCheckInAt,
+        };
+        await cacheVendorPass(key, updatedPass);
         setPendingSync((n) => n + 1);
-        markValid(
-          {
-            ...cached,
-            onPremise: scanMode === 'check_in',
-            attended: scanMode === 'check_in',
-          },
-          scanMode
-        );
+        markValid(updatedPass, scanMode);
         return;
       }
 

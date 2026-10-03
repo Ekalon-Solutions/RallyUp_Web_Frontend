@@ -39,7 +39,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const savedCart = localStorage.getItem('rallyup-cart')
     if (savedCart) {
       try {
-        setItems(JSON.parse(savedCart))
+        const parsed = JSON.parse(savedCart) as CartItem[]
+        const firstClubId = parsed[0]?.club?._id
+        setItems(firstClubId ? parsed.filter((item) => item.club?._id === firstClubId) : [])
       } catch (error) {
       }
     }
@@ -60,6 +62,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       club_id: newItem.club?._id,
     });
     setItems(prevItems => {
+      const cartClubId = prevItems[0]?.club?._id
+      const incomingClubId = newItem.club?._id
+      // An order belongs to exactly one merchant/club. Starting to shop at a
+      // different club starts a new cart instead of creating a mixed-tenant order.
+      if (cartClubId && incomingClubId && cartClubId !== incomingClubId) {
+        return [{ ...newItem, quantity: 1 }]
+      }
       const existingItem = prevItems.find(item => item._id === newItem._id)
       
       if (existingItem) {

@@ -66,7 +66,18 @@ export function waitForRazorpayRedirectReturn(): Promise<void> {
   return waitForPossibleRedirectReturn()
 }
 
-export async function resolveRazorpayDismiss(orderId?: string): Promise<RazorpayDismissOutcome> {
+export type RazorpayCheckContext = {
+  orderId?: string
+  eventId?: string
+  registrationId?: string
+  clubId?: string
+  intent?: 'gallery_storage'
+}
+
+export async function resolveRazorpayDismiss(
+  orderId?: string,
+  context?: RazorpayCheckContext,
+): Promise<RazorpayDismissOutcome> {
   await waitForPossibleRedirectReturn()
   if (!orderId) return { outcome: 'cancelled' }
 
@@ -78,7 +89,7 @@ export async function resolveRazorpayDismiss(orderId?: string): Promise<Razorpay
     if (attempt > 1) await delay(POLL_INTERVAL_MS)
 
     try {
-      const res = await apiClient.checkRazorpayOrder(orderId)
+      const res = await apiClient.checkRazorpayOrder(orderId, context)
       const body = res.data as any
 
       const payment = {

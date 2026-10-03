@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isAuthorizedClubAdmin } from '@/lib/server/requireAdminClub'
 
 const TOTAL_COUNT: Record<string, number> = {
   monthly: 120,   // 10 years
@@ -12,6 +13,9 @@ export async function POST(request: NextRequest) {
 
     if (!planId || !billingCycle) {
       return NextResponse.json({ error: 'planId and billingCycle are required' }, { status: 400 })
+    }
+    if (!await isAuthorizedClubAdmin(request, clubId)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const keyId = process.env.RAZORPAY_KEY_ID

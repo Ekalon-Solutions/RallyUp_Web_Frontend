@@ -1978,7 +1978,13 @@ class ApiClient {
     };
   }): Promise<ApiResponse<User>> {
     const userStr = localStorage.getItem('user');
-    const userRole = JSON.parse(userStr || "{}")?.role || localStorage.getItem('userType');
+    let storedRole: string | undefined;
+    try {
+      storedRole = userStr ? JSON.parse(userStr)?.role : undefined;
+    } catch {
+      localStorage.removeItem('user');
+    }
+    const userRole = storedRole || localStorage.getItem('userType');
     let endpoint = '/users/profile';
 
     if (userRole) {
@@ -2397,10 +2403,6 @@ class ApiClient {
       { method: 'POST', body: JSON.stringify({}) }
     );
     return this._normalizeResendResult(res);
-  }
-
-  async resendEventTicketEmail(registrationId: string): Promise<ResendTicketResult> {
-    return this.resendEventTicketWhatsApp(registrationId);
   }
 
   async cancelClubEventRegistration(
@@ -2842,17 +2844,34 @@ class ApiClient {
     });
   }
 
-  async checkRazorpayOrder(razorpayOrderId: string): Promise<ApiResponse<{
+  async checkRazorpayOrder(
+    razorpayOrderId: string,
+    context?: {
+      orderId?: string;
+      eventId?: string;
+      registrationId?: string;
+      clubId?: string;
+      intent?: 'gallery_storage';
+    },
+  ): Promise<ApiResponse<{
     success?: boolean;
     razorpay_payment_id?: string;
     razorpay_order_id?: string;
     razorpay_signature?: string;
     status?: string;
     paymentStatus?: string;
+    error?: string;
   }>> {
     return this.request('/razorpay/check-order', {
       method: 'POST',
-      body: JSON.stringify({ razorpay_order_id: razorpayOrderId }),
+      body: JSON.stringify({
+        razorpay_order_id: razorpayOrderId,
+        ...(context?.orderId ? { orderId: context.orderId } : {}),
+        ...(context?.eventId ? { eventId: context.eventId } : {}),
+        ...(context?.registrationId ? { registrationId: context.registrationId } : {}),
+        ...(context?.clubId ? { clubId: context.clubId } : {}),
+        ...(context?.intent ? { intent: context.intent } : {}),
+      }),
     });
   }
 
@@ -3008,9 +3027,10 @@ class ApiClient {
     });
   }
 
-  async createReservation(points: number, clubId: string, orderTotal?: number): Promise<ApiResponse<{ reservationToken: string; discountAmount?: number }>> {
-    const body: any = { points, clubId };
-    if (orderTotal !== undefined) body.orderTotal = Number(orderTotal);
+  async createReservation(points: number, clubId: string, _orderTotal?: number): Promise<ApiResponse<{ reservationToken: string; discountAmount?: number }>> {
+    // Purchase totals are server-authoritative. The legacy third argument is
+    // retained for call-site compatibility but is deliberately not transmitted.
+    const body = { points, clubId };
     return this.request('/points/reservations/create', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -3493,6 +3513,9 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        if (response.status === 401 && token && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+        }
         const text = await response.text();
         return { success: false, error: `HTTP ${response.status}: ${text}` };
       }
@@ -4198,9 +4221,6 @@ class ApiClient {
       isMember?: boolean;
       name?: string;
     }>(`/membership-plans/referral-check?${params.toString()}`);
-    if (res.success && res.data) {
-      return { ...res, data: (res.data as any).exists !== undefined ? res.data : (res.data as any) };
-    }
     return res;
   }
 

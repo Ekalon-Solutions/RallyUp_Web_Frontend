@@ -240,62 +240,78 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
                   {(() => {
                     const plan = membershipPlans.find(p => p._id === selectedPlan)
                     if (!plan) return null
-                    
+
                     return (
-                      <div className="space-y-2">
-                        <h4 className="font-semibold">{plan.name}</h4>
-                        <p className="text-sm text-muted-foreground">{plan.description}</p>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>Price: {formatPrice(plan.price, plan.currency)}</div>
-                          <div>Plan period: {formatPlanPeriod(plan)}</div>
-                          <div>Events: {plan.features.maxEvents}</div>
-                          <div>News: {plan.features.maxNews}</div>
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold">{plan.name}</h4>
+                          <p className="text-sm text-muted-foreground">{plan.description}</p>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>Price: {formatPrice(plan.price, plan.currency)}</div>
+                            <div>Plan period: {formatPlanPeriod(plan)}</div>
+                            <div>Events: {plan.features.maxEvents}</div>
+                            <div>News: {plan.features.maxNews}</div>
+                          </div>
+                          {plan.features.advancedAnalytics && (
+                            <div className="flex items-center gap-1 text-sm text-green-600">
+                              <CheckCircle className="w-3 h-3" />
+                              Advanced Analytics
+                            </div>
+                          )}
+                          {plan.features.prioritySupport && (
+                            <div className="flex items-center gap-1 text-sm text-green-600">
+                              <CheckCircle className="w-3 h-3" />
+                              Priority Support
+                            </div>
+                          )}
                         </div>
-                        {plan.features.advancedAnalytics && (
-                          <div className="flex items-center gap-1 text-sm text-green-600">
-                            <CheckCircle className="w-3 h-3" />
-                            Advanced Analytics
+
+                        <div className="border-t pt-3">
+                          <Label className="text-sm font-medium">
+                            Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}
+                          </Label>
+                          <div className="flex gap-2 mt-2">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={availablePoints ?? undefined}
+                              value={redeemPoints}
+                              onChange={(e) => setRedeemPoints(Math.max(0, Number(e.target.value || 0)))}
+                              className="w-32 h-9"
+                              placeholder="Points"
+                            />
+                            <Button type="button" size="sm" disabled={reserving} onClick={async () => {
+                              if (!redeemPoints || redeemPoints <= 0) { toast.error('Enter points to redeem'); return }
+                              setReserving(true)
+                              try {
+                                const clubId = (user as any)?.memberships?.[0]?.club_id?._id || (user as any)?.club
+                                const resp = await apiClient.createReservation(redeemPoints, clubId)
+                                if (resp.success) {
+                                  const payload = (resp.data as any)?.data ?? resp.data
+                                  setReservationToken(payload?.reservationToken || null)
+                                  toast.success('Points reserved')
+                                } else {
+                                  toast.error(resp.message || resp.error || 'Failed to reserve points')
+                                }
+                              } catch {
+                                toast.error('Failed to reserve points')
+                              } finally { setReserving(false) }
+                            }}>
+                              {reserving ? 'Reserving...' : 'Reserve'}
+                            </Button>
+                            <Button type="button" variant="ghost" onClick={async () => {
+                              if (reservationToken) {
+                                try { await apiClient.cancelReservation(reservationToken) } catch {}
+                              }
+                              setReservationToken(null)
+                              setRedeemPoints(0)
+                            }}>
+                              Clear
+                            </Button>
                           </div>
-                        )}
-                        {plan.features.prioritySupport && (
-                          <div className="flex items-center gap-1 text-sm text-green-600">
-                            <CheckCircle className="w-3 h-3" />
-                            Priority Support
-                          </div>
-                        )}
+                        </div>
                       </div>
                     )
-
-                  {/* Redeem Points for renewal */}
-                  <div className="mt-3">
-                    <Label className="text-sm font-medium">Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</Label>
-                    <div className="flex gap-2 mt-2">
-                      <Input type="number" min={0} value={redeemPoints} onChange={(e) => setRedeemPoints(Number(e.target.value || 0))} className="w-32 h-9" placeholder="Points" />
-                      <Button type="button" size="sm" onClick={async () => {
-                        if (!redeemPoints || redeemPoints <= 0) { toast.error('Enter points to redeem'); return }
-                        setReserving(true)
-                        try {
-                          const plan = membershipPlans.find(p => p._id === selectedPlan)
-                          const orderTotal = plan ? plan.price : undefined
-                          const resp = await apiClient.createReservation(redeemPoints, (user as any)?.memberships?.[0]?.club_id?._id || (user as any)?.club, orderTotal)
-                          if (resp && resp.success) {
-                            setReservationToken(resp.data?.reservationToken || null)
-                            toast.success('Points reserved')
-                          } else {
-                            toast.error(resp?.message || 'Failed to reserve points')
-                          }
-                        } catch (e) {
-                          toast.error('Failed to reserve points')
-                        } finally { setReserving(false) }
-                      }}>{reserving ? 'Reserving...' : 'Reserve'}</Button>
-                      <Button type="button" variant="ghost" onClick={async () => {
-                        if (reservationToken) {
-                          try { await apiClient.cancelReservation(reservationToken) } catch (e) {}
-                        }
-                        setReservationToken(null); setRedeemPoints(0)
-                      }}>Clear</Button>
-                    </div>
-                  </div>
                   })()}
                 </div>
               )}
