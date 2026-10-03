@@ -196,50 +196,6 @@ function AttendanceMarker({
   );
 }
 
-const REFUND_STATUS_LABEL: Record<string, { label: string; className: string }> = {
-  requested: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-  processed: { label: "Processed", className: "bg-green-50 text-green-700 border-green-200" },
-  failed: { label: "Failed — club notified", className: "bg-red-50 text-red-700 border-red-200" },
-};
-
-/** One line per registration that has tickets in a refund state, so members can see
- *  Pending / Processed / Failed even after the event drops off the public list. */
-function TicketRefundStatusCard({ rows }: { rows: any[] }) {
-  const items = rows.flatMap((row) => {
-    const attendees: any[] = row?.registration?.attendees || [];
-    const counts: Record<string, number> = {};
-    for (const a of attendees) if (REFUND_STATUS_LABEL[a?.refundStatus]) counts[a.refundStatus] = (counts[a.refundStatus] || 0) + 1;
-    if (!Object.keys(counts).length) return [];
-    return [{ key: `${row.eventId}-${row.registration?.registrationId || ""}`, title: row.eventTitle, startTime: row.eventStartTime, counts }];
-  });
-  if (!items.length) return null;
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Ticket refunds</CardTitle>
-        <CardDescription>Refunds take 5-7 working days to reach your original payment method.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        {items.map((it) => (
-          <div key={it.key} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <div className="min-w-0">
-              <div className="font-medium truncate">{it.title}</div>
-              {it.startTime && <div className="text-xs text-muted-foreground">{new Date(it.startTime).toLocaleDateString()}</div>}
-            </div>
-            <div className="flex gap-1">
-              {Object.entries(it.counts).map(([status, n]) => (
-                <Badge key={status} variant="outline" className={REFUND_STATUS_LABEL[status].className}>
-                  {n} {n === 1 ? "ticket" : "tickets"} · {REFUND_STATUS_LABEL[status].label}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
 function UserEventsPageInner() {
   const { user } = useAuth() as { user: UserInterface };
   const { socket } = useSocket();
@@ -984,8 +940,6 @@ function UserEventsPageInner() {
                 }
               </div>
             </div>
-            <TicketRefundStatusCard rows={registrationRows} />
-
             <div
               className="flex flex-wrap gap-2"
               role="tablist"
