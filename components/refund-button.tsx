@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
 import { RefundConfirmationModal } from './modals/refund-confirmation-modal'
 import { AttendeeTicketSelectModal, CancellableAttendee } from './modals/attendee-ticket-select-modal'
-import { getApiUrl } from '@/lib/config'
+import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
 
 interface RefundButtonProps {
@@ -46,20 +46,12 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
   const fetchEstimate = async (attendeeId?: string) => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl('/refunds/estimate'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ sourceType, eventId, orderId, attendeeId })
-      })
+      const response = await apiClient.getRefundEstimate({ sourceType, eventId, orderId, attendeeId })
+      const payload = response.data as any
+      const data = payload?.data ?? payload
 
-      const data = await response.json()
-      
-      if (response.ok && data.success && data.data) {
-        const nextEstimate = data.data as RefundEstimate
+      if (response.success && data) {
+        const nextEstimate = data as RefundEstimate
         if (nextEstimate.requiresAttendeeSelection && nextEstimate.meta?.cancellableAttendees?.length) {
           setAttendeeSelectList(nextEstimate.meta.cancellableAttendees)
           setAttendeeSelectOpen(true)
@@ -72,10 +64,10 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
         setError(null)
       } else {
         const msg =
-          data.code === 'REFUND_POLICY_RESTRICTED'
-            ? data.message ||
+          payload?.code === 'REFUND_POLICY_RESTRICTED'
+            ? payload.message ||
               'This club does not allow refunds for this specific event as per their stated policy.'
-            : data.message || 'Failed to load refund information'
+            : response.message || response.error || 'Failed to load refund information'
         setError(msg)
         setEstimate(null)
       }
@@ -94,24 +86,15 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
   const handleRequestRefund = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl('/refunds/request'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          sourceType,
-          eventId,
-          orderId,
-          attendeeId: selectedAttendeeId || undefined,
-        })
+      const response = await apiClient.requestRefund({
+        sourceType,
+        eventId,
+        orderId,
+        attendeeId: selectedAttendeeId || undefined,
       })
+      const data = response.data as any
 
-      const data = await response.json()
-
-      if (response.ok && data.success) {
+      if (response.success) {
         setShowModal(false)
         onRefundRequested?.()
         const msg = sourceType === 'event_ticket'
@@ -123,7 +106,7 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
           data.code === 'REFUND_POLICY_RESTRICTED'
             ? data.message ||
               'This club does not allow refunds for this specific event as per their stated policy.'
-            : data.message || 'Failed to request refund'
+            : response.message || response.error || 'Failed to request refund'
         setError(msg)
         toast.error('Refund not available', { description: msg })
       }

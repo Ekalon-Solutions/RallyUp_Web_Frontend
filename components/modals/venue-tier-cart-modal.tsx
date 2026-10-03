@@ -174,7 +174,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     }
   ) => {
     if (razorpaySettledRef.current) return
-    const result = await resolveRazorpayDismiss(razorpayOrderId)
+    const result = await resolveRazorpayDismiss(razorpayOrderId, {
+      eventId: event?._id ? String(event._id) : undefined,
+      registrationId: options?.registrationId,
+    })
     if (razorpaySettledRef.current) return
     if (result.outcome === "paid") {
       await options?.onPaid?.(result.payment)

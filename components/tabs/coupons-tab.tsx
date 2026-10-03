@@ -24,6 +24,7 @@ interface Coupon {
   discountValue: number
   maxUsage: number
   currentUsage: number
+  totalDiscountGiven?: number
   startTime: string
   endTime: string
   eligibility: 'all' | 'members-only' | 'new-users' | 'specific-events' | 'membership-renewal' | 'membership-plan'
@@ -218,9 +219,7 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
       return c.isActive && new Date(c.startTime) <= now && new Date(c.endTime) >= now && c.currentUsage < c.maxUsage
     }).length,
     totalUsage: coupons.reduce((sum, c) => sum + c.currentUsage, 0),
-    totalDiscountGiven: coupons.reduce((sum, c) => {
-      return sum + c.currentUsage * (c.discountType === 'flat' ? c.discountValue : 100)
-    }, 0)
+    totalDiscountGiven: coupons.reduce((sum, c) => sum + (c.totalDiscountGiven || 0), 0)
   }
 
   return (

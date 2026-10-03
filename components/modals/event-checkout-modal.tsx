@@ -778,7 +778,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         modal: {
           ondismiss: async function() {
             if (checkoutSettled) return
-            const result = await resolveRazorpayDismiss(razorpayOrderId)
+            const result = await resolveRazorpayDismiss(razorpayOrderId, {
+              eventId: String(event._id),
+              registrationId: pendingRegistrationId,
+            })
             if (checkoutSettled) return
             if (result.outcome === 'paid') {
               await options.handler(result.payment)
