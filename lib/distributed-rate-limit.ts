@@ -12,6 +12,41 @@ local ttl = redis.call('PTTL', KEYS[1])
 return {count, ttl}
 `.trim()
 
+interface LocalLimitRecord {
+  count: number
+  resetTime: number
+}
+
+// Keep the development fallback alive across Next.js hot reloads. Production
+// must use Redis because an in-memory counter is not shared across instances.
+const globalRateLimit = globalThis as typeof globalThis & {
+  __rallyUpRateLimitStore?: Map<string, LocalLimitRecord>
+}
+const localStore = globalRateLimit.__rallyUpRateLimitStore ?? new Map<string, LocalLimitRecord>()
+globalRateLimit.__rallyUpRateLimitStore = localStore
+
+function checkLocalRateLimit(
+  key: string,
+  windowMs: number,
+  limit: number,
+): DistributedLimitResult {
+  const now = Date.now()
+  const current = localStore.get(key)
+  const record = !current || current.resetTime <= now
+    ? { count: 0, resetTime: now + windowMs }
+    : current
+
+  record.count += 1
+  localStore.set(key, record)
+
+  return {
+    allowed: record.count <= limit,
+    remaining: Math.max(0, limit - record.count),
+    retryAfterMs: Math.max(0, record.resetTime - now),
+    configured: false,
+  }
+}
+
 export async function checkDistributedRateLimit(
   key: string,
   windowMs: number,
@@ -20,7 +55,10 @@ export async function checkDistributedRateLimit(
   const url = process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, '')
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url || !token) {
-    return { allowed: process.env.NODE_ENV !== 'production', remaining: limit, retryAfterMs: windowMs, configured: false }
+    if (process.env.NODE_ENV !== 'production') {
+      return checkLocalRateLimit(key, windowMs, limit)
+    }
+    return { allowed: false, remaining: 0, retryAfterMs: windowMs, configured: false }
   }
 
   try {
@@ -42,6 +80,9 @@ export async function checkDistributedRateLimit(
     }
   } catch (error) {
     console.error('[rate-limit] Distributed store unavailable:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      return checkLocalRateLimit(key, windowMs, limit)
+    }
     return { allowed: false, remaining: 0, retryAfterMs: windowMs, configured: true }
   }
 }
