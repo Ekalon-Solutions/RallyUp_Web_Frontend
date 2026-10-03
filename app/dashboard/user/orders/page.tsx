@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useSocket } from '@/contexts/socket-context'
 import { apiClient } from '@/lib/api'
@@ -21,6 +21,7 @@ import { PaymentSimulationModal } from '@/components/modals/payment-simulation-m
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from '@/lib/transactionFees'
 import { OrderTrackingProgress, TrackableOrder, TrackingEvent } from '@/components/order-tracking-progress'
 import { OrderAddressDisplay } from '@/components/order-address-display'
+import { TicketOrderHistory, type MemberTicketOrder } from '@/components/member/ticket-order-history'
 import {
   Search,
   RefreshCw,
@@ -156,6 +157,10 @@ export default function UserOrdersPage() {
   const clubId = useRequiredClubId()
   const { socket } = useSocket()
   const [orders, setOrders] = useState<Order[]>([])
+  const [orderType, setOrderType] = useState<'tickets' | 'merchandise'>('tickets')
+  const [ticketOrders, setTicketOrders] = useState<MemberTicketOrder[]>([])
+  const [ticketSearchTerm, setTicketSearchTerm] = useState('')
+  const [ticketLoading, setTicketLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -188,7 +193,7 @@ export default function UserOrdersPage() {
 
   useEffect(() => {
     if (user) {
-      loadOrders()
+      loadTicketOrders()
     }
   }, [user, clubId])
 
@@ -225,7 +230,7 @@ export default function UserOrdersPage() {
       setCurrentPage(1)
       loadOrders()
     }
-  }, [searchTerm, statusFilter, clubId])
+  }, [user, searchTerm, statusFilter, clubId])
 
   useEffect(() => {
     if (user && currentPage > 1) {
@@ -325,13 +330,90 @@ export default function UserOrdersPage() {
     }
   }
 
+  const loadTicketOrders = async () => {
+    try {
+      setTicketLoading(true)
+      if (!clubId) {
+        setTicketOrders([])
+        return
+      }
+
+      const response = await apiClient.getUserEventRegistrations(clubId)
+      if (response.success && Array.isArray(response.data)) {
+        setTicketOrders(response.data as MemberTicketOrder[])
+      } else {
+        setTicketOrders([])
+        toast.error(response.error || 'Failed to fetch ticket orders')
+      }
+    } catch {
+      setTicketOrders([])
+      toast.error('Failed to fetch ticket orders')
+    } finally {
+      setTicketLoading(false)
+    }
+  }
+
+  const filteredTicketOrders = useMemo(() => {
+    const query = ticketSearchTerm.trim().toLowerCase()
+    if (!query) return ticketOrders
+
+    return ticketOrders.filter((row) =>
+      [
+        row.eventTitle,
+        row.eventVenue,
+        row.eventCategory,
+        row.registration?.registrationId,
+        row.registration?._id,
+      ].some((value) => String(value || '').toLowerCase().includes(query))
+    )
+  }, [ticketOrders, ticketSearchTerm])
+
   const refreshOrders = async () => {
     setRefreshing(true)
-    await loadOrders()
+    if (orderType === 'tickets') {
+      await loadTicketOrders()
+    } else {
+      await loadOrders()
+    }
     setRefreshing(false)
   }
 
   const handleDownloadReport = async () => {
+    if (orderType === 'tickets') {
+      const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
+      const rows = filteredTicketOrders.map((row) => {
+        const registration = row.registration || {}
+        const attendees = Array.isArray(registration.attendees) ? registration.attendees : []
+        const activeTickets = attendees.length
+          ? attendees.filter((attendee) => attendee.status !== 'cancelled' && attendee.status !== 'refunded').length
+          : 1
+        return [
+          row.eventTitle,
+          row.eventVenue,
+          row.eventStartTime || '',
+          registration.registrationDate || '',
+          registration.status || 'confirmed',
+          activeTickets,
+          registration.amountPaid ?? '',
+          registration.currency || 'INR',
+        ]
+      })
+      const csv = [
+        ['Event', 'Venue', 'Event Date', 'Registration Date', 'Status', 'Tickets', 'Amount Paid', 'Currency'],
+        ...rows,
+      ].map((row) => row.map(escapeCsv).join(',')).join('\n')
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `ticket-orders-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success('Report downloaded', { description: 'Your ticket orders report downloaded successfully.' })
+      return
+    }
+
     const params = {
       ...(searchTerm ? { search: searchTerm } : {}),
       ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
@@ -634,225 +716,258 @@ export default function UserOrdersPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">My Orders</h1>
             <p className="text-muted-foreground">Track your purchase history and order status</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button variant="secondary" onClick={handleDownloadReport}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" onClick={handleDownloadReport} className="flex-1 sm:flex-none">
               <Download className="w-4 h-4 mr-2" />
               Download Report
             </Button>
-            <Button onClick={refreshOrders} disabled={refreshing}>
+            <Button onClick={refreshOrders} disabled={refreshing} className="flex-1 sm:flex-none">
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
         </div>
 
-        {/* Filters */}
-        <Card>
+        <Card className="rounded-xl shadow-none">
           <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search orders by number..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+            {orderType === 'tickets' ? (
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search Ticket by Event or Venue Name"
+                  value={ticketSearchTerm}
+                  onChange={(event) => setTicketSearchTerm(event.target.value)}
+                  className="h-12 pl-11"
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-12 w-full sm:w-60">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {Object.entries(statusConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search orders by number..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="h-12 pl-11"
+                    />
+                  </div>
                 </div>
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {Object.entries(statusConfig).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Orders List */}
-        <Card>
+        <div className="flex items-center gap-2" role="tablist" aria-label="Order type">
+          <Button
+            type="button"
+            role="tab"
+            aria-selected={orderType === 'tickets'}
+            variant={orderType === 'tickets' ? 'default' : 'outline'}
+            className="h-10 rounded-full px-6"
+            onClick={() => setOrderType('tickets')}
+          >
+            Tickets
+          </Button>
+          <Button
+            type="button"
+            role="tab"
+            aria-selected={orderType === 'merchandise'}
+            variant={orderType === 'merchandise' ? 'default' : 'outline'}
+            className="h-10 rounded-full px-6"
+            onClick={() => setOrderType('merchandise')}
+          >
+            Merchandise
+          </Button>
+        </div>
+
+        <Card className="min-h-[420px] rounded-xl shadow-none">
           <CardHeader>
-            <CardTitle>Order History</CardTitle>
+            <CardTitle className="text-2xl">Order History</CardTitle>
             <CardDescription>
-              View and track your past orders. For refund-related inquiries, see our{" "}
-              <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-500 underline">
+              View and track your past {orderType === 'tickets' ? 'tickets' : 'orders'}. For refund-related inquiries, see our{" "}
+              <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-2">
                 Refund and Cancellation Policy
               </a>
               .
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {shippingAlertsEnabled !== null && (
-              <div className="mb-4 flex items-center justify-between gap-4 rounded-lg border bg-muted/40 p-3">
-                <div className="flex items-start gap-2">
-                  <Bell className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Shipping update alerts</p>
-                    <p className="text-xs text-muted-foreground">
-                      Get notified the moment your order ships, is out for delivery, or is delivered.
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={shippingAlertsEnabled}
-                  disabled={savingShippingAlerts}
-                  onCheckedChange={handleToggleShippingAlerts}
-                />
-              </div>
-            )}
-            {loading ? (
-              <div className="flex items-center justify-center h-32">
-                <RefreshCw className="w-6 h-6 animate-spin" />
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground">No orders found</h3>
-                <p className="text-muted-foreground">
-                  {searchTerm || statusFilter !== 'all'
-                    ? "No orders match your current filters."
-                    : "You haven't placed any orders yet."}
-                </p>
-                {!searchTerm && statusFilter === 'all' && (
-                  <Button className="mt-4" onClick={() => window.location.href = '/merchandise'}>
-                    Browse Merchandise
-                  </Button>
-                )}
-              </div>
+            {orderType === 'tickets' ? (
+              <TicketOrderHistory
+                rows={filteredTicketOrders}
+                loading={ticketLoading}
+                hasSearch={Boolean(ticketSearchTerm.trim())}
+              />
             ) : (
-              <div className="space-y-4">
-                {orders.map((order) => {
-                  const sc = statusConfig[order.status] ?? statusConfig.pending
-                  const StatusIcon = sc.icon
-                  const canContinuePayment = order.status === 'pending' && order.paymentStatus === 'pending'
-                  return (
-                    <div key={order._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-card">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <h3 className="font-semibold text-lg text-foreground">{order.orderNumber}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {formatDate(order.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={sc.color}>
-                            <StatusIcon className="w-3 h-3 mr-1" />
-                            {sc.label}
-                          </Badge>
-                          <Badge className={(paymentStatusConfig[order.paymentStatus] ?? paymentStatusConfig.pending).color}>
-                            {(paymentStatusConfig[order.paymentStatus] ?? paymentStatusConfig.pending).label}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Items</p>
-                          <p className="font-medium text-foreground">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total</p>
-                          <p className="font-medium text-foreground">
-                            {formatCurrency(
-                              order.paymentStatus === 'pending'
-                                ? (() => {
-                                    return order.finalAmount ?? order.total
-                                  })()
-                                : (order.finalAmount ?? order.total),
-                              order.currency
-                            )}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Payment Method</p>
-                          <p className="font-medium text-foreground">{getPaymentMethodName(order.paymentMethod)}</p>
-                        </div>
-                      </div>
-
-                      {order.trackingNumber && (
-                        <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Tracking Number</p>
-                          <p className="font-mono text-blue-800 dark:text-blue-200">{order.trackingNumber}</p>
-                        </div>
-                      )}
-
-                      {order.paymentStatus === 'paid' && order.status !== 'cancelled' && (
-                        <div className="mb-3">
-                          <OrderTrackingProgress order={order} onOrderUpdate={handleOrderTrackingUpdate} />
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedOrder(order)
-                              setShowOrderModal(true)
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </Button>
-                          {canContinuePayment && (
-                            <Button
-                              size="sm"
-                              onClick={() => openContinuePayment(order)}
-                            >
-                              <CreditCard className="w-4 h-4 mr-2" />
-                              Continue Payment
-                            </Button>
-                          )}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          Order #{order.orderNumber}
-                        </div>
+              <>
+                {shippingAlertsEnabled !== null && (
+                  <div className="mb-5 flex items-center justify-between gap-4 rounded-lg border bg-muted/50 px-5 py-4">
+                    <div className="flex items-start gap-3">
+                      <Bell className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                      <div>
+                        <p className="font-semibold text-foreground">Order History</p>
+                        <p className="text-sm text-muted-foreground">
+                          Get notified the moment your order ships, is out for delivery, or is delivered.
+                        </p>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                    <Switch
+                      checked={shippingAlertsEnabled}
+                      disabled={savingShippingAlerts}
+                      onCheckedChange={handleToggleShippingAlerts}
+                      aria-label="Shipping update alerts"
+                    />
+                  </div>
+                )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center space-x-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
+                {loading ? (
+                  <div className="flex min-h-64 items-center justify-center">
+                    <RefreshCw className="h-7 w-7 animate-spin" />
+                  </div>
+                ) : orders.length === 0 ? (
+                  <div className="flex min-h-64 flex-col items-center justify-center px-4 py-10 text-center">
+                    <Package className="mb-5 h-12 w-12 text-muted-foreground" strokeWidth={1.8} />
+                    <h3 className="text-xl font-semibold text-foreground">No orders found</h3>
+                    <p className="mt-1 text-muted-foreground">
+                      {searchTerm || statusFilter !== 'all'
+                        ? "No orders match your current filters."
+                        : "You haven't placed any orders yet."}
+                    </p>
+                    {!searchTerm && statusFilter === 'all' && (
+                      <Button className="mt-5" onClick={() => window.location.href = '/merchandise'}>
+                        Browse Merchandise
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {orders.map((order) => {
+                      const sc = statusConfig[order.status] ?? statusConfig.pending
+                      const StatusIcon = sc.icon
+                      const canContinuePayment = order.status === 'pending' && order.paymentStatus === 'pending'
+                      return (
+                        <div key={order._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-card">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <h3 className="font-semibold text-lg text-foreground">{order.orderNumber}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {formatDate(order.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={sc.color}>
+                                <StatusIcon className="w-3 h-3 mr-1" />
+                                {sc.label}
+                              </Badge>
+                              <Badge className={(paymentStatusConfig[order.paymentStatus] ?? paymentStatusConfig.pending).color}>
+                                {(paymentStatusConfig[order.paymentStatus] ?? paymentStatusConfig.pending).label}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Items</p>
+                              <p className="font-medium text-foreground">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Total</p>
+                              <p className="font-medium text-foreground">
+                                {formatCurrency(order.finalAmount ?? order.total, order.currency)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Payment Method</p>
+                              <p className="font-medium text-foreground">{getPaymentMethodName(order.paymentMethod)}</p>
+                            </div>
+                          </div>
+
+                          {order.trackingNumber && (
+                            <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Tracking Number</p>
+                              <p className="font-mono text-blue-800 dark:text-blue-200">{order.trackingNumber}</p>
+                            </div>
+                          )}
+
+                          {order.paymentStatus === 'paid' && order.status !== 'cancelled' && (
+                            <div className="mb-3">
+                              <OrderTrackingProgress order={order} onOrderUpdate={handleOrderTrackingUpdate} />
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedOrder(order)
+                                  setShowOrderModal(true)
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </Button>
+                              {canContinuePayment && (
+                                <Button size="sm" onClick={() => openContinuePayment(order)}>
+                                  <CreditCard className="w-4 h-4 mr-2" />
+                                  Continue Payment
+                                </Button>
+                              )}
+                            </div>
+                            <div className="hidden text-sm text-muted-foreground sm:block">
+                              Order #{order.orderNumber}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center space-x-2 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
