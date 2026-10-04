@@ -7570,6 +7570,43 @@ class ApiClient {
   async createOrUpdateLeaderboard(data: any): Promise<ApiResponse> {
     return this.request('/leaderboard', { method: 'POST', body: JSON.stringify(data) });
   }
+
+  async getClubChatMembers(clubId: string): Promise<ApiResponse<{ memberships: any[] }>> {
+    return this.request(`/clubs/${clubId}/members`);
+  }
+
+  async getMemberConnectionRequests(clubId: string): Promise<ApiResponse<{ requests: any[]; counts?: { total: number; sent: number; received: number } }>> {
+    return this.request(`/member-connections/requests?clubId=${encodeURIComponent(clubId)}`);
+  }
+
+  async getMyMemberConnections(clubId: string): Promise<ApiResponse<{ connections: any[] }>> {
+    return this.request(`/member-connections/my-connections?clubId=${encodeURIComponent(clubId)}`);
+  }
+
+  async sendMemberConnectionRequest(recipientId: string, clubId: string): Promise<ApiResponse<any>> {
+    return this.request('/member-connections/send-request', {
+      method: 'POST',
+      body: JSON.stringify({ recipientId, clubId }),
+    });
+  }
+
+  async respondToMemberConnectionRequest(requestId: string, action: 'accept' | 'decline'): Promise<ApiResponse<any>> {
+    return this.request('/member-connections/respond-request', {
+      method: 'POST',
+      body: JSON.stringify({ requestId, action }),
+    });
+  }
+
+  async sendMemberMessage(connectionId: string, content: string): Promise<ApiResponse<{ message: string; messageData: any }>> {
+    return this.request('/member-connections/send-message', {
+      method: 'POST',
+      body: JSON.stringify({ connectionId, content }),
+    });
+  }
+
+  async getMemberConversation(connectionId: string): Promise<ApiResponse<{ messages: any[] }>> {
+    return this.request(`/member-connections/conversation/${connectionId}`);
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

@@ -374,13 +374,7 @@ export default function ClubMembersPage() {
             {/* Member Connections Tab */}
             <TabsContent value="connections" className="mt-6">
               {clubId && user ? (
-                <MemberConnections 
-                  currentUser={{
-                    ...user,
-                    token: localStorage.getItem('token')
-                  }} 
-                  clubId={clubId} 
-                />
+                <MemberConnections currentUser={user} clubId={clubId} />
               ) : (
                 <Card>
                   <CardContent className="p-12 text-center">

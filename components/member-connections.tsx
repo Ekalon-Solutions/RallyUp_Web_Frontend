@@ -12,12 +12,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { 
   Users, 
   UserPlus, 
   MessageCircle, 
@@ -27,17 +21,10 @@ import {
   X,
   Clock,
   Loader2,
-  Smile,
-  MoreVertical,
-  FileText,
-  Image as ImageIcon,
-  Phone,
-  Video,
-  Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMessaging, useConnectionNotifications } from '@/hooks/use-messaging';
-import config from '@/lib/config';
+import { apiClient } from '@/lib/api';
 
 // Interfaces
 interface Member {
@@ -61,11 +48,19 @@ interface ConnectionRequest {
   recipient: Member;
   club: {
     _id: string;
-    clubName: string;
+    clubName?: string;
+    name?: string;
   };
   status: 'pending' | 'accepted' | 'declined' | 'blocked';
   createdAt: string;
   updatedAt: string;
+  lastMessage?: {
+    _id: string;
+    message: string;
+    sender: string | { _id: string };
+    createdAt: string;
+    isRead?: boolean;
+  } | null;
 }
 
 interface Message {
@@ -89,6 +84,12 @@ interface ClubMember {
   email: string;
   profilePicture?: string;
 }
+
+const personId = (value: any): string => {
+  if (!value) return '';
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  return String(value._id || value.id || '');
+};
 
 export default function MemberConnections({ currentUser, clubId }: { currentUser: any, clubId: string }) {
   const [members, setMembers] = useState<Member[]>([]);
@@ -137,28 +138,57 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     );
   };
 
+  const currentUserId = personId(currentUser);
+
+  const appendMessage = useCallback((connectionId: string, message: Message) => {
+    if (!connectionId || !message?._id) return;
+    setConversations((prev) => {
+      const existing = prev[connectionId] || [];
+      if (existing.some((item) => item._id === message._id)) return prev;
+      const next = [...existing, message].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      return { ...prev, [connectionId]: next };
+    });
+    setMyConnections((prev) => {
+      const index = prev.findIndex((connection) => connection._id === connectionId);
+      if (index === -1) return prev;
+      const updated = {
+        ...prev[index],
+        lastMessage: {
+          _id: message._id,
+          message: message.message,
+          sender: message.sender,
+          createdAt: message.createdAt,
+          isRead: message.isRead,
+        },
+      };
+      return [updated, ...prev.filter((connection) => connection._id !== connectionId)];
+    });
+  }, []);
+
   // Helper function to get last message preview
-  const getLastMessagePreview = (connectionId: string) => {
-    const messages = conversations[connectionId];
-    if (!messages || messages.length === 0) {
+  const getLastMessagePreview = (connection: ConnectionRequest) => {
+    const messages = conversations[connection._id];
+    const lastMessage = messages && messages.length > 0 ? messages[messages.length - 1] : connection.lastMessage;
+    if (!lastMessage?.message) {
       return 'Start a conversation...';
     }
-    const lastMessage = messages[messages.length - 1];
-    const isCurrentUser = lastMessage.sender._id === currentUser?._id;
+    const isCurrentUser = personId(lastMessage.sender) === currentUserId;
     const prefix = isCurrentUser ? 'You: ' : '';
-    const messageText = lastMessage.message.length > 30 
-      ? lastMessage.message.substring(0, 30) + '...' 
+    const messageText = lastMessage.message.length > 30
+      ? lastMessage.message.substring(0, 30) + '...'
       : lastMessage.message;
     return prefix + messageText;
   };
 
   // Helper function to get last message time
-  const getLastMessageTime = (connectionId: string) => {
-    const messages = conversations[connectionId];
-    if (!messages || messages.length === 0) {
+  const getLastMessageTime = (connection: ConnectionRequest) => {
+    const messages = conversations[connection._id];
+    const lastMessage = messages && messages.length > 0 ? messages[messages.length - 1] : connection.lastMessage;
+    if (!lastMessage?.createdAt) {
       return '';
     }
-    const lastMessage = messages[messages.length - 1];
     const messageDate = new Date(lastMessage.createdAt);
     const now = new Date();
     const diffMs = now.getTime() - messageDate.getTime();
@@ -176,9 +206,14 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     return formatDisplayDate(messageDate);
   };
 
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
   // Real-time messaging hooks
   const { 
     isConnected, 
+    peerOnline,
     typingUsers, 
     startTyping, 
     stopTyping, 
@@ -186,263 +221,174 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     isTyping 
   } = useMessaging({
     connectionId: selectedConversation,
-    currentUserId: currentUser?._id,
+    currentUserId,
     onNewMessage: (message: Message) => {
-      // Update conversations for any connection, not just selected one
-      const connId = message.connection || selectedConversation;
-      if (connId) {
-        setConversations(prev => ({
-          ...prev,
-          [connId]: [...(prev[connId] || []), message]
-        }));
-        
-        // If it's the selected conversation, scroll to bottom and mark as read
-        if (selectedConversation && connId === selectedConversation) {
-          scrollToBottom();
-          markMessagesAsRead();
-        }
+      const connId = personId(message.connection) || selectedConversation;
+      if (!connId) return;
+      appendMessage(connId, message);
+      if (selectedConversation && connId === selectedConversation && personId(message.sender) !== currentUserId) {
+        scrollToBottom();
+        markMessagesAsRead(connId);
       }
     },
     onMessagesRead: (data) => {
-      // Update read status in UI if needed
-      // // console.log('Messages marked as read:', data);
+      if (!data?.connectionId || personId(data.readBy) === currentUserId) return;
+      setConversations((prev) => {
+        const thread = prev[data.connectionId];
+        if (!thread) return prev;
+        return {
+          ...prev,
+          [data.connectionId]: thread.map((message) =>
+            personId(message.sender) === currentUserId
+              ? { ...message, isRead: true, readAt: data.readAt }
+              : message
+          ),
+        };
+      });
     }
   });
 
-  const { notifications } = useConnectionNotifications(currentUser?._id);
-
-  // Auto-scroll to bottom of messages
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+  const { notifications } = useConnectionNotifications(currentUserId, clubId);
 
   useEffect(() => {
     scrollToBottom();
   }, [conversations, selectedConversation, scrollToBottom]);
 
-  useEffect(() => {
-    if (currentUser?.token) {
-      fetchMembers();
-      fetchConnectionRequests();
-      fetchMyConnections();
-    }
-  }, [currentUser, clubId]);
-
-  // Debug log when data changes
-  useEffect(() => {
-    // // console.log('=== Member Connections Data ===');
-    // // console.log('Current User ID:', currentUser?._id);
-    // // console.log('Members count:', members.length);
-    // // console.log('Connection Requests:', connectionRequests.length, connectionRequests);
-    // // console.log('My Connections:', myConnections.length, myConnections);
-    // // console.log('==============================');
-  }, [members, connectionRequests, myConnections, currentUser]);
-
-  const getAuthHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${currentUser?.token || localStorage.getItem('token')}`
-  });
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
+    if (!clubId) return;
     try {
       setLoading(true);
-      // // console.log('Fetching members for club:', clubId);
-      // console.log('Auth headers:', getAuthHeaders());
-      
-      const response = await fetch(`${config.apiBaseUrl}/clubs/${clubId}/members`, {
-        headers: getAuthHeaders(),
-      });
-      
-      // // console.log('Response status:', response.status, response.statusText);
-      
-      if (response.ok) {
-        const data = await response.json();
-        // // console.log('Club memberships response:', data); // Debug log
-        const clubMembers = data.memberships?.map((member: any) => ({
-          _id: member._id || '',
-          first_name: member.first_name || '',
-          last_name: member.last_name || '',
+      const response = await apiClient.getClubChatMembers(clubId);
+      if (response.success && response.data) {
+        const clubMembers = (response.data.memberships || []).map((member: any) => ({
+          _id: personId(member),
+          first_name: member.first_name || member.firstName || '',
+          last_name: member.last_name || member.lastName || '',
           email: member.email || '',
           profilePicture: member.profilePicture || ''
-        })).filter((member: any) => member._id) || [];
-        // // console.log('Processed members:', clubMembers);
+        })).filter((member: Member) => member._id && member._id !== currentUserId);
         setMembers(clubMembers);
       } else {
-        const errorText = await response.text();
-        // // console.error('Failed to fetch members:', response.status, response.statusText, errorText);
-        toast.error(`Failed to load club members: ${response.statusText}`);
+        toast.error(response.error || 'Failed to load club members');
       }
-    } catch (error) {
-      // // console.error('Error fetching members:', error);
-      toast.error("Network error while loading members");
+    } catch {
+      toast.error('Network error while loading members');
     } finally {
       setLoading(false);
     }
-  };
+  }, [clubId, currentUserId]);
 
-  const fetchConnectionRequests = async () => {
+  const fetchConnectionRequests = useCallback(async () => {
+    if (!clubId) return;
     try {
-      // // console.log('Fetching connection requests...');
-      const response = await fetch(`${config.apiBaseUrl}/member-connections/requests`, {
-        headers: getAuthHeaders(),
-      });
-      
-      // // console.log('Connection requests response status:', response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        // // console.log('Connection requests raw data:', data);
-        // Backend returns { requests: [...], counts: {...} }
-        const requests = (data.requests || []).filter((request: any) => 
-          request?.requester?._id && request?.recipient?._id
+      const response = await apiClient.getMemberConnectionRequests(clubId);
+      if (response.success && response.data) {
+        const requests = (response.data.requests || []).filter((request: any) =>
+          personId(request?.requester) && personId(request?.recipient)
         );
-        // // console.log('Filtered connection requests:', requests.length);
-        
-        // Log each request to see structure
-        requests.forEach((req: any, idx: number) => {
-          // // console.log(`Request ${idx}:`, {
-//             _id: req._id,
-//             requester: req.requester?._id || req.requester,
-//             recipient: req.recipient?._id || req.recipient,
-//             status: req.status
-//           });
-        });
-        
         setConnectionRequests(requests);
       } else {
-        const errorText = await response.text();
-        // // console.error('Failed to fetch connection requests:', response.status, errorText);
-        toast.error("Failed to load connection requests");
+        toast.error(response.error || 'Failed to load connection requests');
       }
-    } catch (error) {
-      // // console.error('Error fetching connection requests:', error);
-      toast.error("Network error while loading connection requests");
+    } catch {
+      toast.error('Network error while loading connection requests');
     }
-  };
+  }, [clubId]);
 
-  const fetchMyConnections = async () => {
+  const fetchMyConnections = useCallback(async () => {
+    if (!clubId) return;
     try {
-      // // console.log('Fetching my connections...');
-      const response = await fetch(`${config.apiBaseUrl}/member-connections/my-connections`, {
-        headers: getAuthHeaders(),
-      });
-      
-      // // console.log('My connections response status:', response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        // // console.log('My connections raw data:', data);
-        // // console.log('Connections array:', data.connections);
-        
-        // Log first connection to see structure
-        if (data.connections && data.connections.length > 0) {
-          // // console.log('First connection structure:', data.connections[0]);
-        }
-        
-        // Filter out any malformed connections
-        const connections = (data.connections || []).filter((connection: any) => 
+      const response = await apiClient.getMyMemberConnections(clubId);
+      if (response.success && response.data) {
+        const connections = (response.data.connections || []).filter((connection: any) =>
           connection?._id && connection?.requester && connection?.recipient
         );
-        
-        // // console.log('Filtered connections count:', connections.length);
         setMyConnections(connections);
-        
-        // Load last message for each connection for preview
-        connections.forEach((connection: any) => {
-          if (connection._id && !conversations[connection._id]) {
-            fetchConversation(connection._id);
-          }
-        });
       } else {
-        // // console.error('Failed to fetch connections:', response.statusText);
-        toast.error("Failed to load your connections");
+        toast.error(response.error || 'Failed to load your connections');
       }
-    } catch (error) {
-      // // console.error('Error fetching connections:', error);
-      toast.error("Network error while loading connections");
+    } catch {
+      toast.error('Network error while loading connections');
     }
-  };
+  }, [clubId]);
 
-  const fetchConversation = async (connectionId: string) => {
+  const conversationRequestRef = useRef(0);
+
+  const fetchConversation = useCallback(async (connectionId: string) => {
+    const requestId = ++conversationRequestRef.current;
     try {
-      const response = await fetch(`${config.apiBaseUrl}/member-connections/conversation/${connectionId}`, {
-        headers: getAuthHeaders(),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Backend returns { messages: [...], pagination: {...} }
-        const messages = data.messages || [];
-        setConversations(prev => ({
-          ...prev,
-          [connectionId]: messages
-        }));
+      setIsLoadingMessages(true);
+      const response = await apiClient.getMemberConversation(connectionId);
+      if (conversationRequestRef.current !== requestId) return;
+      if (response.success && response.data) {
+        const messages = response.data.messages || [];
+        setConversations((prev) => {
+          const existing = prev[connectionId] || [];
+          const byId = new Map<string, Message>();
+          for (const message of [...existing, ...messages]) {
+            if (message?._id) byId.set(message._id, message);
+          }
+          const merged = Array.from(byId.values()).sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          return { ...prev, [connectionId]: merged };
+        });
       }
-    } catch (error) {
-      // // console.error('Error fetching conversation:', error);
+    } catch {
+      if (conversationRequestRef.current === requestId) {
+        toast.error('Failed to load messages');
+      }
+    } finally {
+      if (conversationRequestRef.current === requestId) {
+        setIsLoadingMessages(false);
+      }
     }
+  }, []);
+
+  useEffect(() => {
+    if (!currentUserId || !clubId) return;
+    setSelectedConversation(null);
+    setConversations({});
+    fetchMembers();
+    fetchConnectionRequests();
+    fetchMyConnections();
+  }, [currentUserId, clubId, fetchMembers, fetchConnectionRequests, fetchMyConnections]);
+
+  useEffect(() => {
+    if (notifications.length === 0) return;
+    fetchConnectionRequests();
+    fetchMyConnections();
+  }, [notifications, fetchConnectionRequests, fetchMyConnections]);
+
+  const openConversation = (connectionId: string) => {
+    setSelectedConversation(connectionId);
+    setActiveTab('messages');
+    setConversations((prev) => prev[connectionId] ? prev : { ...prev, [connectionId]: [] });
+    fetchConversation(connectionId);
+    markMessagesAsRead(connectionId);
   };
 
   const sendConnectionRequest = async (recipientId: string) => {
     setLoadingStates(prev => ({ ...prev, [`connect_${recipientId}`]: true }));
-    // // console.log('Sending connection request to:', recipientId, 'for club:', clubId);
-    // console.log('Auth headers:', getAuthHeaders());
-    // // console.log('API URL:', `${config.apiBaseUrl}/member-connections/send-request`);
-    
     try {
-      const response = await fetch(`${config.apiBaseUrl}/member-connections/send-request`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          recipientId,
-          clubId
-        }),
-      });
-
-      // // console.log('Connection request response:', response.status, response.statusText);
-
-      if (response.ok) {
-        const data = await response.json();
-        // // console.log('Connection request successful:', data);
-        toast.success("Connection request sent successfully");
+      const response = await apiClient.sendMemberConnectionRequest(recipientId, clubId);
+      if (response.success) {
+        toast.success('Connection request sent');
         fetchConnectionRequests();
         fetchMyConnections();
       } else {
-        const errorText = await response.text();
-        // // console.error('Connection request failed:', response.status, errorText);
-        let errorMessage = "Failed to send connection request";
-        let shouldRefreshData = false;
-        
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.message || errorMessage;
-          
-          // If connection already exists, refresh the data to update UI
-          if (errorMessage.toLowerCase().includes('already exists') || 
-              errorMessage.toLowerCase().includes('already connected')) {
-            shouldRefreshData = true;
-            errorMessage = "You are already connected to this member";
-          }
-        } catch (e) {
-          errorMessage = errorText || errorMessage;
-        }
-        
-        if (shouldRefreshData) {
+        const errorMessage = response.error || 'Failed to send connection request';
+        const alreadyConnected = errorMessage.toLowerCase().includes('already');
+        if (alreadyConnected) {
           toast.info(errorMessage);
+          fetchConnectionRequests();
+          fetchMyConnections();
         } else {
           toast.error(errorMessage);
         }
-        
-        // Refresh data if connection already exists to update the UI
-        if (shouldRefreshData) {
-          fetchConnectionRequests();
-          fetchMyConnections();
-        }
       }
-    } catch (error) {
-      // // console.error('Network error sending connection request:', error);
-      // console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      toast.error("Something went wrong. Please check your connection and try again.");
+    } catch {
+      toast.error('Something went wrong. Please check your connection and try again.');
     } finally {
       setLoadingStates(prev => ({ ...prev, [`connect_${recipientId}`]: false }));
     }
@@ -450,105 +396,39 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   const respondToRequest = async (requestId: string, action: 'accept' | 'decline') => {
     setLoadingStates(prev => ({ ...prev, [`request_${requestId}_${action}`]: true }));
-    // // console.log(`Responding to request ${requestId} with action: ${action}`);
-    // // console.log('Current user:', currentUser);
-    // // console.log('Current user ID:', currentUser?._id);
-    // console.log('Auth headers:', getAuthHeaders());
-    // console.log('Request body:', JSON.stringify({ requestId, action }));
-    
     try {
-      const response = await fetch(`${config.apiBaseUrl}/member-connections/respond-request`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          requestId,
-          action
-        }),
-      });
-
-      // // console.log(`Response status for ${action}:`, response.status, response.statusText);
-
-      if (response.ok) {
-        const data = await response.json();
-        // // console.log(`${action} request successful:`, data);
-        toast.success(`Connection request ${action}ed successfully`);
-        
-        // Refresh data after a small delay to ensure backend has updated
-        setTimeout(() => {
-          // // console.log('Refreshing connection data after accept/decline...');
-          fetchConnectionRequests();
-          fetchMyConnections();
-        }, 300);
+      const response = await apiClient.respondToMemberConnectionRequest(requestId, action);
+      if (response.success) {
+        toast.success(action === 'accept' ? 'Connection accepted' : 'Connection declined');
+        fetchConnectionRequests();
+        fetchMyConnections();
       } else {
-        const errorText = await response.text();
-        // // console.error(`Failed to ${action} request:`, response.status, errorText);
-        let errorMessage = `Failed to ${action} request`;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.message || errorMessage;
-        } catch (e) {
-          errorMessage = errorText || errorMessage;
-        }
-        toast.error(errorMessage);
+        toast.error(response.error || `Failed to ${action} request`);
       }
-    } catch (error) {
-      // // console.error(`Network error ${action}ing request:`, error);
-      // console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      toast.error("Something went wrong. Please check your connection and try again.");
+    } catch {
+      toast.error('Something went wrong. Please check your connection and try again.');
     } finally {
       setLoadingStates(prev => ({ ...prev, [`request_${requestId}_${action}`]: false }));
     }
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) {
-      // console.log('Cannot send message:', { 
-      //   hasMessage: !!newMessage.trim(), 
-      //   hasConversation: !!selectedConversation 
-      // });
-      return;
-    }
-
-    // // console.log('=== Sending Message ===');
-    // // console.log('Selected conversation ID:', selectedConversation);
-    // // console.log('Current user:', currentUser);
-    // // console.log('Current user ID:', currentUser?._id);
-    // console.log('Message content:', newMessage.trim());
-    // console.log('Auth headers:', getAuthHeaders());
-    
-    // Find the connection details for debugging
-    const connection = myConnections.find(c => c._id === selectedConversation);
-    // // console.log('Connection details:', connection);
+    const text = newMessage.trim();
+    if (!text || !selectedConversation) return;
 
     setLoadingStates(prev => ({ ...prev, sendingMessage: true }));
-    
     try {
-      const response = await fetch(`${config.apiBaseUrl}/member-connections/send-message`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          connectionId: selectedConversation,
-          content: newMessage.trim()
-        }),
-      });
-
-      // // console.log('Send message response:', response.status, response.statusText);
-
-      if (response.ok) {
-        const data = await response.json();
-        // // console.log('Message sent successfully:', data);
+      const response = await apiClient.sendMemberMessage(selectedConversation, text);
+      if (response.success && response.data?.messageData) {
+        appendMessage(selectedConversation, response.data.messageData);
         setNewMessage('');
         stopTyping();
-        // Refresh conversation to show the new message
-        fetchConversation(selectedConversation);
+        scrollToBottom();
       } else {
-        const errorText = await response.text();
-        // // console.error('Failed to send message:', response.status, errorText);
-        toast.error("Failed to send message");
+        toast.error(response.error || 'Failed to send message');
       }
-    } catch (error) {
-      // // console.error('Network error sending message:', error);
-      toast.error("Network error occurred");
+    } catch {
+      toast.error('Network error occurred');
     } finally {
       setLoadingStates(prev => ({ ...prev, sendingMessage: false }));
     }
@@ -583,22 +463,17 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   // Helper functions
   const getConnectionStatus = (memberId: string) => {
-    const currentUserId = currentUser?._id;
-    
-    // Check sent requests
-    const sentRequest = connectionRequests.find(req => 
-      req.requester?._id === currentUserId && req.recipient?._id === memberId
+    const sentRequest = connectionRequests.find(req =>
+      personId(req.requester) === currentUserId && personId(req.recipient) === memberId
     );
-    
-    // Check received requests
-    const receivedRequest = connectionRequests.find(req => 
-      req.recipient?._id === currentUserId && req.requester?._id === memberId
+
+    const receivedRequest = connectionRequests.find(req =>
+      personId(req.recipient) === currentUserId && personId(req.requester) === memberId
     );
-    
-    // Check existing connections (including accepted status)
+
     const connection = myConnections.find(conn => {
-      const isRequester = conn.requester?._id === currentUserId && conn.recipient?._id === memberId;
-      const isRecipient = conn.recipient?._id === currentUserId && conn.requester?._id === memberId;
+      const isRequester = personId(conn.requester) === currentUserId && personId(conn.recipient) === memberId;
+      const isRecipient = personId(conn.recipient) === currentUserId && personId(conn.requester) === memberId;
       return (isRequester || isRecipient) && conn.status === 'accepted';
     });
 
@@ -625,9 +500,8 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   );
 
   const pendingRequests = connectionRequests.filter(req => {
-    const currentUserId = currentUser?._id?.toString();
-    const recipientId = req.recipient?._id?.toString();
-    const requesterId = req.requester?._id?.toString();
+    const recipientId = personId(req.recipient);
+    const requesterId = personId(req.requester);
     
     // Debug log
     // // console.log('Checking request:', {
@@ -694,7 +568,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {filteredMembers.filter(member => member._id !== currentUser?._id).map((member) => {
+                {filteredMembers.filter(member => personId(member) !== currentUserId).map((member) => {
                   const status = getConnectionStatus(member._id);
                   
                   return (
@@ -835,8 +709,8 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                       return null;
                     }
                     
-                    const otherUser = connection.requester._id === currentUser?._id 
-                      ? connection.recipient 
+                    const otherUser = personId(connection.requester) === currentUserId
+                      ? connection.recipient
                       : connection.requester;
 
                     return (
@@ -859,11 +733,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                           </div>
                         </div>
                         <Button
-                          onClick={() => {
-                            setSelectedConversation(connection._id);
-                            setActiveTab('messages');
-                            fetchConversation(connection._id);
-                          }}
+                          onClick={() => openConversation(connection._id)}
                           size="sm"
                           variant="outline"
                         >
@@ -908,60 +778,48 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                     myConnections
                       .filter((connection) => {
                         if (!messageSearch) return true;
-                        const otherUser = connection.requester._id === currentUser?._id 
-                          ? connection.recipient 
+                        const otherUser = personId(connection.requester) === currentUserId
+                          ? connection.recipient
                           : connection.requester;
                         return userNameIncludes(otherUser, messageSearch);
                       })
                       .map((connection) => {
-                      // Safety check for populated fields
                       if (!connection.requester || !connection.recipient) {
                         return null;
                       }
-                      
-                      const otherUser = connection.requester._id === currentUser?._id 
-                        ? connection.recipient 
+
+                      const otherUser = personId(connection.requester) === currentUserId
+                        ? connection.recipient
                         : connection.requester;
 
                       return (
                         <div
                           key={connection._id}
                           className={`p-4 border-b cursor-pointer transition-all duration-200 ${
-                            selectedConversation === connection._id 
-                              ? 'bg-blue-500/10 border-blue-400 shadow-sm' 
-                              : 'bg-gray-800/30 hover:bg-gray-700/50 border-gray-700'
+                            selectedConversation === connection._id
+                              ? 'bg-primary/10'
+                              : 'hover:bg-muted/60'
                           }`}
-                          onClick={() => {
-                            setSelectedConversation(connection._id);
-                            fetchConversation(connection._id);
-                          }}
+                          onClick={() => openConversation(connection._id)}
                         >
                           <div className="flex items-start space-x-3">
-                            <div className="relative flex-shrink-0">
-                              <Avatar className="w-12 h-12 border-2 border-gray-600">
-                                <AvatarImage src={otherUser.profilePicture} />
-                                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-base">
-                                  {getUserInitials(otherUser)}
-                                </AvatarFallback>
-                              </Avatar>
-                              {/* Online status indicator */}
-                              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-gray-900 rounded-full shadow-lg" />
-                            </div>
+                            <Avatar className="w-12 h-12">
+                              <AvatarImage src={otherUser.profilePicture} />
+                              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-base">
+                                {getUserInitials(otherUser)}
+                              </AvatarFallback>
+                            </Avatar>
                             <div className="flex-1 min-w-0 overflow-hidden">
                               <div className="flex items-center justify-between gap-2 mb-1.5">
-                                <h4 className="font-semibold text-white truncate text-base">
+                                <h4 className="font-semibold truncate text-base">
                                   {getUserFullName(otherUser)}
                                 </h4>
-                                <span className="text-xs text-gray-400 flex-shrink-0 font-medium">
-                                  {getLastMessageTime(connection._id)}
+                                <span className="text-xs text-muted-foreground flex-shrink-0 font-medium">
+                                  {getLastMessageTime(connection)}
                                 </span>
                               </div>
-                              <p className={`text-sm truncate leading-relaxed ${
-                                selectedConversation === connection._id 
-                                  ? 'text-blue-200' 
-                                  : 'text-gray-400'
-                              }`}>
-                                {getLastMessagePreview(connection._id)}
+                              <p className="text-sm truncate leading-relaxed text-muted-foreground">
+                                {getLastMessagePreview(connection)}
                               </p>
                             </div>
                           </div>
@@ -984,8 +842,8 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                         if (!connection || !connection.requester || !connection.recipient) {
                           return <CardTitle className="text-lg">Select a conversation</CardTitle>;
                         }
-                        const otherUser = connection.requester._id === currentUser?._id 
-                          ? connection.recipient 
+                        const otherUser = personId(connection.requester) === currentUserId
+                          ? connection.recipient
                           : connection.requester;
                         return (
                           <>
@@ -996,15 +854,15 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                                   {getUserInitials(otherUser)}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full" />
+                              <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-background rounded-full ${peerOnline ? 'bg-green-500' : 'bg-muted-foreground/40'}`} />
                             </div>
                             <div>
                               <CardTitle className="text-lg">
                                 {getUserFullName(otherUser)}
                               </CardTitle>
-                              <p className="text-sm text-green-600 flex items-center">
-                                <span className="w-2 h-2 bg-green-400 rounded-full mr-2 inline-block" />
-                                {isConnected ? 'Online' : 'Offline'}
+                              <p className={`text-sm flex items-center ${peerOnline ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                <span className={`w-2 h-2 rounded-full mr-2 inline-block ${peerOnline ? 'bg-green-500' : 'bg-muted-foreground/40'}`} />
+                                {peerOnline ? 'Online' : 'Offline'}
                               </p>
                             </div>
                           </>
@@ -1014,19 +872,6 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                       <CardTitle className="text-lg">Select a conversation</CardTitle>
                     )}
                   </div>
-                  {selectedConversation && (
-                    <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Phone className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Video className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </CardHeader>
               <CardContent className="p-0 flex flex-col h-[500px]">
@@ -1034,7 +879,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                   <>
                     <ScrollArea className="flex-1 mb-4">
                       <div className="space-y-4 p-4">
-                        {isLoadingMessages ? (
+                        {isLoadingMessages && !(conversations[selectedConversation]?.length) ? (
                           <div className="space-y-4">
                             {[...Array(3)].map((_, i) => (
                               <div key={i} className="flex space-x-2">
@@ -1049,9 +894,9 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                         ) : Array.isArray(conversations[selectedConversation]) && conversations[selectedConversation].length > 0 ? (
                           <>
                             {conversations[selectedConversation].map((message, index) => {
-                              const isCurrentUser = message.sender._id === currentUser?._id;
-                              const showAvatar = index === 0 || 
-                                conversations[selectedConversation][index - 1].sender._id !== message.sender._id;
+                              const isCurrentUser = personId(message.sender) === currentUserId;
+                              const showAvatar = index === 0 ||
+                                personId(conversations[selectedConversation][index - 1].sender) !== personId(message.sender);
                               
                               return (
                                 <div
@@ -1063,7 +908,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                                   {!isCurrentUser && showAvatar && (
                                     <Avatar className="w-8 h-8">
                                       <AvatarFallback className="text-xs">
-                                        {message.sender.first_name.charAt(0)}
+                                        {(message.sender?.first_name || 'U').charAt(0)}
                                       </AvatarFallback>
                                     </Avatar>
                                   )}
@@ -1170,32 +1015,6 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                           )}
                         </div>
                         <div className="flex items-center space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-10 w-10 p-0 hover:bg-gray-100"
-                            onClick={() => {
-                              // Add emoji picker functionality later
-                              toast.info("Coming Soon", {
-                                description: "Emoji picker will be available in next update",
-                              });
-                            }}
-                          >
-                            <Smile className="w-4 h-4 text-gray-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-10 w-10 p-0 hover:bg-gray-100"
-                            onClick={() => {
-                              // Add file attachment functionality later
-                              toast.info("Coming Soon", {
-                                description: "File sharing will be available in next update",
-                              });
-                            }}
-                          >
-                            <FileText className="w-4 h-4 text-gray-600" />
-                          </Button>
                           <Button 
                             onClick={sendMessage} 
                             disabled={!newMessage.trim() || loadingStates.sendingMessage}

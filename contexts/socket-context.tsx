@@ -41,13 +41,16 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
 
     const socketBaseUrl = getSocketBaseUrl();
     const socketInstance = io(socketBaseUrl, {
+      path: '/socket.io',
       auth: {
-        token: token,
+        token,
       },
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 8000,
+      timeout: 20000,
       transports: ['polling', 'websocket'],
     });
 
@@ -77,9 +80,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
     setSocket(socketInstance);
 
     return () => {
-      if (socketInstance) {
-        socketInstance.disconnect();
-      }
+      socketInstance.removeAllListeners();
+      socketInstance.disconnect();
+      setSocket(null);
+      setIsConnected(false);
     };
   }, [token]);
 
