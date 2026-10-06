@@ -35,6 +35,7 @@ export function presentmentRequestFields() {
   const session = getDisplayCurrencySession()
   return {
     presentmentCurrency: session.chargeCurrency || session.currency,
+    ratesAsOf: session.ratesAsOf,
   }
 }
 
