@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { useCart } from "@/contexts/cart-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { analytics } from "@/lib/analytics"
+import { formatMoney } from "@/lib/display-currency"
 import { 
   ShoppingBag, 
   Search, 
@@ -77,25 +78,7 @@ export default function MerchandisePage() {
     setClubId(selectedClubId || (fromQuery ? fromQuery : null))
   }, [selectedClubId])
 
-  const formatCurrency = (amount: number, currencyCode: string = 'INR') => {
-    const localeMap: Record<string, string> = {
-      'USD': 'en-US',
-      'INR': 'en-IN',
-      'EUR': 'en-EU',
-      'GBP': 'en-GB',
-      'CAD': 'en-CA',
-      'AUD': 'en-AU',
-      'JPY': 'ja-JP',
-      'BRL': 'pt-BR',
-      'MXN': 'es-MX',
-      'ZAR': 'en-ZA'
-    }
-    const locale = localeMap[currencyCode] || 'en-US'
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currencyCode
-    }).format(amount)
-  }
+  const formatCurrency = (amount: number, currencyCode: string = 'INR') => formatMoney(amount, currencyCode)
 
   useEffect(() => {
     if (clubId === null) return

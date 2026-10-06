@@ -33,6 +33,14 @@ import { getBookingWindowClosedLabel, hasVenueTierMatrix, isBookingWindowOpen, i
 import { formatPhoneForDisplay } from "@/components/modals/purchase-flow-modal"
 import { slugify } from "@/lib/utils"
 import { resolveRazorpayDismiss, type RecoveredRazorpayPayment } from "@/lib/razorpay-dismiss"
+import { formatMoney, getDisplayCurrencySession } from "@/lib/display-currency"
+import { useCheckoutCurrencyLock } from "@/contexts/currency-context"
+import {
+  createRazorpayPresentmentOrder,
+  presentmentFailureMessage,
+  razorpayCheckoutMethods,
+  razorpayPrefill,
+} from "@/lib/razorpay-presentment"
 
 declare global {
   interface Window { Razorpay: any }
@@ -80,14 +88,8 @@ const SIMPLE_VENUE_ID = "simple"
 const SIMPLE_TIER_ID = "simple"
 const SIMPLE_TIER_NAME = "General Admission"
 
-const currencySymbols: Record<string, string> = {
-  INR: "₹", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "CA$",
-  JPY: "¥", BRL: "R$", MXN: "$", ZAR: "R",
-}
-
 function fmt(amount: number, currency = "INR") {
-  const sym = currencySymbols[currency] ?? currency + " "
-  return `${sym}${Number(amount).toLocaleString()}`
+  return formatMoney(amount, currency)
 }
 
 const digitsOnly = (s: string) => (s || '').replace(/[^0-9]/g, '')
@@ -101,6 +103,7 @@ type GuestStep = 'identify' | 'member-found' | 'guest-or-signup' | 'otp' | 'atte
 
 export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onCancellation, onSignup, waitlistToken }: VenueTierCartModalProps) {
   const { user, checkAuth, login, isAdmin } = useAuth()
+  useCheckoutCurrencyLock(isOpen)
   const router = useRouter()
 
   const hasAuthToken = typeof window !== "undefined" && !!localStorage.getItem("token")
@@ -1033,18 +1036,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
-      const orderRes = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountToCharge,
-          currency: event.currency ?? "INR",
-          orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-          orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-        }),
+      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: amountToCharge,
+        currency: event.currency ?? "INR",
+        orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
+        orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
       })
-      if (!orderRes.ok) throw new Error("Failed to create payment order")
-      const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
       await apiClient.createPendingVenueTierBooking(event._id, {
         items: apiItems,
@@ -1066,6 +1063,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
+        method: razorpayCheckoutMethods(orderCurrency),
+        prefill: razorpayPrefill(user),
         name: "RallyUp",
         description: `${ticketCount} ticket(s) for ${event.title}`,
         order_id: razorpayOrderId,
@@ -1155,7 +1154,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setRazorpayOpen(true)
       rzp.open()
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to initiate payment")
+      const fail = presentmentFailureMessage(err)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setLoading(false)
     }
   }
@@ -1250,18 +1250,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
-      const orderRes = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountToCharge,
-          currency: event.currency ?? "INR",
-          orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-          orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-        }),
+      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: amountToCharge,
+        currency: event.currency ?? "INR",
+        orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
+        orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
       })
-      if (!orderRes.ok) throw new Error("Failed to create payment order")
-      const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
       const pendingRes = await apiClient.createPendingPublicRegistration(event._id, {
         registrantName: bookingAttendees[0]?.name || 'Guest',
@@ -1294,6 +1288,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
+        method: razorpayCheckoutMethods(orderCurrency),
+        prefill: razorpayPrefill(user),
         name: "RallyUp",
         description: `Payment for ${event.title} - ${ticketCount} ticket(s)`,
         order_id: razorpayOrderId,
@@ -1496,18 +1492,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
-      const orderRes = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountToCharge,
-          currency: event.currency ?? "INR",
-          orderId: `EVT-MTX-${Date.now()}`,
-          orderNumber: `EVT-MTX-${Date.now()}`,
-        }),
+      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: amountToCharge,
+        currency: event.currency ?? "INR",
+        orderId: `EVT-MTX-${Date.now()}`,
+        orderNumber: `EVT-MTX-${Date.now()}`,
       })
-      if (!orderRes.ok) throw new Error("Failed to create payment order")
-      const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
       const pendingRes = await apiClient.createPendingPublicVenueTierBooking(event._id, {
         guestEmail: guestEmail.trim(),
@@ -1536,6 +1526,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
+        method: razorpayCheckoutMethods(orderCurrency),
+        prefill: razorpayPrefill(user),
         name: "RallyUp",
         description: `${cartItems.length} ticket type(s) for ${event.title}`,
         order_id: razorpayOrderId,
@@ -1627,7 +1619,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setRazorpayOpen(true)
       rzp.open()
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to initiate payment")
+      const fail = presentmentFailureMessage(err)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setLoading(false)
     }
   }
@@ -1729,21 +1722,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       const authHeaders: Record<string, string> = { "Content-Type": "application/json" }
       if (token) authHeaders["Authorization"] = `Bearer ${token}`
 
-      const orderRes = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          amount: amountToCharge,
-          currency: event.currency ?? "INR",
-          orderId: `EVT-MTX-${Date.now()}`,
-          orderNumber: `EVT-MTX-${Date.now()}`,
-        }),
-      })
-      if (!orderRes.ok) {
-        const errBody = await orderRes.json().catch(() => null)
-        throw new Error(errBody?.error || errBody?.details || "Failed to create payment order")
-      }
-      const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
+      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: amountToCharge,
+        currency: event.currency ?? "INR",
+        orderId: `EVT-MTX-${Date.now()}`,
+        orderNumber: `EVT-MTX-${Date.now()}`,
+      }, authHeaders)
 
       await apiClient.createPendingVenueTierBooking(event._id, {
         items: apiItems,
@@ -1765,6 +1749,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
+        method: razorpayCheckoutMethods(orderCurrency),
+        prefill: razorpayPrefill(user),
         name: "RallyUp",
         description: `${cartItems.length} ticket type(s) for ${event.title}`,
         order_id: razorpayOrderId,
@@ -1851,7 +1837,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setRazorpayOpen(true)
       rzp.open()
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to initiate payment")
+      const fail = presentmentFailureMessage(err)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setLoading(false)
     }
   }
@@ -2513,6 +2500,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                         total={amountToCharge}
                         feeHandlingType={event?.feeHandlingType}
                         formatCurrency={(a) => fmt(a, currency)}
+                        chargeCurrency={getDisplayCurrencySession().chargeCurrency}
                       />
                     )}
                     {feesAbsorbed && netAmount > 0 && (

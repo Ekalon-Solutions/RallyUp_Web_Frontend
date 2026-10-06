@@ -26,6 +26,14 @@ import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/po
 import { useRouter } from "next/navigation"
 import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
 import { analytics } from "@/lib/analytics"
+import { formatMoney, getDisplayCurrencySession } from "@/lib/display-currency"
+import { useCheckoutCurrencyLock } from "@/contexts/currency-context"
+import {
+  createRazorpayPresentmentOrder,
+  presentmentFailureMessage,
+  razorpayCheckoutMethods,
+  razorpayPrefill,
+} from "@/lib/razorpay-presentment"
 
 declare global {
   interface Window {
@@ -83,6 +91,7 @@ interface EventCheckoutModalProps {
 export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure, onCancellation }: EventCheckoutModalProps) {
   const { user, isAdmin } = useAuth()
   const router = useRouter()
+  useCheckoutCurrencyLock(isOpen)
   const [loading, setLoading] = useState(false)
   const [razorpayOpen, setRazorpayOpen] = useState(false)
   const [couponDiscount, setCouponDiscount] = useState(0)
@@ -550,23 +559,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) authHeaders['Authorization'] = `Bearer ${token}`
 
-      const response = await fetch('/api/razorpay/create-order', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({
-          amount: amountToCharge,
-          currency: event.currency || 'INR',
-          orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-          orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-        }),
-      })
-
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => null)
-        throw new Error(errBody?.error || errBody?.details || 'Failed to create payment order')
-      }
-
-      const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: amountToCharge,
+        currency: event.currency || 'INR',
+        orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
+        orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
+      }, authHeaders)
       
       const pendingResponse = user
         ? await apiClient.createPendingRegistration(String(event._id), {
@@ -629,16 +627,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         name: 'RallyUp',
         description: `Payment for ${event.name} - ${attendees.length} ticket(s)`,
         order_id: razorpayOrderId,
-        method: {
-          netbanking: true,
-          card: true,
-          wallet: true,
-          upi: true,
-          paylater: true,
-          cardless_emi: true,
-          emi: true,
-          bank_transfer: true,
-        },
+        method: razorpayCheckoutMethods(orderCurrency),
+        prefill: razorpayPrefill(user),
         handler: async function (response: any) {
           if (checkoutSettled) return
           checkoutSettled = true
@@ -837,7 +827,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       setRazorpayOpen(true)
       razorpay.open()
     } catch (error) {
-      toast.error("Failed to initiate payment. Please try again.")
+      const fail = presentmentFailureMessage(error)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setLoading(false)
     }
   }
@@ -852,35 +843,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   // club absorbs fees, the buyer pays the base net and fees are not appended.
   const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netSubtotal, event?.feeHandlingType, clubFeePercent);
 
-  const currencySymbols: Record<string, string> = {
-    INR: '₹',
-    USD: '$',
-    EUR: '€',
-    GBP: '£',
-    AUD: 'A$',
-    CAD: 'CA$',
-    JPY: '¥',
-    CNY: '¥',
-    BRL: 'R$',
-    MXN: '$',
-    ZAR: 'R',
-    CHF: 'CHF',
-    SEK: 'kr',
-    NZD: 'NZ$',
-    SGD: 'S$',
-    HKD: 'HK$',
-    NOK: 'kr',
-    TRY: '₺',
-    DKK: 'kr',
-    ILS: '₪',
-    PLN: 'zł'
-  }
-
-  const formatCurrency = (amount: number, cur?: string) => {
-    const c = cur || event?.currency || 'INR'
-    const symbol = currencySymbols[c] || (c + ' ')
-    return `${symbol}${Number(amount || 0).toLocaleString()}`
-  }
+  const formatCurrency = (amount: number, cur?: string) =>
+    formatMoney(amount, cur || event?.currency || 'INR')
 
   if (!event) {
     return null;
@@ -1048,6 +1012,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                     total={amountToCharge}
                     feeHandlingType={event?.feeHandlingType}
                     formatCurrency={(a) => formatCurrency(a, event.currency)}
+                    chargeCurrency={getDisplayCurrencySession().chargeCurrency}
                   />
                 )}
                 {feesAbsorbed && netSubtotal > 0 && (

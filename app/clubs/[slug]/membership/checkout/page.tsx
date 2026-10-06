@@ -26,6 +26,11 @@ import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { calculateTransactionFees, computeMembershipPlanCharge } from "@/lib/transactionFees"
 import { useAuth } from "@/contexts/auth-context"
 import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
+import {
+  createRazorpayPresentmentOrder,
+  presentmentFailureMessage,
+  razorpayCheckoutMethods,
+} from "@/lib/razorpay-presentment"
 import { LoginModal } from "@/components/login-modal"
 import { cn } from "@/lib/utils"
 import {
@@ -677,23 +682,12 @@ function CheckoutContent() {
       const authHeaders: Record<string, string> = { "Content-Type": "application/json" }
       if (authToken) authHeaders["Authorization"] = `Bearer ${authToken}`
 
-      const createOrderRes = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          amount: feeBreakdown.finalAmount,
-          currency: selectedPlan.currency || "INR",
-          orderId,
-          orderNumber,
-        }),
-      })
-
-      if (!createOrderRes.ok) {
-        const err = await createOrderRes.json().catch(() => null)
-        throw new Error(err?.error || err?.details || "Failed to create payment order")
-      }
-
-      const { razorpayOrderId, amount, currency: orderCurrency } = await createOrderRes.json()
+      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: feeBreakdown.finalAmount,
+        currency: selectedPlan.currency || "INR",
+        orderId,
+        orderNumber,
+      }, authHeaders)
 
       const pendingRes = await apiClient.createPendingMembershipPurchase(
         selectedPlan._id,
@@ -726,16 +720,7 @@ function CheckoutContent() {
           email: formData.email,
           contact: `${formData.countryCode}${formData.phoneNumber}`,
         },
-        method: {
-          netbanking: true,
-          card: true,
-          wallet: true,
-          upi: true,
-          paylater: true,
-          cardless_emi: true,
-          emi: true,
-          bank_transfer: true,
-        },
+        method: razorpayCheckoutMethods(orderCurrency),
         handler: async function (paymentResponse: any) {
           if (checkoutSettled) return
           checkoutSettled = true
@@ -809,7 +794,8 @@ function CheckoutContent() {
       })
       rzp.open()
     } catch (err: any) {
-      toast.error(err.message || "An unexpected error occurred")
+      const fail = presentmentFailureMessage(err)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setIsProcessing(false)
     }
   }

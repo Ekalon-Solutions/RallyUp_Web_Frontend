@@ -28,6 +28,13 @@ import { apiClient } from "@/lib/api"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 import { calculateTransactionFees, computeMembershipPlanCharge } from "@/lib/transactionFees"
+import { formatMoney } from "@/lib/display-currency"
+import { useCheckoutCurrencyLock } from "@/contexts/currency-context"
+import {
+  createRazorpayPresentmentOrder,
+  presentmentFailureMessage,
+  razorpayCheckoutMethods,
+} from "@/lib/razorpay-presentment"
 import { useAuth } from "@/contexts/auth-context"
 import { formatDisplayDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
@@ -144,8 +151,7 @@ const TSHIRT_REFERENCE_IMAGES = [
   { src: "/arsenal-hyderabad/tshirt-size-chart.jpeg", alt: "Size Chart" },
 ]
 
-const formatPrice = (price: number, currency: string) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "INR" }).format(price)
+const formatPrice = (price: number, currency: string) => formatMoney(price, currency)
 
 const formatPlanPeriod = (plan: JoinablePlan) => {
   if (plan.planStartDate && plan.planEndDate) {
@@ -193,6 +199,7 @@ export function JoinMembershipModal({
 }: JoinMembershipModalProps) {
   const router = useRouter()
   const { user, checkAuth, isAdmin } = useAuth()
+  useCheckoutCurrencyLock(open)
   const [internalPlans, setInternalPlans] = useState<JoinablePlan[]>([])
   const [internalClubName, setInternalClubName] = useState<string>("")
   const [clubTeamId, setClubTeamId] = useState<string>("")
@@ -784,23 +791,12 @@ export function JoinMembershipModal({
       const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) authHeaders['Authorization'] = `Bearer ${token}`
 
-      const response = await fetch('/api/razorpay/create-order', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({
-          amount: feeBreakdown.finalAmount,
-          currency: plan.currency || "INR",
-          orderId,
-          orderNumber,
-        }),
-      })
-
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => null)
-        throw new Error(errBody?.error || errBody?.details || 'Failed to create payment order')
-      }
-
-      const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: feeBreakdown.finalAmount,
+        currency: plan.currency || "INR",
+        orderId,
+        orderNumber,
+      }, authHeaders)
 
       const pendingRes = await apiClient.createPendingMembershipPurchase(
         plan._id,
@@ -832,9 +828,7 @@ export function JoinMembershipModal({
           email: prefillEmail,
           contact: prefillPhone,
         },
-        method: {
-          netbanking: true, card: true, wallet: true, upi: true, paylater: true, cardless_emi: true, emi: true, bank_transfer: true,
-        },
+        method: razorpayCheckoutMethods(orderCurrency),
         handler: async function (paymentResponse: any) {
           if (checkoutSettled) return
           checkoutSettled = true
@@ -916,7 +910,8 @@ export function JoinMembershipModal({
       setRazorpayOpen(true)
       rzp.open()
     } catch (err: any) {
-      toast.error(err.message || "Failed to initiate payment")
+      const fail = presentmentFailureMessage(err)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setRazorpayOpen(false)
       setIsProcessing(false)
     }

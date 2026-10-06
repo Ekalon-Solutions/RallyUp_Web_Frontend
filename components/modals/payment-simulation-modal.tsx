@@ -19,6 +19,11 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { PLATFORM_FEE_PERCENT } from "@/lib/transactionFees"
 import { resolveRazorpayDismiss } from "@/lib/razorpay-dismiss"
+import {
+  createRazorpayPresentmentOrder,
+  presentmentFailureMessage,
+  razorpayCheckoutMethods,
+} from "@/lib/razorpay-presentment"
 
 declare global {
   interface Window {
@@ -218,23 +223,12 @@ export function PaymentSimulationModal({
       const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) authHeaders['Authorization'] = `Bearer ${token}`
 
-      const response = await fetch('/api/razorpay/create-order', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({
-          amount: total,
-          currency: currency,
-          orderId: orderId,
-          orderNumber: orderNumber,
-        }),
-      })
-
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => null)
-        throw new Error(errBody?.error || errBody?.details || 'Failed to create payment order')
-      }
-
-      const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: total,
+        currency: currency,
+        orderId: orderId,
+        orderNumber: orderNumber,
+      }, authHeaders)
 
       if (onRazorpayOrderCreated) {
         const saved = await onRazorpayOrderCreated(razorpayOrderId)
@@ -260,16 +254,7 @@ export function PaymentSimulationModal({
         name: 'RallyUp',
         description: `Payment for Order ${orderNumber}`,
         order_id: razorpayOrderId,
-        method: {
-          netbanking: true,
-          card: true,
-          wallet: true,
-          upi: true,
-          paylater: true,
-          cardless_emi: true,
-          emi: true,
-          bank_transfer: true,
-        },
+        method: razorpayCheckoutMethods(orderCurrency),
         handler: async function (response: any) {
           if (checkoutSettled) return
           checkoutSettled = true
@@ -364,7 +349,8 @@ export function PaymentSimulationModal({
       setRazorpayOpen(true)
       razorpay.open()
     } catch (error) {
-      toast.error("Failed to initiate payment. Please try again.")
+      const fail = presentmentFailureMessage(error)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setProcessing(false)
     }
   }

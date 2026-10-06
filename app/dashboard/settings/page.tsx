@@ -16,6 +16,7 @@ import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
 import { apiClient } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
+import { CurrencyPreferenceCard } from "@/components/currency-preference"
 
 export default function SettingsPage() {
   const { user, updateProfile, checkAuth, activeClubId } = useAuth()
@@ -247,6 +248,8 @@ export default function SettingsPage() {
                 </form>
               </CardContent>
             </Card>
+
+            <CurrencyPreferenceCard />
 
             {/* Account Information */}
             <Card>

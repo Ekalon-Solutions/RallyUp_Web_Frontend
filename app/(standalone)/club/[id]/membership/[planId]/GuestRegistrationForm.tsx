@@ -45,21 +45,20 @@ import {
   idProofLabelsMatch,
   validateMembershipCheckout,
 } from "@/lib/membershipPlanConfig"
+import { formatMoney } from "@/lib/display-currency"
+import { useCheckoutCurrencyLock } from "@/contexts/currency-context"
+import {
+  createRazorpayPresentmentOrder,
+  presentmentFailureMessage,
+  razorpayCheckoutMethods,
+} from "@/lib/razorpay-presentment"
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function formatPrice(price: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(price)
-  } catch {
-    return `${currency} ${price}`
-  }
+  return formatMoney(price, currency)
 }
 
 function formatPlanPeriod(plan: CheckoutPlan): string {
@@ -158,6 +157,7 @@ export function GuestRegistrationForm({
   plan: initialPlan,
 }: GuestRegistrationFormProps) {
   const router = useRouter()
+  useCheckoutCurrencyLock(true)
 
   const showTshirtFields = (club.name ?? "")
     .toLowerCase()
@@ -522,22 +522,12 @@ export function GuestRegistrationForm({
         const feeBreakdown = calculateTransactionFees(resolvedPlan.price, club.platformFeePercent)
         const finalPrice = feeBreakdown ? feeBreakdown.finalAmount : resolvedPlan.price
 
-        const response = await fetch('/api/razorpay/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: finalPrice,
-            currency: resolvedPlan.currency || "INR",
-            orderId,
-            orderNumber,
-          }),
+        const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+          amount: finalPrice,
+          currency: resolvedPlan.currency || "INR",
+          orderId,
+          orderNumber,
         })
-
-        if (!response.ok) {
-          throw new Error('Failed to create payment order')
-        }
-
-        const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
 
         const pendingRes = await apiClient.createPendingMembershipPurchase(
           resolvedPlan._id,
@@ -568,9 +558,7 @@ export function GuestRegistrationForm({
             email: registrationData.email,
             contact: `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}`,
           },
-          method: {
-            netbanking: true, card: true, wallet: true, upi: true, paylater: true, cardless_emi: true, emi: true, bank_transfer: true,
-          },
+          method: razorpayCheckoutMethods(orderCurrency),
           handler: async function (paymentResponse: any) {
             if (checkoutSettled) return
             checkoutSettled = true
@@ -695,7 +683,8 @@ export function GuestRegistrationForm({
       }
     } catch (error) {
       console.error("Registration error:", error)
-      toast.error("An error occurred during registration")
+      const fail = presentmentFailureMessage(error)
+      toast.error(fail.retryable ? fail.message : "An error occurred during registration", fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
     } finally {
       setIsRegistering(false)
     }

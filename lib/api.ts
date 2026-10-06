@@ -444,6 +444,8 @@ export interface User {
   city?: string;
   state_province?: string;
   zip_code?: string;
+  country?: string;
+  preferredCurrency?: string | null;
 
   club?: Club;
   membershipPlan?: string;
@@ -548,6 +550,7 @@ export interface Admin {
     start_date: string;
     end_date?: string;
   }>;
+  preferredCurrency?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -562,6 +565,7 @@ export interface SystemOwner {
   role: 'system_owner';
   isActive?: boolean;
   profilePicture?: string;
+  preferredCurrency?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -1961,6 +1965,7 @@ class ApiClient {
     state_province?: string;
     zip_code?: string;
     country?: string;
+    preferredCurrency?: string | null;
     club_member_id?: string;
     clubId?: string;
     emailChangeToken?: string;
@@ -2042,6 +2047,7 @@ class ApiClient {
     if (data.state_province !== undefined) backendData.state_province = data.state_province;
     if (data.zip_code !== undefined) backendData.zip_code = data.zip_code;
     if (data.country !== undefined) backendData.country = data.country;
+    if (data.preferredCurrency !== undefined) backendData.preferredCurrency = data.preferredCurrency;
 
     if (data.notificationPreferences !== undefined) {
       backendData.notificationPreferences = data.notificationPreferences;
@@ -2098,6 +2104,70 @@ class ApiClient {
       method: 'POST',
       body: formData,
     });
+  }
+
+  async getCurrencySession(params?: {
+    timezone?: string;
+    locale?: string;
+    preferred?: string;
+  }): Promise<import('./display-currency').DisplayCurrencySession> {
+    const { DEFAULT_DISPLAY_SESSION } = await import('./display-currency');
+    const res = await this.get<{
+      success?: boolean;
+      data?: {
+        currency: string;
+        locale: string;
+        source: import('./display-currency').CurrencySource;
+        country: string | null;
+        locked?: boolean;
+        rates: Record<string, number>;
+        ratesAsOf: string;
+        ratesSource: 'live' | 'fallback';
+        supported: import('./display-currency').SupportedCurrencyOption[];
+        collectableCurrencies?: string[];
+        chargeCurrency?: string;
+        fxMarkupPercent?: number;
+        fallbackNotice?: string | null;
+      };
+    }>('/currency/session', { params });
+    const payload = (res.data as any)?.data ?? res.data;
+    if (!res.success || !payload?.currency) {
+      return { ...DEFAULT_DISPLAY_SESSION };
+    }
+    return {
+      currency: payload.currency,
+      locale: payload.locale,
+      source: payload.source,
+      country: payload.country ?? null,
+      rates: payload.rates || DEFAULT_DISPLAY_SESSION.rates,
+      ratesAsOf: payload.ratesAsOf,
+      ratesSource: payload.ratesSource || 'fallback',
+      supported: payload.supported || DEFAULT_DISPLAY_SESSION.supported,
+      preferredCurrency: params?.preferred ?? null,
+      locked: Boolean(payload.locked),
+      collectableCurrencies: payload.collectableCurrencies || DEFAULT_DISPLAY_SESSION.collectableCurrencies,
+      chargeCurrency: payload.chargeCurrency || payload.currency,
+      fxMarkupPercent: payload.fxMarkupPercent ?? 1,
+      fallbackNotice: payload.fallbackNotice ?? null,
+    };
+  }
+
+  async setCurrencyPreference(currency: string | null): Promise<ApiResponse<{
+    preferredCurrency: string | null;
+    currency: string;
+    locale: string;
+    source: string;
+  }>> {
+    const res = await this.put<{ success?: boolean; data?: {
+      preferredCurrency: string | null;
+      currency: string;
+      locale: string;
+      source: string;
+    } }>('/currency/preference', { currency: currency ?? 'AUTO' });
+    if (res.success && (res.data as any)?.data) {
+      return { ...res, data: (res.data as any).data };
+    }
+    return res as any;
   }
 
   async getUserProfile(): Promise<ApiResponse<User & {
