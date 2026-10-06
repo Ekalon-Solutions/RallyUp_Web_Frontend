@@ -5,17 +5,14 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { apiClient } from "@/lib/api"
 import { computeMembershipPlanCharge } from "@/lib/transactionFees"
 import type { JoinablePlan } from "@/components/modals/join-membership-modal"
 import { LoginModal } from "@/components/login-modal"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { ArrowLeft, ArrowUpRight, Calendar, Clock, CreditCard, Search } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, Calendar, Search } from "lucide-react"
 import { PlanDetailsModal } from "@/components/modals/plan-details-modal"
-import { planBenefits } from "@/lib/membershipPlanConfig"
 
 interface Club {
   _id: string
@@ -39,8 +36,11 @@ function formatPrice(price: number, currency: string): string {
 
 function formatPeriod(plan: JoinablePlan): string {
   if (plan.planStartDate && plan.planEndDate) {
-    const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" }
-    return `${new Date(plan.planStartDate).toLocaleDateString(undefined, opts)} – ${new Date(plan.planEndDate).toLocaleDateString(undefined, opts)}`
+    const fmt = (d: string) => {
+      const date = new Date(d)
+      return `${date.toLocaleDateString("en-US", { month: "short" })}, ${date.getFullYear()}`
+    }
+    return `${fmt(plan.planStartDate)} - ${fmt(plan.planEndDate)}`
   }
   const months = plan.duration ?? 0
   if (months === 0) return "Lifetime"
@@ -169,13 +169,13 @@ export default function ClubMembershipPlansPage() {
   }
 
   const getCardCta = (plan: JoinablePlan): { label: string; disabled: boolean } => {
-    if (!isLoggedIn) return { label: "Purchase Plan", disabled: false }
+    if (!isLoggedIn) return { label: "Purchase Membership Plan", disabled: false }
     if (String(plan._id) === String(currentPlanId)) return { label: "Your Current Plan", disabled: true }
     if (hasActiveMembership && plan.price <= currentPlanPrice) {
       return { label: "Downgrade Unavailable", disabled: true }
     }
     if (hasActiveMembership) return { label: "Upgrade to This Plan", disabled: false }
-    return { label: "Purchase Plan", disabled: false }
+    return { label: "Purchase Membership Plan", disabled: false }
   }
 
   if (loading) {
@@ -263,49 +263,35 @@ export default function ClubMembershipPlansPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {visiblePlans.map((plan) => {
               const cta = getCardCta(plan)
-              const benefits = planBenefits(plan)
+              const charge = getPlanCharge(plan)
               return (
                 <Card key={plan._id} className="flex flex-col overflow-hidden">
                   <CardHeader style={{ backgroundColor: primaryColor }} className="text-white">
-                    <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
-                    {plan.description && (
-                      <CardDescription className="text-white/80">{plan.description}</CardDescription>
-                    )}
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 shrink-0 rounded-full bg-white/20" />
+                      <div className="min-w-0">
+                        <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
+                        {plan.description && (
+                          <CardDescription className="text-white/80 line-clamp-2">{plan.description}</CardDescription>
+                        )}
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-3 pt-6 flex-1">
-                    <div className="flex items-center gap-2 text-2xl font-black">
-                      <CreditCard className="h-5 w-5 text-muted-foreground" />
-                      {formatPrice(getPlanCharge(plan).finalAmount, plan.currency)}
+                    <div>
+                      <div className="text-xs text-muted-foreground">Price</div>
+                      <div className="text-2xl font-black">{formatPrice(charge.finalAmount, plan.currency)}</div>
+                      {charge.isUpgrade && <div className="text-xs text-muted-foreground">Upgrade price</div>}
                     </div>
-                    <div className="text-xs text-muted-foreground -mt-2">
-                      {getPlanCharge(plan).isUpgrade ? 'Upgrade price, ' : ''}all-inclusive
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      {formatPeriod(plan)}
-                    </div>
-                    {plan.bookingEndDate && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {`Booking closes ${new Date(plan.bookingEndDate).toLocaleDateString()}`}
+                    <div>
+                      <div className="text-xs text-muted-foreground">Validity</div>
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        {formatPeriod(plan)}
                       </div>
-                    )}
-                    {String(plan._id) === String(currentPlanId) && (
-                      <Badge variant="secondary" className="w-fit">Current Plan</Badge>
-                    )}
-                    {benefits.length > 0 && (
-                      <ul className="space-y-1.5 text-sm text-muted-foreground">
-                        {benefits.slice(0, 4).map((b) => (
-                          <li key={b.key} className="flex items-start gap-2">
-                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
-                            <span className="leading-snug">{b.title}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <Separator className="mt-auto" />
+                    </div>
                     <Button
-                      className="w-full"
+                      className="w-full mt-auto"
                       disabled={cta.disabled}
                       style={!cta.disabled ? { backgroundColor: primaryColor, color: "white" } : undefined}
                       onClick={() => handleSelectPlan(plan)}
@@ -318,7 +304,7 @@ export default function ClubMembershipPlansPage() {
                       className="inline-flex items-center justify-center gap-1 text-sm font-semibold hover:underline"
                       style={{ color: primaryColor }}
                     >
-                      View Plan Details
+                      Know More About The Plan
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </button>
                   </CardContent>
