@@ -11,6 +11,7 @@ import { Bell, Save } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
+import { CurrencyPreferenceCard } from "@/components/currency-preference"
 
 export default function UserSettingsPage() {
   const { user } = useAuth()
@@ -100,9 +101,11 @@ export default function UserSettingsPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Settings</h1>
             <p className="text-muted-foreground">
-              Manage your notification preferences
+              Manage your currency and notification preferences
             </p>
           </div>
+
+          <CurrencyPreferenceCard />
 
           <Card>
             <CardHeader>

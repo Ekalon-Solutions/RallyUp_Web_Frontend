@@ -1,4 +1,5 @@
 import type { Event } from "@/lib/api"
+import { formatMoney, getDisplayCurrencySession } from "@/lib/display-currency"
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: "₹",
@@ -99,7 +100,8 @@ export function getEventBuyCtaLabel(event: Pick<Event, "category">): string {
 }
 
 export function getEventCurrencySymbol(currency?: string): string {
-  const code = currency ?? "INR"
+  const display = getDisplayCurrencySession().currency
+  const code = display || currency || "INR"
   return CURRENCY_SYMBOLS[code] ?? `${code} `
 }
 
@@ -112,14 +114,15 @@ export function formatEventPriceDisplay(
 
   const min = Math.min(...paid)
   const max = Math.max(...paid)
-  const sym = getEventCurrencySymbol(event.currency)
   const fees = options?.includeFees ? " (+ Fees)" : ""
   const from = options?.fromPrefix && (hasVenueTierMatrix(event) || min !== max) ? "From " : ""
+  const minLabel = formatMoney(min, event.currency)
+  const maxLabel = formatMoney(max, event.currency)
 
   if (min === max) {
-    return `${from}${sym}${min.toLocaleString()}${fees}`
+    return `${from}${minLabel}${fees}`
   }
-  return `${from}${sym}${min.toLocaleString()} – ${sym}${max.toLocaleString()}${fees}`
+  return `${from}${minLabel} – ${maxLabel}${fees}`
 }
 
 export function getEventVenueDisplay(event: Pick<Event, "venues" | "venue">): string {
@@ -171,5 +174,5 @@ export function getEventTicketRows(event: EventLike) {
 
 export function formatTierPrice(amount: number, currency?: string): string {
   if (amount <= 0) return "Free"
-  return `${getEventCurrencySymbol(currency)}${amount.toLocaleString()}`
+  return formatMoney(amount, currency)
 }

@@ -24,6 +24,8 @@ import { calculateTransactionFees } from "@/lib/transactionFees"
 import { useAuth } from "@/contexts/auth-context"
 import type { PlanAttributes, PublicPlanConfig } from "@/lib/membershipPlanConfig"
 import { PlanBenefits, PlanBrochure } from "@/components/membership-plan/plan-benefits"
+import { formatMoney } from "@/lib/display-currency"
+import { useCheckoutCurrencyLock } from "@/contexts/currency-context"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -66,15 +68,7 @@ interface CheckoutLandingProps {
 // ---------------------------------------------------------------------------
 
 function formatPrice(price: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(price)
-  } catch {
-    return `${currency} ${price}`
-  }
+  return formatMoney(price, currency)
 }
 
 function formatDuration(plan: CheckoutPlan): string {
@@ -178,6 +172,7 @@ function PlanSummaryCard({ club, plan, planId, isUserCurrentPlan }: { club: Chec
 
 export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
   const router = useRouter()
+  useCheckoutCurrencyLock(true)
 
   useEffect(() => {
     if (typeof window !== "undefined") {

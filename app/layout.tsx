@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeColorMeta } from "@/components/theme-color-meta"
 import { AuthProvider } from "@/contexts/auth-context"
 import { CartProvider } from "@/contexts/cart-context"
+import { CurrencyProvider } from "@/contexts/currency-context"
 import { SocketWrapper } from "@/components/socket-wrapper"
 import { Toaster } from "sonner"
 import Analytics from "@/components/Analytics"
@@ -153,9 +154,11 @@ export default function RootLayout({
           <AuthProvider>
             <SocketWrapper>
               <CartProvider>
+                <CurrencyProvider>
                 {children}
                 <EkalonBranding />
                 <Toaster />
+                </CurrencyProvider>
               </CartProvider>
             </SocketWrapper>
           </AuthProvider>

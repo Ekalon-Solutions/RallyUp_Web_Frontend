@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import type { FeeHandlingType } from "@/lib/transactionFees"
+import { getDisplayCurrencySession } from "@/lib/display-currency"
 
 export type PriceBreakdownProps = {
   /** Ticket subtotal the fees are computed on (post-discount, post-points net). */
@@ -16,6 +17,8 @@ export type PriceBreakdownProps = {
   feeHandlingType?: FeeHandlingType | null
   /** Currency-aware formatter supplied by the host so symbols stay consistent. */
   formatCurrency: (amount: number) => string
+  /** Catalog / charge currency. When it differs from the display currency, we say so. */
+  chargeCurrency?: string
   ticketLabel?: string
   className?: string
 }
@@ -38,6 +41,7 @@ export function PriceBreakdown({
   total,
   feeHandlingType,
   formatCurrency,
+  chargeCurrency,
   ticketLabel = "Ticket Price",
   className,
 }: PriceBreakdownProps) {
@@ -110,6 +114,15 @@ export function PriceBreakdown({
       {!sumMatches && (
         <p role="alert" className="text-xs text-destructive">
           Amount looks out of date — please refresh before paying.
+        </p>
+      )}
+
+      {(getDisplayCurrencySession().fallbackNotice ||
+        (chargeCurrency &&
+          chargeCurrency.toUpperCase() !== getDisplayCurrencySession().currency)) && (
+        <p className="text-xs text-muted-foreground">
+          {getDisplayCurrencySession().fallbackNotice ||
+            `You'll be charged in ${chargeCurrency!.toUpperCase()}. Amounts above are converted for display.`}
         </p>
       )}
     </div>

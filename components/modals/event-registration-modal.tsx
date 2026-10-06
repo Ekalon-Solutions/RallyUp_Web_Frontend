@@ -15,6 +15,7 @@ import { formatLocalDate } from "@/lib/timezone"
 import { useAuth } from "@/contexts/auth-context"
 import { getBookingWindowClosedLabel, isBookingWindowOpen } from "@/lib/event-display-price"
 import { analytics } from "@/lib/analytics"
+import { useCheckoutCurrencyLock } from "@/contexts/currency-context"
 
 interface EventRegistrationModalProps {
   isOpen: boolean
@@ -39,6 +40,7 @@ export function EventRegistrationModal({
   isRegistered,
   registrationStatus 
 }: EventRegistrationModalProps) {
+  useCheckoutCurrencyLock(isOpen)
   const [loading, setLoading] = useState(false)
   const [notes, setNotes] = useState("")
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
