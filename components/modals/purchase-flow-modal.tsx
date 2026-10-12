@@ -268,8 +268,6 @@ export function PurchaseFlowModal({
 
       if (res.success && res.data?.verified) {
         setPhoneVerified(true)
-        localStorage.setItem("rallyup_verified_guest_phone", digits)
-        localStorage.setItem("rallyup_verified_guest_country_code", countryCode.trim() || "+91")
         toast.success("Phone number verified")
       } else {
         toast.error(res.message || res.error || "Invalid or expired code")

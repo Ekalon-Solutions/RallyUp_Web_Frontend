@@ -504,7 +504,7 @@ export default function ChantsManagementPage() {
                               minHeight: '400px',
                               display: 'block'
                             }}
-                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                            sandbox="allow-scripts allow-popups allow-forms"
                             loading="lazy"
                             title={chant.title}
                           />

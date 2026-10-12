@@ -220,10 +220,12 @@ export default async function MembershipCheckoutPage({
   //
   // The club's settings.membershipPlans array lists all valid plan IDs for
   // this club, so we can reject unknown plans without calling the auth-gated
-  // plan endpoint (which returns 401 even for non-existent plans).
+  // plan endpoint (which returns 401 even for non-existent plans). An empty
+  // list means no plan can belong to this club — the auth-gated fetch below
+  // can't prove ownership, so skipping the check would render another club's plan.
 
   const validPlanIds = club.settings?.membershipPlans ?? []
-  if (validPlanIds.length > 0 && !validPlanIds.includes(planId)) {
+  if (!validPlanIds.includes(planId)) {
     return (
       <NotFoundCard
         title="Plan Not Found"

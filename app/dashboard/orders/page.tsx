@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
 import { calculateTransactionFees } from '@/lib/transactionFees'
 import { formatLocalDate } from '@/lib/timezone'
+import { formatChargedMoney } from '@/lib/display-currency'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ResendQrButton } from '@/components/resend-qr-button'
 import { Button } from '@/components/ui/button'
@@ -1656,6 +1657,20 @@ export default function OrdersPage() {
                         <span>{formatCurrency(selectedOrder.finalAmount, selectedOrder.currency)}</span>
                       </div>
                     )}
+                    {(selectedOrder as any).chargedCurrency &&
+                      (selectedOrder as any).chargedCurrency !== (selectedOrder.currency || 'INR') && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Customer paid:</span>
+                        <span>{formatChargedMoney((selectedOrder as any).chargedAmount, (selectedOrder as any).chargedCurrency)}</span>
+                      </div>
+                    )}
+                    {(selectedOrder as any).amountInr != null && (selectedOrder as any).chargedCurrency &&
+                      (selectedOrder as any).chargedCurrency !== 'INR' && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>INR received:</span>
+                        <span>{formatChargedMoney((selectedOrder as any).amountInr, 'INR')}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1890,10 +1905,24 @@ export default function OrdersPage() {
                         )}
 
                         {amountPaid != null ? (
+                          <>
                           <div className="flex justify-between font-semibold border-t pt-2">
                             <span>Amount Paid:</span>
                             <span>{amountPaid > 0 ? formatCurrency(amountPaid, currency) : 'Free'}</span>
                           </div>
+                          {meta?.chargedCurrency && meta.chargedCurrency !== currency && (
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Customer paid:</span>
+                              <span>{formatChargedMoney(meta.chargedAmount, meta.chargedCurrency)}</span>
+                            </div>
+                          )}
+                          {meta?.amountInr != null && meta?.chargedCurrency && meta.chargedCurrency !== 'INR' && (
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>INR received:</span>
+                              <span>{formatChargedMoney(meta.amountInr, 'INR')}</span>
+                            </div>
+                          )}
+                          </>
                         ) : (
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Payment Status:</span>

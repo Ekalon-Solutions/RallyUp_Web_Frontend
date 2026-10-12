@@ -105,7 +105,7 @@ export function ResendQrButton({
     if (res.success && code === 'OK') {
       setPhase('sent')
       startCooldown(COOLDOWN_SECONDS)
-      toast.success('Ticket sent! The QR code has been resent to the registered email.')
+      toast.success('Ticket sent! The QR code has been resent to the registered WhatsApp number.')
       onSent?.()
       sentTimer.current = setTimeout(() => setPhase('idle'), SENT_DISPLAY_MS)
       return

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { apiClient } from "@/lib/api"
@@ -20,7 +20,6 @@ import { toast } from "sonner"
 import {
   AlertTriangle,
   Grid3X3,
-  LockKeyhole,
   Search,
   TrendingUp,
   Building2,
@@ -34,8 +33,6 @@ import { MatrixTable, type MatrixClub } from "@/components/feature-matrix/matrix
 import { BulkFeaturePanel } from "@/components/feature-matrix/bulk-feature-panel"
 import { ClubFeatureSheet } from "@/components/feature-matrix/club-feature-sheet"
 import { CohortActionDialog } from "@/components/feature-matrix/cohort-action-dialog"
-
-const SESSION_LOCK_MS = 15 * 60 * 1000
 
 export default function FeatureMatrixPage() {
   const { user, isLoading: authLoading } = useAuth()
@@ -51,35 +48,9 @@ export default function FeatureMatrixPage() {
 
   const [selectedIds,    setSelectedIds]    = useState<string[]>([])
   const [bulkTier,       setBulkTier]       = useState("pro")
-  const [locked,         setLocked]         = useState(false)
   const [alertCount,     setAlertCount]     = useState(0)
   const [editingClub,    setEditingClub]    = useState<MatrixClub | null>(null)
   const [cohortOpen,     setCohortOpen]     = useState(false)
-
-  const lastActiveRef = useRef(Date.now())
-
-  // ── Inactivity session lock ──────────────────────────────────────────────
-
-  const touchActivity = useCallback(() => {
-    lastActiveRef.current = Date.now()
-    setLocked(false)
-  }, [])
-
-  useEffect(() => {
-    const onActivity = () => { lastActiveRef.current = Date.now(); setLocked(false) }
-    window.addEventListener("mousemove", onActivity)
-    window.addEventListener("keydown",   onActivity)
-    window.addEventListener("click",     onActivity)
-    const id = setInterval(() => {
-      if (Date.now() - lastActiveRef.current > SESSION_LOCK_MS) setLocked(true)
-    }, 30_000)
-    return () => {
-      clearInterval(id)
-      window.removeEventListener("mousemove", onActivity)
-      window.removeEventListener("keydown",   onActivity)
-      window.removeEventListener("click",     onActivity)
-    }
-  }, [])
 
   // ── Data loading ─────────────────────────────────────────────────────────
 
@@ -171,23 +142,6 @@ export default function FeatureMatrixPage() {
       <DashboardLayout>
         <TooltipProvider delayDuration={200}>
 
-          {/* Session lock overlay */}
-          {locked && (
-            <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center gap-5 p-8">
-              <div className="rounded-full bg-muted p-5">
-                <LockKeyhole className="h-9 w-9 text-muted-foreground" />
-              </div>
-              <div className="text-center">
-                <h2 className="text-xl font-bold">Session locked</h2>
-                <p className="text-muted-foreground text-sm mt-1 max-w-sm">
-                  The Service Matrix locked after 15 minutes of inactivity to prevent
-                  unauthorised changes on an unattended screen.
-                </p>
-              </div>
-              <Button onClick={touchActivity}>Unlock</Button>
-            </div>
-          )}
-
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto">
 
             {/* ── Page header ───────────────────────────────────────── */}
@@ -199,7 +153,7 @@ export default function FeatureMatrixPage() {
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1 max-w-lg">
                   Manage club modules, billing tiers, feature limits, and experimental flags.
-                  Changes are applied atomically. Session auto-locks after 15 min.
+                  Changes are applied atomically.
                 </p>
               </div>
               <Link href="/dashboard/billing-auditor" className="w-full sm:w-auto">

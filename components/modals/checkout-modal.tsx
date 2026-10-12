@@ -236,8 +236,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   useEffect(() => {
     if (isOpen) {
-      const storedPhone = localStorage.getItem("rallyup_verified_guest_phone") || ""
-      const storedCountry = localStorage.getItem("rallyup_verified_guest_country_code") || "+91"
+      const storedPhone = sessionStorage.getItem("rallyup_guest_verified_phone") || ""
+      const storedCountry = sessionStorage.getItem("rallyup_guest_verified_country_code") || "+91"
       if (storedPhone && !orderForm.phone) {
         setOrderForm(prev => ({
           ...prev,
