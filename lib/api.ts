@@ -2114,6 +2114,11 @@ class ApiClient {
     preferred?: string;
   }): Promise<import('./display-currency').DisplayCurrencySession> {
     const { DEFAULT_DISPLAY_SESSION } = await import('./display-currency');
+    // Same-origin Vercel route; the backend can't see the visitor's geo header itself.
+    const ipCountry = await fetch('/api/geo')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d?.country || undefined)
+      .catch(() => undefined);
     const res = await this.get<{
       success?: boolean;
       data?: {
@@ -2131,7 +2136,7 @@ class ApiClient {
         fxMarkupPercent?: number;
         fallbackNotice?: string | null;
       };
-    }>('/currency/session', { params });
+    }>('/currency/session', { params: { ...params, ipCountry } });
     const payload = (res.data as any)?.data ?? res.data;
     if (!res.success || !payload?.currency) {
       return { ...DEFAULT_DISPLAY_SESSION };
