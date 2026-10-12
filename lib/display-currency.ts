@@ -151,6 +151,14 @@ export function convertAmount(
   return amount * (toRate / fromRate)
 }
 
+// Local locales print these as a bare "$", which reads as USD to everyone else.
+const DOLLAR_PREFIX: Record<string, string> = { SGD: "S$", AUD: "A$", CAD: "C$", NZD: "NZ$", MXN: "MX$" }
+
+function disambiguateDollar(formatted: string, code: string): string {
+  const prefix = DOLLAR_PREFIX[code]
+  return prefix ? formatted.replace(/(^|[^A-Z])\$/, `$1${prefix}`) : formatted
+}
+
 export function formatMoney(
   amount: number,
   sourceCurrency?: string,
@@ -163,10 +171,10 @@ export function formatMoney(
   const displayLocale = convert ? session.locale : session.locale
   const value = convert ? convertAmount(amount, source, displayCurrency, session.rates) : amount
   try {
-    return new Intl.NumberFormat(displayLocale, {
-      style: "currency",
-      currency: displayCurrency,
-    }).format(value)
+    return disambiguateDollar(
+      new Intl.NumberFormat(displayLocale, { style: "currency", currency: displayCurrency }).format(value),
+      displayCurrency
+    )
   } catch {
     return `${displayCurrency} ${Number(value).toLocaleString(displayLocale)}`
   }
@@ -176,7 +184,7 @@ export function formatMoney(
 export function formatChargedMoney(amount: number, chargedCurrency?: string): string {
   const code = (chargedCurrency || DEFAULT_DISPLAY_CURRENCY).toUpperCase()
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: code }).format(amount)
+    return disambiguateDollar(new Intl.NumberFormat(undefined, { style: "currency", currency: code }).format(amount), code)
   } catch {
     return `${code} ${Number(amount).toLocaleString()}`
   }
