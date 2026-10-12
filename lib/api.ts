@@ -1098,6 +1098,8 @@ export interface MembershipCard {
 export interface MembershipCardImageCustomization {
   backgroundMode?: BackgroundMode;
   backgroundImage?: string;
+  /** Screen-reader description of the background image; empty = decorative. */
+  backgroundAlt?: string;
   fontColor?: string;
   showClubName?: boolean;
   showStatus?: boolean;
@@ -7451,6 +7453,13 @@ class ApiClient {
     const formData = new FormData()
     formData.append("image", file)
     return this.request('/upload/logo', { method: 'POST', body: formData })
+  }
+
+  /** Server re-encodes to a 1012×638 sRGB JPEG (EXIF applied + stripped). */
+  async uploadMembershipCardBackground(file: File): Promise<ApiResponse<{ url: string; filename: string }>> {
+    const formData = new FormData()
+    formData.append("image", file)
+    return this.request('/upload/card-background', { method: 'POST', body: formData })
   }
 
   async uploadWhatsAppHeaderImage(
