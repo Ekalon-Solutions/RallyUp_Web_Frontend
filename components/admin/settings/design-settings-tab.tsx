@@ -138,8 +138,10 @@ export function DesignSettingsTab() {
         return
       }
 
-      if (file.size > 25 * 1024 * 1024) {
-        toast.error("File size must be less than 25MB")
+      // ponytail: inline base64 must fit the backend's 1MB JSON body limit (base64 adds ~33%).
+      // Raise only after logos move to storage uploads.
+      if (file.size > 700 * 1024) {
+        toast.error("File size must be less than 700KB")
         return
       }
 
@@ -325,7 +327,7 @@ export function DesignSettingsTab() {
                   className="cursor-pointer"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  PNG or JPG (max 2MB)
+                  PNG or JPG (max 700KB)
                 </p>
               </div>
             </div>

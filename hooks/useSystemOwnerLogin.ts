@@ -6,12 +6,6 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 
-declare global {
-  interface Window {
-    otpSessionInfo?: string
-  }
-}
-
 export function validateSystemOwnerEmail(email: string): string {
   if (!email) return ""
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -42,6 +36,7 @@ export function useSystemOwnerLogin() {
   const [isLoading, setIsLoading] = useState(false)
   const [otpButtonLoading, setOtpButtonLoading] = useState(false)
   const [resendCountdown, setResendCountdown] = useState(0)
+  const [otpSessionInfo, setOtpSessionInfo] = useState<string | undefined>()
 
   useEffect(() => {
     if (resendCountdown <= 0) return
@@ -68,7 +63,7 @@ export function useSystemOwnerLogin() {
         toast.success(`OTP sent via ${channelText} to ${phoneNumber}`)
         setOtpSent(true)
         setResendCountdown(RESEND_SECONDS)
-        window.otpSessionInfo = res.data?.sessionInfo
+        setOtpSessionInfo(res.data?.sessionInfo)
       } else {
         toast.error(res.message || res.error || "Failed to send OTP. Please try again.")
       }
@@ -154,7 +149,7 @@ export function useSystemOwnerLogin() {
           const channelText = ch === "whatsapp" ? "WhatsApp" : "SMS"
           toast.success(`OTP resent via ${channelText} to ${phoneNumber}`)
           setResendCountdown(RESEND_SECONDS)
-          window.otpSessionInfo = res.data?.sessionInfo
+          setOtpSessionInfo(res.data?.sessionInfo)
         } else {
           toast.error(res.message || res.error || "Failed to resend OTP.")
         }
@@ -204,7 +199,7 @@ export function useSystemOwnerLogin() {
         countryCode: loginData.countryCode,
         otp,
         role: "system_owner",
-        sessionInfo: window.otpSessionInfo,
+        sessionInfo: otpSessionInfo,
       })
 
       if (!verifyRes.success) {
@@ -230,7 +225,7 @@ export function useSystemOwnerLogin() {
     } finally {
       setIsLoading(false)
     }
-  }, [otp, otpSent, loginData, login, completeSession])
+  }, [otp, otpSent, loginData, otpSessionInfo, login, completeSession])
 
   const resetToPhone = useCallback(() => {
     setOtpSent(false)

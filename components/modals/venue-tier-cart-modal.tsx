@@ -93,6 +93,8 @@ function fmt(amount: number, currency = "INR") {
 }
 
 const digitsOnly = (s: string) => (s || '').replace(/[^0-9]/g, '')
+// One rule for every attendee path so member and guest checkout accept the same numbers.
+const isValidPhoneDigits = (digits: string) => digits.length >= 6 && digits.length <= 15
 const phoneCodeRegex = /^\+?\d{1,4}$/
 const normalizeCountryCode = (code: string) => {
   const trimmed = (code || '').trim() || '+91'
@@ -878,8 +880,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       })
       if (res.success && res.data?.verified) {
         setOtpVerified(true)
-        localStorage.setItem("rallyup_verified_guest_phone", digits)
-        localStorage.setItem("rallyup_verified_guest_country_code", countryCode)
         toast.success('Phone number verified')
         void triggerAutoCouponApply(subtotal, digits)
 
@@ -980,7 +980,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
       const p = digitsOnly(a.phone)
-      if (p.length < 6 || p.length > 15) {
+      if (!isValidPhoneDigits(p)) {
         toast.error(`Phone number for attendee ${i + 1} must be 6-15 digits`)
         return
       }
@@ -1191,7 +1191,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
       const p = digitsOnly(a.phone)
-      if (p.length < 6 || p.length > 15) {
+      if (!isValidPhoneDigits(p)) {
         toast.error(`Phone number for attendee ${i + 1} must be 6-15 digits`)
         return
       }
@@ -1410,7 +1410,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         toast.error(`Enter phone for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
         return
       }
-      if (phoneDigits.length < 6 || phoneDigits.length > 15) {
+      if (!isValidPhoneDigits(phoneDigits)) {
         toast.error(`Enter a valid phone for Ticket ${i + 1}`)
         return
       }
@@ -1423,7 +1423,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
     const bookingAttendees = attendeeSlots.map((s) => ({
       name: s.name.trim(),
-      phone: s.phone.replace(/\D/g, ""),
+      phone: digitsOnly(s.phone),
     }))
 
     setLoading(true)
@@ -1640,15 +1640,15 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         toast.error(`Enter phone for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
         return
       }
-      if (phoneDigits.length !== 10) {
-        toast.error(`Enter a valid 10-digit phone for Ticket ${i + 1}`)
+      if (!isValidPhoneDigits(phoneDigits)) {
+        toast.error(`Enter a valid phone for Ticket ${i + 1}`)
         return
       }
     }
 
     const bookingAttendees = attendeeSlots.map((s) => ({
       name: s.name.trim(),
-      phone: s.phone.replace(/\D/g, "").slice(-10),
+      phone: digitsOnly(s.phone),
     }))
 
     setLoading(true)

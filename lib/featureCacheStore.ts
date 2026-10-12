@@ -29,11 +29,8 @@ interface CacheEntry {
 export interface CacheReadResult {
   config: ResolvedClubFeatures | null;
   ageMs: number;
-  tampered: boolean;
   expired: boolean;
 }
-
-// ── Crypto helpers ─────────────────────────────────────────────────────────────
 
 function cacheKey(clubId: string) {
   return `club-features:${clubId}`;
@@ -53,7 +50,7 @@ export async function writeFeatureCache(clubId: string, config: ResolvedClubFeat
 }
 
 export async function readFeatureCache(clubId: string): Promise<CacheReadResult> {
-  const missing: CacheReadResult = { config: null, ageMs: Infinity, tampered: false, expired: true };
+  const missing: CacheReadResult = { config: null, ageMs: Infinity, expired: true };
   if (typeof window === 'undefined') return missing;
 
   const raw = localStorage.getItem(cacheKey(clubId));
@@ -80,11 +77,11 @@ export async function readFeatureCache(clubId: string): Promise<CacheReadResult>
     parsed = JSON.parse(entry.payload);
   } catch {
     localStorage.removeItem(cacheKey(clubId));
-    return { config: null, ageMs, tampered: false, expired };
+    return { config: null, ageMs, expired };
   }
 
   const config = normalizeResolvedClubFeatures(parsed as Partial<ResolvedClubFeatures>);
-  return { config, ageMs, tampered: false, expired };
+  return { config, ageMs, expired };
 }
 
 export function clearFeatureCache(clubId: string): void {

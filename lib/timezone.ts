@@ -204,51 +204,6 @@ function formatForDatetimeInput(date: Date, timezone: string): string {
   return `${year}-${month}-${day}T${hour}:${minute}`;
 }
 
-export function localInputToUTC(
-  localDatetimeString: string,
-  timezone?: string
-): Date {
-  if (!localDatetimeString) {
-    return new Date();
-  }
-
-  const tz = timezone || getUserTimezone();
-  
-  const [datePart, timePart] = localDatetimeString.split('T');
-  const [year, month, day] = datePart.split('-').map(Number);
-  const [hour, minute] = (timePart || '00:00').split(':').map(Number);
-
-  const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
-  
-  const tempDate = new Date(dateStr + 'Z');
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-
-  const parts = formatter.formatToParts(tempDate);
-  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '';
-  
-  const tzYear = parseInt(getPart('year'));
-  const tzMonth = parseInt(getPart('month'));
-  const tzDay = parseInt(getPart('day'));
-  const tzHour = parseInt(getPart('hour'));
-  const tzMinute = parseInt(getPart('minute'));
-
-  const utcDate = new Date(Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute));
-  const offsetMs = utcDate.getTime() - tempDate.getTime();
-
-  const localDate = new Date(dateStr);
-  
-  return new Date(dateStr);
-}
-
 export function formatDateRange(
   startDate: string | Date,
   endDate: string | Date,
@@ -387,7 +342,6 @@ export default {
   getTimezoneAbbreviation,
   formatLocalDate,
   formatDateRange,
-  localInputToUTC,
   isPast,
   isFuture,
   isToday,
