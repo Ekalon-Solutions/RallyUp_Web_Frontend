@@ -203,6 +203,24 @@ function getPaymentStatusDisplay(status: string) {
   )
 }
 
+type ChargedInfo = {
+  chargedAmount?: number
+  chargedCurrency?: string
+  fx?: { rate?: number; markupPercent?: number; ratesAsOf?: string }
+}
+
+/** True when the buyer paid in a different currency from the club's catalog currency. */
+function paidInOtherCurrency(rec: ChargedInfo | null | undefined, catalogCurrency?: string): rec is ChargedInfo {
+  return Boolean(rec?.chargedCurrency && rec.chargedAmount != null && rec.chargedCurrency !== (catalogCurrency || 'INR'))
+}
+
+/** "1 INR = 0.013365 SGD · 1% markup" for the details popups. */
+function fxSummary(rec: ChargedInfo, catalogCurrency?: string): string | null {
+  if (!rec.fx?.rate) return null
+  const markup = rec.fx.markupPercent != null ? ` · ${rec.fx.markupPercent}% markup` : ''
+  return `1 ${catalogCurrency || 'INR'} = ${Number(rec.fx.rate.toPrecision(6))} ${rec.chargedCurrency}${markup}`
+}
+
 export default function OrdersPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
@@ -1028,6 +1046,11 @@ export default function OrdersPage() {
                             <div className="font-medium">
                               {formatCurrency(order.total, order.currency)}
                             </div>
+                            {paidInOtherCurrency(order as ChargedInfo, order.currency) && (
+                              <div className="text-xs text-muted-foreground">
+                                Paid {formatChargedMoney((order as ChargedInfo).chargedAmount!, (order as ChargedInfo).chargedCurrency)}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
@@ -1187,6 +1210,11 @@ export default function OrdersPage() {
                                 ? (reg.amountPaid > 0 ? formatCurrency(reg.amountPaid, reg.currency || 'INR') : 'Free')
                                 : (reg.ticketPrice ? formatCurrency(reg.ticketPrice, reg.currency || 'INR') : 'Free')}
                             </div>
+                            {paidInOtherCurrency(reg, reg.currencyAtPurchase || reg.currency) && (
+                              <div className="text-xs text-muted-foreground">
+                                Paid {formatChargedMoney(reg.chargedAmount!, reg.chargedCurrency)}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <Badge className={eventStatusConfig[regStatus]?.color || 'bg-gray-100 text-gray-800'}>
@@ -1664,6 +1692,13 @@ export default function OrdersPage() {
                         <span>{formatChargedMoney((selectedOrder as any).chargedAmount, (selectedOrder as any).chargedCurrency)}</span>
                       </div>
                     )}
+                    {paidInOtherCurrency(selectedOrder as ChargedInfo, selectedOrder.currency) &&
+                      fxSummary(selectedOrder as ChargedInfo, selectedOrder.currency) && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Exchange rate:</span>
+                        <span>{fxSummary(selectedOrder as ChargedInfo, selectedOrder.currency)}</span>
+                      </div>
+                    )}
                     {(selectedOrder as any).amountInr != null && (selectedOrder as any).chargedCurrency &&
                       (selectedOrder as any).chargedCurrency !== 'INR' && (
                       <div className="flex justify-between text-muted-foreground">
@@ -1914,6 +1949,12 @@ export default function OrdersPage() {
                             <div className="flex justify-between text-muted-foreground">
                               <span>Customer paid:</span>
                               <span>{formatChargedMoney(meta.chargedAmount, meta.chargedCurrency)}</span>
+                            </div>
+                          )}
+                          {paidInOtherCurrency(meta, currency) && fxSummary(meta, currency) && (
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Exchange rate:</span>
+                              <span>{fxSummary(meta, currency)}</span>
                             </div>
                           )}
                           {meta?.amountInr != null && meta?.chargedCurrency && meta.chargedCurrency !== 'INR' && (
