@@ -1,11 +1,4 @@
-import {
-  getAnalytics,
-  isSupported,
-  logEvent as firebaseLogEvent,
-  setUserId as firebaseSetUserId,
-  setUserProperties as firebaseSetUserProperties,
-} from "firebase/analytics";
-import { app } from "./firebase/config";
+import { GOOGLE_ANALYTICS_MEASUREMENT_ID } from "./analytics-config";
 
 declare global {
   interface Window {
@@ -15,10 +8,6 @@ declare global {
 }
 
 class WebAnalyticsService {
-  private analyticsPromise = typeof window !== "undefined"
-    ? isSupported().then((supported) => (supported ? getAnalytics(app) : null)).catch(() => null)
-    : Promise.resolve(null);
-
   /**
    * Log custom event
    */
@@ -26,10 +15,7 @@ class WebAnalyticsService {
     if (typeof window === "undefined") return;
 
     try {
-      const analytics = await this.analyticsPromise;
-      if (analytics) {
-        firebaseLogEvent(analytics, eventName, eventParams);
-      } else if (window.gtag) {
+      if (window.gtag) {
         window.gtag("event", eventName, eventParams);
       } else if (window.dataLayer) {
         window.dataLayer.push({ event: eventName, ...eventParams });
@@ -81,14 +67,10 @@ class WebAnalyticsService {
     if (typeof window === "undefined") return;
 
     try {
-      const analytics = await this.analyticsPromise;
-      if (analytics) {
-        firebaseSetUserId(analytics, userId);
-      }
       if (window.gtag) {
-        const measurementId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-SRLNL9FQ0G";
-        window.gtag("config", measurementId, {
+        window.gtag("config", GOOGLE_ANALYTICS_MEASUREMENT_ID, {
           user_id: userId,
+          send_page_view: false,
         });
       }
     } catch (error) {
@@ -105,10 +87,6 @@ class WebAnalyticsService {
     if (typeof window === "undefined") return;
 
     try {
-      const analytics = await this.analyticsPromise;
-      if (analytics) {
-        firebaseSetUserProperties(analytics, properties);
-      }
       if (window.gtag) {
         window.gtag("set", "user_properties", properties);
       }

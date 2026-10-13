@@ -15,6 +15,7 @@ import { DashboardThemeProvider } from "@/components/dashboard-theme-provider"
 import { AppUpdateWatcher } from "@/components/app-update-watcher"
 import Script from "next/script"
 import { CANONICAL_ORIGIN } from "@/lib/canonical-host"
+import { GOOGLE_ANALYTICS_MEASUREMENT_ID } from "@/lib/analytics-config"
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -119,6 +120,18 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <Script
+          strategy="beforeInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_MEASUREMENT_ID}`}
+        />
+        <Script id="google-analytics" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GOOGLE_ANALYTICS_MEASUREMENT_ID}');
+          `}
+        </Script>
         <link rel="icon" href="/WingmanPro Logo (White BG).svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
@@ -127,18 +140,6 @@ export default function RootLayout({
       </head>
 
       <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`} suppressHydrationWarning>
-        <Script
-          strategy="afterInteractive"
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-SRLNL9FQ0G"}`}
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-SRLNL9FQ0G"}');
-          `}
-        </Script>
         <AppUpdateWatcher />
         <Analytics />
         <AntiScrapingProtection />
