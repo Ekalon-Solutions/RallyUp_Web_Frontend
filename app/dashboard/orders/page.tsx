@@ -1048,7 +1048,7 @@ export default function OrdersPage() {
                             </div>
                             {paidInOtherCurrency(order as ChargedInfo, order.currency) && (
                               <div className="text-xs text-muted-foreground">
-                                Paid {formatChargedMoney((order as ChargedInfo).chargedAmount!, (order as ChargedInfo).chargedCurrency)}
+                                {order.paymentStatus === 'paid' ? 'Paid' : 'Quoted'} {formatChargedMoney((order as ChargedInfo).chargedAmount!, (order as ChargedInfo).chargedCurrency)}
                               </div>
                             )}
                           </TableCell>
@@ -1212,7 +1212,7 @@ export default function OrdersPage() {
                             </div>
                             {paidInOtherCurrency(reg, reg.currencyAtPurchase || reg.currency) && (
                               <div className="text-xs text-muted-foreground">
-                                Paid {formatChargedMoney(reg.chargedAmount!, reg.chargedCurrency)}
+                                {(reg as any).paymentId ? 'Paid' : 'Quoted'} {formatChargedMoney(reg.chargedAmount!, reg.chargedCurrency)}
                               </div>
                             )}
                           </TableCell>
@@ -1688,7 +1688,7 @@ export default function OrdersPage() {
                     {(selectedOrder as any).chargedCurrency &&
                       (selectedOrder as any).chargedCurrency !== (selectedOrder.currency || 'INR') && (
                       <div className="flex justify-between text-muted-foreground">
-                        <span>Customer paid:</span>
+                        <span>{selectedOrder.paymentStatus === 'paid' ? 'Customer paid:' : 'Customer price:'}</span>
                         <span>{formatChargedMoney((selectedOrder as any).chargedAmount, (selectedOrder as any).chargedCurrency)}</span>
                       </div>
                     )}
@@ -1702,7 +1702,7 @@ export default function OrdersPage() {
                     {(selectedOrder as any).amountInr != null && (selectedOrder as any).chargedCurrency &&
                       (selectedOrder as any).chargedCurrency !== 'INR' && (
                       <div className="flex justify-between text-muted-foreground">
-                        <span>INR received:</span>
+                        <span>{selectedOrder.paymentStatus === 'paid' ? 'INR received:' : 'INR (estimate):'}</span>
                         <span>{formatChargedMoney((selectedOrder as any).amountInr, 'INR')}</span>
                       </div>
                     )}
@@ -1947,7 +1947,7 @@ export default function OrdersPage() {
                           </div>
                           {meta?.chargedCurrency && meta.chargedCurrency !== currency && (
                             <div className="flex justify-between text-muted-foreground">
-                              <span>Customer paid:</span>
+                              <span>{meta?.paymentId ? 'Customer paid:' : 'Customer price:'}</span>
                               <span>{formatChargedMoney(meta.chargedAmount, meta.chargedCurrency)}</span>
                             </div>
                           )}
@@ -1959,7 +1959,7 @@ export default function OrdersPage() {
                           )}
                           {meta?.amountInr != null && meta?.chargedCurrency && meta.chargedCurrency !== 'INR' && (
                             <div className="flex justify-between text-muted-foreground">
-                              <span>INR received:</span>
+                              <span>{meta?.paymentId ? 'INR received:' : 'INR (estimate):'}</span>
                               <span>{formatChargedMoney(meta.amountInr, 'INR')}</span>
                             </div>
                           )}
