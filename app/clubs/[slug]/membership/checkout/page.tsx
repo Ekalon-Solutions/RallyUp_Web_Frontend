@@ -682,7 +682,7 @@ function CheckoutContent() {
       const authHeaders: Record<string, string> = { "Content-Type": "application/json" }
       if (authToken) authHeaders["Authorization"] = `Bearer ${authToken}`
 
-      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
         amount: feeBreakdown.finalAmount,
         currency: selectedPlan.currency || "INR",
         orderId,
@@ -709,7 +709,7 @@ function CheckoutContent() {
       // 5. Trigger Razorpay Checkout
       let checkoutSettled = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency || "INR",
         name: club.name || "Club Membership",
