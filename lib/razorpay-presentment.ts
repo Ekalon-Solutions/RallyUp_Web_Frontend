@@ -7,6 +7,8 @@ export const FX_CONVERSION_FAILED = "FX_CONVERSION_FAILED"
 
 export type RazorpayCreateOrderResult = {
   razorpayOrderId: string
+  /** Key of the Razorpay account that created the order; open checkout with this. */
+  keyId?: string
   amount: number
   currency: string
   chargeAmount?: number

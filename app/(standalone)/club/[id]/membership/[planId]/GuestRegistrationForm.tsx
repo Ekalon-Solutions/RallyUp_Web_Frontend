@@ -522,7 +522,7 @@ export function GuestRegistrationForm({
         const feeBreakdown = calculateTransactionFees(resolvedPlan.price, club.platformFeePercent)
         const finalPrice = feeBreakdown ? feeBreakdown.finalAmount : resolvedPlan.price
 
-        const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
           amount: finalPrice,
           currency: resolvedPlan.currency || "INR",
           orderId,
@@ -547,7 +547,7 @@ export function GuestRegistrationForm({
 
         let checkoutSettled = false
         const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
           amount: amount,
           currency: orderCurrency || "INR",
           name: club.name || 'RallyUp',

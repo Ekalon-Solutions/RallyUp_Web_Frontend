@@ -1036,7 +1036,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
-      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
         amount: amountToCharge,
         currency: event.currency ?? "INR",
         orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
@@ -1060,7 +1060,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       let checkoutSettled = false
       razorpaySettledRef.current = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
         method: razorpayCheckoutMethods(orderCurrency),
@@ -1250,7 +1250,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
-      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
         amount: amountToCharge,
         currency: event.currency ?? "INR",
         orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
@@ -1285,7 +1285,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       let checkoutSettled = false
       razorpaySettledRef.current = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
         method: razorpayCheckoutMethods(orderCurrency),
@@ -1492,7 +1492,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
-      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
         amount: amountToCharge,
         currency: event.currency ?? "INR",
         orderId: `EVT-MTX-${Date.now()}`,
@@ -1523,7 +1523,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       let checkoutSettled = false
       razorpaySettledRef.current = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
         method: razorpayCheckoutMethods(orderCurrency),
@@ -1722,7 +1722,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       const authHeaders: Record<string, string> = { "Content-Type": "application/json" }
       if (token) authHeaders["Authorization"] = `Bearer ${token}`
 
-      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
         amount: amountToCharge,
         currency: event.currency ?? "INR",
         orderId: `EVT-MTX-${Date.now()}`,
@@ -1746,7 +1746,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       let checkoutSettled = false
       razorpaySettledRef.current = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
         method: razorpayCheckoutMethods(orderCurrency),

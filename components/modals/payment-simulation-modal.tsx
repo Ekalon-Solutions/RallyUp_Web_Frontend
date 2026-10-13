@@ -223,7 +223,7 @@ export function PaymentSimulationModal({
       const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) authHeaders['Authorization'] = `Bearer ${token}`
 
-      const { razorpayOrderId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
         amount: total,
         currency: currency,
         orderId: orderId,
@@ -248,7 +248,7 @@ export function PaymentSimulationModal({
 
       let checkoutSettled = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: amount,
         currency: orderCurrency,
         name: 'RallyUp',
