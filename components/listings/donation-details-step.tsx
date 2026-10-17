@@ -20,7 +20,6 @@ export type MonetaryState = {
   minAmount: string
   waiverOn: boolean
   waiverCode: string
-  /** Set once the code is validated (or loaded from an existing drive). */
   waiver: { code: string; percentOff: number } | null
 }
 
