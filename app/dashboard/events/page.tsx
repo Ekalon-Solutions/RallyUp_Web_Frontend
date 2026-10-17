@@ -6,9 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3, XOctagon, RotateCcw, ChevronDown, Send, Lock, HandHeart } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3, XOctagon, RotateCcw, ChevronDown, Send, Lock, HandHeart, Ticket, Award } from "lucide-react"
 import Link from "next/link"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { listingEditHref, listingPublicHref, listingTypeLabel, listingTypeOf } from "@/lib/listings"
 import { money } from "@/components/listings/listing-preview"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -49,8 +48,8 @@ function EventsPageContent() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [timeFilter, setTimeFilter] = useState<string>("all")
   const searchParams = useSearchParams()
-  // "Events & Tickets" vs "Other Listings" (activities, contests, donation & CSR drives).
-  const [tab, setTab] = useState<"events" | "listings">(searchParams.get("tab") === "listings" ? "listings" : "events")
+  // ponytail: tab UI removed; ?tab=listings still deep-links from the activity/donation wizards
+  const [tab] = useState<"events" | "listings">(searchParams.get("tab") === "listings" ? "listings" : "events")
   const [clubSlug, setClubSlug] = useState<string | null>(null)
 
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false)
@@ -291,10 +290,6 @@ function EventsPageContent() {
                 <ScanLine className="w-4 h-4 mr-2" />
                 Scanner
               </Button>
-              <Button variant="outline" onClick={() => router.push("/dashboard/events/donations")} className="flex-1 sm:flex-none">
-                <HandHeart className="w-4 h-4 mr-2" />
-                Donations
-              </Button>
               {canEditEvents && (
               <div className="flex flex-1 sm:flex-none">
                 <Button onClick={() => router.push(tab === "listings" ? "/dashboard/events/activity" : "/dashboard/events/create")} className="flex-1 rounded-r-none">
@@ -307,10 +302,20 @@ function EventsPageContent() {
                       <ChevronDown className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => router.push("/dashboard/events/create")}>Event &amp; Tickets</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push("/dashboard/events/activity")}>Contest / Activity</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push("/dashboard/events/donation")}>Donation / CSR Drive</DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="w-80 p-2">
+                    {[
+                      { href: "/dashboard/events/create", Icon: Calendar, title: "Create Event", desc: "Ticketed or free events for your club" },
+                      { href: "/dashboard/events/activity", Icon: Ticket, title: "Create Activity", desc: "Contests, workshops and meetups" },
+                      { href: "/dashboard/events/donation", Icon: Award, title: "Create Donation Drive", desc: "Collect contributions for a cause" },
+                    ].map(({ href, Icon, title, desc }) => (
+                      <DropdownMenuItem key={href} onClick={() => router.push(href)} className="items-start gap-3 p-3">
+                        <Icon className="w-4 h-4 mt-1 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">{title}</div>
+                          <div className="text-sm text-muted-foreground">{desc}</div>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -399,20 +404,6 @@ function EventsPageContent() {
             isRegistered={selectedEvent ? isUserRegistered(selectedEvent._id) : false}
             registrationStatus={selectedEvent ? getRegistrationStatus(selectedEvent._id) : undefined}
           />
-
-          <Tabs
-            value={tab}
-            onValueChange={(v) => {
-              setTab(v as "events" | "listings")
-              setCategoryFilter("all")
-              router.replace(v === "listings" ? "/dashboard/events?tab=listings" : "/dashboard/events")
-            }}
-          >
-            <TabsList>
-              <TabsTrigger value="events">Events &amp; Tickets</TabsTrigger>
-              <TabsTrigger value="listings">Other Listings</TabsTrigger>
-            </TabsList>
-          </Tabs>
 
           {/* Filters and Search */}
           <Card>

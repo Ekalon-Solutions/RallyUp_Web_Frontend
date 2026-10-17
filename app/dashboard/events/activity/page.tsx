@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Calendar, Clock, Link2, MapPin, Ticket, Users } from "lucide-react"
+import { Calendar, Clock, MapPin, Ticket, Users } from "lucide-react"
 import { toast } from "sonner"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
@@ -41,7 +41,7 @@ function ActivityForm() {
   const [image1080, setImage1080] = useState<File | null>(null)
   const [existingImage, setExistingImage] = useState<string | null>(null)
   const [basics, setBasics] = useState({
-    title: "", category: "contests", paid: false, description: "", currency: "INR",
+    title: "", category: "contests", description: "", currency: "INR",
     bookingStartTime: "", bookingEndTime: "", startTime: "", endTime: "",
     memberOnly: false, attendancePoints: "0", waitlist: false,
   })
@@ -52,10 +52,12 @@ function ActivityForm() {
   const setB = (patch: Partial<typeof basics>) => setBasics((p) => ({ ...p, ...patch }))
   const setP = (patch: Partial<ActivityPricingState>) => setPricing((p) => ({ ...p, ...patch }))
 
+  // ponytail: fee drives free/paid — no separate Free/Paid switch (matches the mockup)
+  const isPaid = Number(pricing.fee) > 0
   const isTrip = activityFieldsFor(basics.category).isTrip
   const mode = isTrip ? "offline" : pricing.mode
   const venue = mode === "online" ? "Online" : pricing.location.trim()
-  const coreKey = (b = basics, p = pricing) => JSON.stringify([b.startTime, b.endTime, b.bookingStartTime, b.bookingEndTime, b.paid ? p.fee : "0", p.location, p.onlineUrl])
+  const coreKey = (b = basics, p = pricing) => JSON.stringify([b.startTime, b.endTime, b.bookingStartTime, b.bookingEndTime, p.fee, p.location, p.onlineUrl])
 
   useEffect(() => {
     if (!editId) return
@@ -66,7 +68,7 @@ function ActivityForm() {
         return router.push(RETURN_TO)
       }
       const nextBasics = {
-        title: ev.title, category: ev.category, paid: (ev.ticketPrice ?? 0) > 0, description: ev.description, currency: ev.currency ?? "INR",
+        title: ev.title, category: ev.category, description: ev.description, currency: ev.currency ?? "INR",
         bookingStartTime: toDatetimeLocal(ev.bookingStartTime), bookingEndTime: toDatetimeLocal(ev.bookingEndTime),
         startTime: toDatetimeLocal(ev.startTime), endTime: toDatetimeLocal(ev.endTime),
         memberOnly: ev.memberOnly, attendancePoints: String(ev.attendancePoints ?? 0), waitlist: Boolean(ev.waitlist?.enabled),
@@ -109,10 +111,9 @@ function ActivityForm() {
     }
     if (!isTrip && mode === "online" && !/^https?:\/\/\S+$/i.test(pricing.onlineUrl.trim())) return "Enter a valid web link (https://…)"
     if (mode === "offline" && !venue) return "Location is required"
-    if (basics.paid && !(Number(pricing.fee) > 0)) return `Enter the ${isTrip ? "trip cost" : "fee per participant"}`
     if (pricing.maxAttendees && !(Number.isInteger(Number(pricing.maxAttendees)) && Number(pricing.maxAttendees) > 0)) return "Capacity must be a whole number"
     if (pricing.addOns.some((a) => a.name.trim() && !(Number(a.price) >= 0 && a.price !== ""))) return "Every add-on needs a price"
-    if (basics.paid && pricing.isRefundAllowed && !/^\d+$/.test(pricing.refundCutoffHours.trim())) return "Refund cut-off must be whole hours"
+    if (isPaid && pricing.isRefundAllowed && !/^\d+$/.test(pricing.refundCutoffHours.trim())) return "Refund cut-off must be whole hours"
     return null
   }
 
@@ -130,7 +131,7 @@ function ActivityForm() {
         return void toast.error(err)
       }
     }
-    const paid = basics.paid
+    const paid = isPaid
     const payload = {
       listingType: "activity",
       clubId,
@@ -183,23 +184,13 @@ function ActivityForm() {
                   <Label htmlFor="title">Activity title *</Label>
                   <Input id="title" placeholder="Enter activity title" value={basics.title} onChange={(e) => setB({ title: e.target.value })} />
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4">
                   <div className="space-y-2">
                     <Label>Category</Label>
                     <Select value={basics.category} onValueChange={(category) => setB({ category })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {ACTIVITY_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Pricing</Label>
-                    <Select value={basics.paid ? "paid" : "free"} onValueChange={(v) => setB({ paid: v === "paid" })} disabled={Boolean(original?.hasEntries)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="free">Free</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -237,7 +228,6 @@ function ActivityForm() {
           {step === 1 && (
             <ActivityPricingStep
               category={basics.category}
-              isPaid={basics.paid}
               currency={basics.currency}
               state={pricing}
               onChange={setP}
@@ -265,15 +255,13 @@ function ActivityForm() {
           <ListingPreview
             clubName={club?.name}
             title={basics.title}
-            chips={[categoryLabel, basics.paid ? money(Number(pricing.fee) || 0, basics.currency) : "Free", basics.memberOnly && "Member's Only", basics.paid && pricing.isRefundAllowed && "Refundable"]}
+            chips={[categoryLabel, isPaid ? money(Number(pricing.fee) || 0, basics.currency) : "Free", basics.memberOnly && "Member's Only", isPaid && pricing.isRefundAllowed && "Refundable"]}
           >
             <PreviewRow icon={Calendar} label="Date" value={formatPreviewDate(basics.startTime)} />
             <PreviewRow icon={Clock} label="Time" value={formatPreviewTime(basics.startTime, basics.endTime)} />
-            {step === 1 && (mode === "online"
-              ? <PreviewRow icon={Link2} label="Mode" value="Online" />
-              : <PreviewRow icon={MapPin} label="Location" value={venue} />)}
+            {step === 1 && mode !== "online" && <PreviewRow icon={MapPin} label="Venue" value={venue} />}
             {step === 1 && <PreviewRow icon={Users} label={isTrip ? "Seats" : "Max participants"} value={pricing.maxAttendees || "Unlimited"} />}
-            <PreviewRow icon={Ticket} label="Tickets" value={`General · ${basics.paid ? money(Number(pricing.fee) || 0, basics.currency) : "Free"}`} />
+            <PreviewRow icon={Ticket} label="Tickets" value={`General · ${isPaid ? money(Number(pricing.fee) || 0, basics.currency) : "Free"}`} />
           </ListingPreview>
         </aside>
       </div>

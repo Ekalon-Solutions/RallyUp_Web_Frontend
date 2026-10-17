@@ -2922,6 +2922,7 @@ class ApiClient {
 
   async getDonationConfig(clubId: string, eventId?: string): Promise<ApiResponse<{
     clubName: string; kind: 'monetary' | 'items'; currency: string; minAmount: number; presetAmounts: number[]
+    feeHandlingType?: 'pass_to_buyer' | 'absorb'; platformFeePercent?: number
   }>> {
     return this.get(`/donations/public/${clubId}/config`, { params: eventId ? { eventId } : undefined })
   }

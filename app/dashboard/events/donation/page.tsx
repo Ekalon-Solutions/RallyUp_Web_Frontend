@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { apiClient, ClubPickupAddress } from "@/lib/api"
 import { DONATION_CATEGORIES } from "@/lib/listings"
-import { calculateAbsorbedTransactionFees, PLATFORM_FEE_PERCENT } from "@/lib/transactionFees"
+import { calculateAbsorbedTransactionFees, calculateTransactionFees, PLATFORM_FEE_PERCENT } from "@/lib/transactionFees"
 import { useSelectedClubId, useAccessibleClubs } from "@/hooks/useSelectedClubId"
 import { getAccessibleClub } from "@/lib/clubContext"
 import { useListingSave } from "@/hooks/useListingSave"
@@ -42,7 +42,7 @@ function DonationForm() {
   const [image1080, setImage1080] = useState<File | null>(null)
   const [existingImage, setExistingImage] = useState<string | null>(null)
   const [basics, setBasics] = useState({ title: "", description: "", category: "donations", startDate: "", endDate: "", memberOnly: false, attendancePoints: "0" })
-  const [money_, setMoney] = useState<MonetaryState>({ amountMode: "preset", presets: ["100", "500", "1000"], minAmount: "100", waiverOn: false, waiverCode: "", waiver: null })
+  const [money_, setMoney] = useState<MonetaryState>({ amountMode: "preset", presets: ["100", "500", "1000"], minAmount: "100", waiverOn: false, waiverCode: "", waiver: null, feeHandlingType: "pass_to_buyer" })
   const [items, setItems] = useState<ItemsState>({
     items: [{ name: "", targetCount: "" }], atLocation: false, locationAddress: "", atNextEvent: false,
     clubPickup: false, pickupArrangedBy: "club", pickupAddressId: "", slots: defaultSlots(),
@@ -75,6 +75,7 @@ function DonationForm() {
         amountMode: d.amountMode ?? "preset",
         presets: d.presetAmounts?.length ? d.presetAmounts.map(String) : m.presets,
         minAmount: String(d.minAmount ?? 1),
+        feeHandlingType: ev.feeHandlingType ?? "absorb",
         waiver: d.waiverCode ? { code: d.waiverCode, percentOff: d.waiverPercent ?? 0 } : null,
       }))
       setItems((s) => ({
@@ -142,6 +143,7 @@ function DonationForm() {
       memberOnly: basics.memberOnly,
       attendancePoints: Number(basics.attendancePoints) || 0,
       waiverCode: money_.waiver?.code,
+      ...(isItems ? {} : { feeHandlingType: money_.feeHandlingType }),
       donation: isItems
         ? {
             items: items.items.filter((i) => i.name.trim()).map((i) => ({ name: i.name.trim(), targetCount: i.targetCount ? Number(i.targetCount) : undefined })),
@@ -162,7 +164,9 @@ function DonationForm() {
 
   const waiverPercent = money_.waiver?.percentOff ?? 0
   const example = presetNumbers[0] ?? (Number(money_.minAmount) || 100)
-  const fees = calculateAbsorbedTransactionFees(example, platformFeePercent * (1 - waiverPercent / 100))
+  const donorPays = money_.feeHandlingType === "pass_to_buyer"
+  const effectivePercent = platformFeePercent * (1 - waiverPercent / 100)
+  const fees = donorPays ? calculateTransactionFees(example, effectivePercent) : calculateAbsorbedTransactionFees(example, effectivePercent)
   const platformCut = fees.platformFee + fees.platformFeeGst
   const gatewayCut = fees.razorpayFee + fees.razorpayFeeGst
 
@@ -267,14 +271,25 @@ function DonationForm() {
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Platform fee</p>
-                  <p className="text-sm font-medium">Absorbed by club{waiverPercent ? ` · ${waiverPercent}% waived` : ""}</p>
+                  <p className="text-sm font-medium">{donorPays ? "Paid by donor" : "Absorbed by club"}{waiverPercent ? ` · ${waiverPercent}% waived` : ""}</p>
                 </div>
                 <div className="space-y-1.5 rounded-lg bg-muted/60 p-3 text-sm">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Example for {money(example, currency)}</p>
-                  <Row label="Donor pays" value={money(example, currency)} />
-                  <Row label="Transaction fee" value={`− ${money(gatewayCut, currency)}`} muted />
-                  <Row label="Platform fee" value={`− ${money(platformCut, currency)}`} muted />
-                  <div className="border-t pt-1.5"><Row label="Club receives" value={money(example - gatewayCut - platformCut, currency)} bold /></div>
+                  {donorPays ? (
+                    <>
+                      <Row label="Donation" value={money(example, currency)} />
+                      <Row label="Transaction fee" value={money(gatewayCut, currency)} muted />
+                      <Row label="Platform fee" value={money(platformCut, currency)} muted />
+                      <div className="border-t pt-1.5"><Row label="Donor pays" value={money(fees.finalAmount, currency)} bold /></div>
+                    </>
+                  ) : (
+                    <>
+                      <Row label="Donor pays" value={money(example, currency)} />
+                      <Row label="Transaction fee" value={`− ${money(gatewayCut, currency)}`} muted />
+                      <Row label="Platform fee" value={`− ${money(platformCut, currency)}`} muted />
+                      <div className="border-t pt-1.5"><Row label="Club receives" value={money(example - gatewayCut - platformCut, currency)} bold /></div>
+                    </>
+                  )}
                 </div>
               </>
             )}

@@ -32,7 +32,6 @@ export function activityFieldsFor(category: string) {
 
 export function ActivityPricingStep({
   category,
-  isPaid,
   currency,
   state,
   onChange,
@@ -42,7 +41,6 @@ export function ActivityPricingStep({
   isEdit,
 }: {
   category: string
-  isPaid: boolean
   currency: string
   state: ActivityPricingState
   onChange: (patch: Partial<ActivityPricingState>) => void
@@ -53,7 +51,7 @@ export function ActivityPricingStep({
 }) {
   const { isTrip, showAddOns, showInclusions } = activityFieldsFor(category)
 
-  const feeInput = isPaid && (
+  const feeInput = (
     <div className="space-y-2">
       <Label htmlFor="fee">{isTrip ? "Offsite/Trip cost" : "Fee per participant"} *</Label>
       <Input id="fee" type="number" min={0} step="0.01" value={state.fee} onChange={(e) => onChange({ fee: e.target.value })} />
@@ -103,7 +101,7 @@ export function ActivityPricingStep({
               </div>
             ) : (
               <div className="space-y-2">
-                <Label htmlFor="location">Location *</Label>
+                <Label htmlFor="location">Venue *</Label>
                 <Input id="location" placeholder="Enter venue / address" value={state.location} onChange={(e) => onChange({ location: e.target.value })} />
               </div>
             )}
@@ -147,7 +145,7 @@ export function ActivityPricingStep({
         </SectionCard>
       )}
 
-      {isPaid && (
+      {(
         <EventFeeManagementSection
           value={state.feeHandlingType}
           onChange={(feeHandlingType) => onChange({ feeHandlingType })}
@@ -160,7 +158,7 @@ export function ActivityPricingStep({
         />
       )}
 
-      {isPaid && (
+      {(
         <EventRefundToggleSection
           isRefundAllowed={state.isRefundAllowed}
           onRefundAllowedChange={(isRefundAllowed) => onChange({ isRefundAllowed })}
