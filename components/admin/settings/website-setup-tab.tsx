@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Save, Globe, Eye, EyeOff, ExternalLink, Copy, Share2, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
+import { getClubSiteUrl } from "@/lib/config"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { invalidateClubSettings } from "@/hooks/useClubSettings"
@@ -205,7 +206,7 @@ export function WebsiteSetupTab() {
   const copyPublicUrl = () => {
     if (!clubId) return
     const identifier = slugInput || currentClubSlug || clubId
-    const publicUrl = `${window.location.origin}/clubs/${identifier}`
+    const publicUrl = getClubSiteUrl(identifier)
     navigator.clipboard.writeText(publicUrl)
     toast.success("Public URL copied to clipboard!")
   }
@@ -213,7 +214,7 @@ export function WebsiteSetupTab() {
   const openPublicPage = () => {
     if (!clubId) return
     const identifier = slugInput || currentClubSlug || clubId
-    const publicUrl = `${window.location.origin}/clubs/${identifier}`
+    const publicUrl = getClubSiteUrl(identifier)
     window.open(publicUrl, '_blank')
   }
 
@@ -242,7 +243,7 @@ export function WebsiteSetupTab() {
           <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 rounded-lg border">
             <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <code className="text-sm flex-1 truncate text-blue-600 dark:text-blue-400">
-              {(slugInput || currentClubSlug || clubId) ? `${typeof window !== 'undefined' ? window.location.origin : ''}/clubs/${slugInput || currentClubSlug || clubId}` : 'Loading...'}
+              {typeof window !== 'undefined' && (slugInput || currentClubSlug || clubId) ? getClubSiteUrl(slugInput || currentClubSlug || clubId!) : 'Loading...'}
             </code>
           </div>
 
