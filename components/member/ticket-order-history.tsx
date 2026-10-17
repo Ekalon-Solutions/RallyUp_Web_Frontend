@@ -24,6 +24,7 @@ export interface MemberTicketOrder {
     }>
     amountPaid?: number
     currency?: string
+    addOns?: Array<{ name: string; price: number; quantity: number }>
   }
 }
 
@@ -121,6 +122,13 @@ export function TicketOrderHistory({ rows, loading, hasSearch }: TicketOrderHist
                     </div>
                   )}
                 </div>
+
+                {!!registration.addOns?.length && (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Add-ons: </span>
+                    {registration.addOns.map((a) => `${a.name} × ${a.quantity}`).join(", ")}
+                  </p>
+                )}
               </div>
 
               <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
