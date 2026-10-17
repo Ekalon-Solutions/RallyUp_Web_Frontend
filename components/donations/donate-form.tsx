@@ -9,6 +9,7 @@ import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils"
 import { money } from "@/components/listings/listing-preview"
+import { calculateTransactionFees } from "@/lib/transactionFees"
 
 /** Rounds to 2 decimals (INR precision) and validates — mirrors the backend rule. */
 export function parseDonationAmount(raw: string, minAmount: number): { amount: number | null; error: string | null } {
@@ -43,7 +44,7 @@ async function waitForServerConfirmation(donationId: string): Promise<boolean> {
   return false
 }
 
-export function DonateForm({ clubId, eventId, presetAmounts, minAmount, allowCustom, primaryColor, title }: {
+export function DonateForm({ clubId, eventId, presetAmounts, minAmount, allowCustom, primaryColor, title, feeHandlingType = "absorb", platformFeePercent }: {
   clubId: string
   eventId?: string
   presetAmounts: number[]
@@ -51,6 +52,9 @@ export function DonateForm({ clubId, eventId, presetAmounts, minAmount, allowCus
   allowCustom: boolean
   primaryColor?: string
   title: string
+  /** pass_to_buyer: fees are added to the donor's total. Server recomputes the real charge. */
+  feeHandlingType?: "pass_to_buyer" | "absorb"
+  platformFeePercent?: number
 }) {
   const { user } = useAuth()
   const isMember = (user as any)?.role === "member"
@@ -64,6 +68,8 @@ export function DonateForm({ clubId, eventId, presetAmounts, minAmount, allowCus
 
   const customParsed = parseDonationAmount(custom, minAmount)
   const amount = custom.trim() ? customParsed.amount : selected
+  const fees = amount && feeHandlingType === "pass_to_buyer" ? calculateTransactionFees(amount, platformFeePercent) : null
+  const total = fees?.finalAmount ?? amount
 
   const donate = async () => {
     setMessage(null)
@@ -188,6 +194,15 @@ export function DonateForm({ clubId, eventId, presetAmounts, minAmount, allowCus
         </div>
       )}
 
+      {fees && amount && (
+        <div className="space-y-1 rounded-lg bg-muted/60 p-3 text-sm">
+          <div className="flex justify-between"><span>Donation</span><span>{money(amount)}</span></div>
+          <div className="flex justify-between text-muted-foreground"><span>Transaction fee</span><span>{money(fees.razorpayFee + fees.razorpayFeeGst)}</span></div>
+          <div className="flex justify-between text-muted-foreground"><span>Platform fee</span><span>{money(fees.platformFee + fees.platformFeeGst)}</span></div>
+          <div className="flex justify-between border-t pt-1 font-semibold"><span>You pay</span><span>{money(fees.finalAmount)}</span></div>
+        </div>
+      )}
+
       {message && <p className="text-sm text-destructive" role="alert">{message}</p>}
 
       <Button
@@ -197,9 +212,9 @@ export function DonateForm({ clubId, eventId, presetAmounts, minAmount, allowCus
         disabled={busy}
       >
         {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {amount ? `Donate ${money(amount)}` : "Donate"}
+        {total ? `Donate ${money(total)}` : "Donate"}
       </Button>
-      <p className="text-center text-xs text-muted-foreground">No extra fees — you pay exactly this amount.</p>
+      {!fees && <p className="text-center text-xs text-muted-foreground">No extra fees — you pay exactly this amount.</p>}
     </div>
   )
 }

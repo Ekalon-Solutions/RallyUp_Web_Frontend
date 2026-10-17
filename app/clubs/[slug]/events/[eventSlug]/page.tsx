@@ -172,6 +172,8 @@ function DonationSidebar({ event, clubId, primaryColor }: { event: Event; clubId
           minAmount={d.minAmount ?? 1}
           allowCustom={d.amountMode === "custom"}
           primaryColor={primaryColor}
+          feeHandlingType={event.feeHandlingType}
+          platformFeePercent={((event as any).platformFeePercent ?? 5) * (1 - (d.waiverPercent ?? 0) / 100)}
         />
       )}
     </div>

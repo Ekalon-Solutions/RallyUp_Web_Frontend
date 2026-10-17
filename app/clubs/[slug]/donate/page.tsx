@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { apiClient, Club } from "@/lib/api"
 import { DonateForm } from "@/components/donations/donate-form"
 
-type Config = { clubName: string; minAmount: number; presetAmounts: number[] }
+type Config = { clubName: string; minAmount: number; presetAmounts: number[]; feeHandlingType?: "pass_to_buyer" | "absorb"; platformFeePercent?: number }
 
 /** Always-on donation page for a club — members and guests, no login needed. */
 export default function ClubDonatePage() {
@@ -55,6 +55,8 @@ export default function ClubDonatePage() {
                 minAmount={config.minAmount}
                 allowCustom
                 primaryColor={primaryColor}
+                feeHandlingType={config.feeHandlingType}
+                platformFeePercent={config.platformFeePercent}
               />
             )}
           </CardContent>

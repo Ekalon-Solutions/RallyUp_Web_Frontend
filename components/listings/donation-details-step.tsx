@@ -21,6 +21,7 @@ export type MonetaryState = {
   waiverOn: boolean
   waiverCode: string
   waiver: { code: string; percentOff: number } | null
+  feeHandlingType: "pass_to_buyer" | "absorb"
 }
 
 export type ItemsState = {
@@ -118,9 +119,6 @@ export function MonetaryDetails({ state, onChange, currency, clubId }: {
       </SectionCard>
 
       <SectionCard title="Platform fee">
-        <p className="rounded-md bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
-          Fees are always absorbed by the club for donations. Donors pay exactly the amount they give.
-        </p>
         <ToggleRow
           label="Apply for platform fee waiver"
           hint="Enter your waiver code to reduce the platform fee"
@@ -139,6 +137,13 @@ export function MonetaryDetails({ state, onChange, currency, clubId }: {
             </Button>
           </div>
         )}
+        <div className="space-y-3 border-t pt-4">
+          <Label>Who pays the platform fee?</Label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ChoiceCard selected={state.feeHandlingType === "absorb"} onSelect={() => onChange({ feeHandlingType: "absorb" })} title="Admin" hint="Donors pay only the amount they give" />
+            <ChoiceCard selected={state.feeHandlingType === "pass_to_buyer"} onSelect={() => onChange({ feeHandlingType: "pass_to_buyer" })} title="User" hint="The fee is added to the donor's total" />
+          </div>
+        </div>
       </SectionCard>
     </>
   )
