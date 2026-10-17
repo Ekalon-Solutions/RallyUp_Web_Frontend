@@ -1905,6 +1905,13 @@ export default function OrdersPage() {
                           </span>
                         </div>
 
+                        {(meta?.addOns ?? []).map((a: { name: string; price: number; quantity: number }) => (
+                          <div key={a.name} className="flex justify-between">
+                            <span className="text-muted-foreground">Add-on: {a.name} ({a.quantity} × {formatCurrency(a.price, currency)}):</span>
+                            <span className="font-medium">{formatCurrency(a.price * a.quantity, currency)}</span>
+                          </div>
+                        ))}
+
                         {fees && (fees.platformFee + fees.platformFeeGst) > 0 && (
                           <div className="flex justify-between text-muted-foreground">
                             <span>Platform Fee (+ GST):</span>

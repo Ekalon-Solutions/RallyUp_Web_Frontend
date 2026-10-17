@@ -86,9 +86,8 @@ function EventsPageContent() {
       const response = await apiClient.getEventsByClub(clubId)
 
       if (response.success && response.data) {
-        let filteredEvents = response.data.filter((event) =>
-          tab === "events" ? listingTypeOf(event) === "event" : listingTypeOf(event) !== "event"
-        )
+        // All listing types (events, contests, donation drives, drafts) share this table.
+        let filteredEvents = response.data
 
         if (searchTerm) {
           filteredEvents = filteredEvents.filter(event =>
@@ -292,7 +291,7 @@ function EventsPageContent() {
               </Button>
               {canEditEvents && (
               <div className="flex flex-1 sm:flex-none">
-                <Button onClick={() => router.push(tab === "listings" ? "/dashboard/events/activity" : "/dashboard/events/create")} className="flex-1 rounded-r-none">
+                <Button onClick={() => router.push("/dashboard/events/create")} className="flex-1 rounded-r-none">
                   <Plus className="w-4 h-4 mr-2" />
                   Create
                 </Button>
@@ -408,8 +407,8 @@ function EventsPageContent() {
           {/* Filters and Search */}
           <Card>
             <CardHeader>
-              <CardTitle>{tab === "events" ? "Events" : "Contests, Activities & Drives"}</CardTitle>
-              <CardDescription>Search and filter your {tab === "events" ? "events" : "listings"}</CardDescription>
+              <CardTitle>Events</CardTitle>
+              <CardDescription>Search and filter your events, contests and drives</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-4 mb-4">
@@ -447,6 +446,7 @@ function EventsPageContent() {
                     <SelectItem value="contests">🏅 Contests</SelectItem>
                     <SelectItem value="offsite-trips">🧭 Offsite/Trips</SelectItem>
                     <SelectItem value="donations">💝 Donation Drives</SelectItem>
+                    <SelectItem value="csr-events">📦 CSR Drives</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -571,7 +571,7 @@ function EventsPageContent() {
                               <Badge variant="secondary">
                                 {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
                               </Badge>
-                              {tab === "listings" && (
+                              {listingTypeOf(event) !== "event" && (
                                 <span className="text-xs text-muted-foreground">{listingTypeLabel(event)}</span>
                               )}
                             </div>
