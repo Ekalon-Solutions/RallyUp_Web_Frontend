@@ -76,7 +76,7 @@ import { getModuleAccess } from "@/lib/adminPermissions"
 import { ClubFeaturesProvider } from "@/contexts/club-features-context"
 import { useFcmRegistration } from "@/hooks/useFcmRegistration"
 import { ChevronDown, ChevronRight } from "lucide-react"
-import { MessageSquare } from "lucide-react"
+import { MessageSquare, BadgePercent } from "lucide-react"
 
 const ROLE_LABELS: Record<string, string> = {
   member: 'Member',
@@ -168,6 +168,7 @@ const systemOwnerNavigation = [
   { name: "Reporting & Analytics", href: "/dashboard/reports", icon: FileBarChart },
   { name: "Audit Logs", href: "/dashboard/admin-audit", icon: Shield },
   { name: "Billing Auditor", href: "/dashboard/billing-auditor", icon: Receipt },
+  { name: "Fee Waiver Codes", href: "/dashboard/fee-waivers", icon: BadgePercent },
   { name: "WhatsApp / AiSensy", href: "/dashboard/whatsapp-config", icon: MessageSquare },
   { name: "WhatsApp Opt-in Log", href: "/dashboard/whatsapp-marketing-logs", icon: MessageSquare },
   { name: "WhatsApp Billing", href: "/dashboard/whatsapp-billing", icon: Receipt },

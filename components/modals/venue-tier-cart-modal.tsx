@@ -117,6 +117,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   // Tier-matrix cart state
   const [cart, setCart] = useState<CartState>({})
+  const [addOnRows, setAddOnRows] = useState<Array<{ name: string; qty: number }>>([])
   const [attendeeSlots, setAttendeeSlots] = useState<AttendeeSlot[]>([])
 
   // Simple-event ticket state
@@ -503,7 +504,13 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const afterCoupon = Math.max(subtotal - couponDiscount, 0)
   const payableBeforePoints = afterCoupon
   const showPointsRedemption = canShowPointsRedemption(availablePoints, payableBeforePoints)
-  const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0)
+  // Add-ons are charged at face value on top of the discounted ticket total; the server re-prices them by name.
+  const eventAddOns = event?.listingType === 'activity' ? event.activity?.addOns ?? [] : []
+  const addOnQty: Record<string, number> = {}
+  for (const r of addOnRows) addOnQty[r.name] = (addOnQty[r.name] ?? 0) + r.qty
+  const addOnsPayload = Object.entries(addOnQty).map(([name, quantity]) => ({ name, quantity }))
+  const addOnsTotal = eventAddOns.reduce((sum, a) => sum + a.price * (addOnQty[a.name] ?? 0), 0)
+  const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0) + addOnsTotal
   // When the club absorbs fees, the buyer pays the base net and fees are not appended.
   const clubFeePercent = (event as any)?.platformFeePercent ?? 5
   const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netAmount, event?.feeHandlingType, clubFeePercent)
@@ -1010,6 +1017,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           await apiClient.confirmReservation(reservationToken).catch(() => {})
         }
         const res = await apiClient.bookVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
           items: apiItems,
           attendees: bookingAttendees,
           reservationToken: reservationToken ?? undefined,
@@ -1044,6 +1052,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       })
 
       await apiClient.createPendingVenueTierBooking(event._id, {
+          addOns: addOnsPayload,
         items: apiItems,
         attendees: bookingAttendees,
         razorpayOrderId,
@@ -1098,6 +1107,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             }
 
             const res = await apiClient.bookVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
               items: apiItems,
               attendees: bookingAttendees,
               razorpayOrderId: orderId,
@@ -1258,6 +1268,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       })
 
       const pendingRes = await apiClient.createPendingPublicRegistration(event._id, {
+          addOns: addOnsPayload,
         registrantName: bookingAttendees[0]?.name || 'Guest',
         registrantEmail: guestEmail.trim(),
         registrantPhone: bookingAttendees[0]?.phone || '',
@@ -1466,6 +1477,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           await apiClient.confirmReservation(reservationToken).catch(() => {})
         }
         const res = await apiClient.bookPublicVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
           guestEmail: guestEmail.trim(),
           items: apiItems,
           attendees: bookingAttendees,
@@ -1500,6 +1512,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       })
 
       const pendingRes = await apiClient.createPendingPublicVenueTierBooking(event._id, {
+          addOns: addOnsPayload,
         guestEmail: guestEmail.trim(),
         guestName: bookingAttendees[0]?.name || 'Guest',
         items: apiItems,
@@ -1561,6 +1574,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             }
 
             const res = await apiClient.bookPublicVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
               guestEmail: guestEmail.trim(),
               items: apiItems,
               attendees: bookingAttendees,
@@ -1693,6 +1707,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           await apiClient.confirmReservation(reservationToken).catch(() => {})
         }
         const res = await apiClient.bookVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
           items: apiItems,
           attendees: bookingAttendees,
           reservationToken: reservationToken ?? undefined,
@@ -1730,6 +1745,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       }, authHeaders)
 
       await apiClient.createPendingVenueTierBooking(event._id, {
+          addOns: addOnsPayload,
         items: apiItems,
         attendees: bookingAttendees,
         razorpayOrderId,
@@ -1784,6 +1800,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             }
 
             const res = await apiClient.bookVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
               items: apiItems,
               attendees: bookingAttendees,
               razorpayOrderId: orderId,
@@ -2650,6 +2667,48 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   {guestEmailError && (
                     <p className="text-xs text-destructive">{guestEmailError}</p>
                   )}
+                </div>
+              )}
+
+              {eventAddOns.length > 0 && (
+                <div className="rounded-xl border p-4 flex flex-col gap-2">
+                  <p className="text-sm font-semibold">Select add ons</p>
+                  {addOnRows.length > 0 && (
+                    <div className="grid grid-cols-[1fr_5.5rem_4.5rem_2rem] gap-2 text-xs text-muted-foreground">
+                      <span>Add-on</span><span>Price</span><span>Max items</span><span />
+                    </div>
+                  )}
+                  {addOnRows.map((row, idx) => {
+                    const def = eventAddOns.find((a) => a.name === row.name)
+                    const update = (patch: Partial<{ name: string; qty: number }>) =>
+                      setAddOnRows((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)))
+                    const selectCls = "h-9 rounded-md border border-input bg-muted/40 px-2 text-sm"
+                    return (
+                      <div key={idx} className="grid grid-cols-[1fr_5.5rem_4.5rem_2rem] gap-2 items-center">
+                        <select className={selectCls} value={row.name} onChange={(e) => update({ name: e.target.value })} aria-label="Add-on">
+                          {eventAddOns.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+                        </select>
+                        <span className="h-9 rounded-md border bg-muted/40 px-2 text-sm flex items-center text-muted-foreground">{fmt(def?.price ?? 0, currency)}</span>
+                        <select className={selectCls} value={row.qty} onChange={(e) => update({ qty: Number(e.target.value) })} aria-label="Quantity">
+                          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                        <Button type="button" variant="outline" size="icon" className="h-9 w-8" aria-label="Remove add-on" onClick={() => setAddOnRows((rows) => rows.filter((_, i) => i !== idx))}>×</Button>
+                      </div>
+                    )
+                  })}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="self-start"
+                    disabled={addOnRows.length >= eventAddOns.length}
+                    onClick={() => {
+                      const next = eventAddOns.find((a) => !addOnRows.some((r) => r.name === a.name))
+                      if (next) setAddOnRows((rows) => [...rows, { name: next.name, qty: 1 }])
+                    }}
+                  >
+                    + Add more
+                  </Button>
                 </div>
               )}
 
