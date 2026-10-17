@@ -6,7 +6,11 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3, XOctagon, RotateCcw } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3, XOctagon, RotateCcw, ChevronDown, Send, Lock, HandHeart } from "lucide-react"
+import Link from "next/link"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { listingEditHref, listingPublicHref, listingTypeLabel, listingTypeOf } from "@/lib/listings"
+import { money } from "@/components/listings/listing-preview"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
@@ -16,10 +20,10 @@ import { eventVariantUrl } from "@/lib/eventImageCache"
 import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useAdminModulePermission } from "@/hooks/useAdminModulePermission"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
@@ -32,7 +36,7 @@ import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
 import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
 
-export default function EventsPage() {
+function EventsPageContent() {
   const router = useRouter()
   const { isAdmin, user } = useAuth()
   const { canEdit: canEditEvents } = useAdminModulePermission('events')
@@ -44,6 +48,10 @@ export default function EventsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [timeFilter, setTimeFilter] = useState<string>("all")
+  const searchParams = useSearchParams()
+  // "Events & Tickets" vs "Other Listings" (activities, contests, donation & CSR drives).
+  const [tab, setTab] = useState<"events" | "listings">(searchParams.get("tab") === "listings" ? "listings" : "events")
+  const [clubSlug, setClubSlug] = useState<string | null>(null)
 
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -61,7 +69,12 @@ export default function EventsPage() {
     if (user && !isAdmin) {
       fetchUserRegistrations()
     }
-  }, [searchTerm, categoryFilter, statusFilter, timeFilter, user, isAdmin, clubId])
+  }, [searchTerm, categoryFilter, statusFilter, timeFilter, user, isAdmin, clubId, tab])
+
+  useEffect(() => {
+    if (!clubId) return
+    apiClient.getClubById(clubId).then((res) => setClubSlug(res.data?.slug ?? null))
+  }, [clubId])
 
   const fetchEvents = async () => {
     try {
@@ -74,13 +87,15 @@ export default function EventsPage() {
       const response = await apiClient.getEventsByClub(clubId)
 
       if (response.success && response.data) {
-        let filteredEvents = response.data
+        let filteredEvents = response.data.filter((event) =>
+          tab === "events" ? listingTypeOf(event) === "event" : listingTypeOf(event) !== "event"
+        )
 
         if (searchTerm) {
           filteredEvents = filteredEvents.filter(event =>
             event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            getEventVenueDisplay(event).toLowerCase().includes(searchTerm.toLowerCase())
+            (event.venue ? getEventVenueDisplay(event) : "").toLowerCase().includes(searchTerm.toLowerCase())
           )
         }
 
@@ -89,14 +104,17 @@ export default function EventsPage() {
         }
 
         if (statusFilter !== "all") {
-          filteredEvents = filteredEvents.filter(event =>
-            statusFilter === "active" ? event.isActive : !event.isActive
-          )
+          filteredEvents = filteredEvents.filter(event => {
+            if (statusFilter === "draft" || statusFilter === "closed") return event.publishStatus === statusFilter
+            return statusFilter === "active" ? event.isActive : !event.isActive
+          })
         }
 
         if (timeFilter !== "all") {
           const now = new Date()
           filteredEvents = filteredEvents.filter(event => {
+            // Open-ended donation drives have no start date: treat as live.
+            if (!event.startTime) return timeFilter === "live" && !event.endTime
             const start = new Date(event.startTime)
             const end = event.endTime ? new Date(event.endTime) : null
             if (timeFilter === "upcoming") return start > now
@@ -195,6 +213,13 @@ export default function EventsPage() {
     }
   }
 
+  const handleLifecycle = async (event: Event, action: "publish" | "close") => {
+    const res = action === "publish" ? await apiClient.publishEvent(event._id) : await apiClient.closeEvent(event._id)
+    if (!res.success) return void toast.error(res.message || res.error || `Failed to ${action}`)
+    toast.success(action === "publish" ? `"${event.title}" is live` : `"${event.title}" closed — existing entries are kept`)
+    fetchEvents()
+  }
+
   const handleToggleStatus = async (eventId: string, currentStatus: boolean) => {
     try {
       const response = await apiClient.toggleEventStatus(eventId, !currentStatus)
@@ -266,11 +291,29 @@ export default function EventsPage() {
                 <ScanLine className="w-4 h-4 mr-2" />
                 Scanner
               </Button>
-              {canEditEvents && (
-              <Button onClick={() => router.push("/dashboard/events/create")} className="flex-1 sm:flex-none">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Event
+              <Button variant="outline" onClick={() => router.push("/dashboard/events/donations")} className="flex-1 sm:flex-none">
+                <HandHeart className="w-4 h-4 mr-2" />
+                Donations
               </Button>
+              {canEditEvents && (
+              <div className="flex flex-1 sm:flex-none">
+                <Button onClick={() => router.push(tab === "listings" ? "/dashboard/events/activity" : "/dashboard/events/create")} className="flex-1 rounded-r-none">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create
+                </Button>
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="rounded-l-none border-l border-primary-foreground/20 px-2" aria-label="Choose what to create">
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => router.push("/dashboard/events/create")}>Event &amp; Tickets</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push("/dashboard/events/activity")}>Contest / Activity</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push("/dashboard/events/donation")}>Donation / CSR Drive</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               )}
             </div>
           </div>
@@ -357,11 +400,25 @@ export default function EventsPage() {
             registrationStatus={selectedEvent ? getRegistrationStatus(selectedEvent._id) : undefined}
           />
 
+          <Tabs
+            value={tab}
+            onValueChange={(v) => {
+              setTab(v as "events" | "listings")
+              setCategoryFilter("all")
+              router.replace(v === "listings" ? "/dashboard/events?tab=listings" : "/dashboard/events")
+            }}
+          >
+            <TabsList>
+              <TabsTrigger value="events">Events &amp; Tickets</TabsTrigger>
+              <TabsTrigger value="listings">Other Listings</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           {/* Filters and Search */}
           <Card>
             <CardHeader>
-              <CardTitle>Events</CardTitle>
-              <CardDescription>Search and filter your events</CardDescription>
+              <CardTitle>{tab === "events" ? "Events" : "Contests, Activities & Drives"}</CardTitle>
+              <CardDescription>Search and filter your {tab === "events" ? "events" : "listings"}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-4 mb-4">
@@ -396,6 +453,9 @@ export default function EventsPage() {
                     <SelectItem value="general-meeting">👥 General Meeting</SelectItem>
                     <SelectItem value="matchday">⚽ Matchday</SelectItem>
                     <SelectItem value="others">📅 Others</SelectItem>
+                    <SelectItem value="contests">🏅 Contests</SelectItem>
+                    <SelectItem value="offsite-trips">🧭 Offsite/Trips</SelectItem>
+                    <SelectItem value="donations">💝 Donation Drives</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -407,6 +467,8 @@ export default function EventsPage() {
                     <SelectItem value="all">All Events</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={timeFilter} onValueChange={setTimeFilter}>
@@ -452,19 +514,44 @@ export default function EventsPage() {
                     ) : (
                       events.map((event) => {
                         const capacity = getEventCapacity(event)
+                        const isDonation = listingTypeOf(event) === "donation"
+                        const isDraft = event.publishStatus === "draft"
+                        const isClosed = event.publishStatus === "closed"
+                        const thumbnail = (
+                          <EventImage
+                            eventId={event._id}
+                            imageVersion={event.imageVersion}
+                            size="list"
+                            directUrl={eventVariantUrl(event, "list")}
+                            alt={event.title}
+                            aspectClassName="aspect-video"
+                            className="w-24 shrink-0 rounded-md border"
+                          />
+                        )
                         return (
                         <TableRow key={event._id}>
                           <TableCell>
                             <div className="flex items-start gap-3">
-                              <EventImage
-                                eventId={event._id}
-                                imageVersion={event.imageVersion}
-                                size="list"
-                                directUrl={eventVariantUrl(event, "list")}
-                                alt={event.title}
-                                aspectClassName="aspect-video"
-                                className="w-24 shrink-0 rounded-md border"
-                              />
+                              {clubSlug && !isDraft ? (
+                                <Link
+                                  href={listingPublicHref(clubSlug, event)}
+                                  target="_blank"
+                                  title="Open the event page"
+                                  aria-label={`Open ${event.title} event page`}
+                                  className="shrink-0 rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                  {thumbnail}
+                                </Link>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="shrink-0 cursor-help"
+                                  title="Publish this draft to open its event page"
+                                  onClick={() => toast.info(isDraft ? "Publish this draft to open its event page" : "Loading club link…")}
+                                >
+                                  {thumbnail}
+                                </button>
+                              )}
                               <div className="min-w-[200px]">
                                 <div className="font-medium break-words">{event.title}</div>
                                 <div className="text-sm text-muted-foreground line-clamp-2 break-words">
@@ -489,14 +576,19 @@ export default function EventsPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">
-                              {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
-                            </Badge>
+                            <div className="flex flex-col items-start gap-1">
+                              <Badge variant="secondary">
+                                {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
+                              </Badge>
+                              {tab === "listings" && (
+                                <span className="text-xs text-muted-foreground">{listingTypeLabel(event)}</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              <span className="text-sm">{formatDisplayDate(event.startTime)}</span>
+                              <span className="text-sm">{event.startTime ? formatDisplayDate(event.startTime) : "Ongoing"}</span>
                             </div>
                             {event.endTime && (
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -515,10 +607,20 @@ export default function EventsPage() {
                           <TableCell>
                             <div className="flex items-start gap-1 min-w-[150px]">
                               <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm break-words">{getEventVenueDisplay(event)}</span>
+                              <span className="text-sm break-words">{isDonation ? "—" : getEventVenueDisplay(event)}</span>
                             </div>
                           </TableCell>
                           <TableCell>
+                            {isDonation ? (
+                              <div className="text-sm">
+                                {event.category !== "csr-events" && (
+                                  <p className="font-medium">{money(event.donation?.raisedAmount ?? 0, event.currency)} raised</p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  {event.donation?.donationCount ?? 0} {event.category === "csr-events" ? "pledges" : "donations"}
+                                </p>
+                              </div>
+                            ) : (
                             <div className="flex items-center gap-1">
                               <Users className="w-3 h-3" />
                               <span className="text-sm">
@@ -529,15 +631,20 @@ export default function EventsPage() {
                                 )}
                               </span>
                             </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
                               {event.cancellation ? (
                                 <Badge variant="destructive">{event.cancellation.status === 'refunded' ? 'Cancelled · Refunded' : 'Cancelled'}</Badge>
+                              ) : isDraft ? (
+                                <Badge variant="outline">Draft</Badge>
+                              ) : isClosed ? (
+                                <Badge variant="secondary">Closed</Badge>
                               ) : !event.isActive && (
                                 <Badge variant="secondary">Inactive</Badge>
                               )}
-                              {(() => {
+                              {!isDraft && !isClosed && event.startTime && (() => {
                                 const now = new Date()
                                 const start = new Date(event.startTime)
                                 const end = event.endTime ? new Date(event.endTime) : null
@@ -548,7 +655,7 @@ export default function EventsPage() {
                                   </span>
                                 ) : null
                               })()}
-                              {(() => {
+                              {!isDonation && (() => {
                                 const refundable = event.isRefundAllowed !== false && event.is_refund_allowed !== false
                                 return (
                                   <span className={`inline-flex items-center gap-1 text-xs font-medium ${refundable ? 'text-blue-600' : 'text-muted-foreground'}`}>
@@ -580,18 +687,38 @@ export default function EventsPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    {canEditEvents && isDraft && (
+                                    <DropdownMenuItem onClick={() => handleLifecycle(event, "publish")}>
+                                      <Send className="w-4 h-4 mr-2" />
+                                      Publish
+                                    </DropdownMenuItem>
+                                    )}
                                     {canEditEvents && (
-                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/events/create?edit=${event._id}`)}>
+                                    <DropdownMenuItem onClick={() => router.push(listingEditHref(event))}>
                                       <Edit className="w-4 h-4 mr-2" />
                                       Edit
                                     </DropdownMenuItem>
                                     )}
-                                    {canEditEvents && (
+                                    {isDonation && (
+                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/events/donations?eventId=${event._id}`)}>
+                                      <HandHeart className="w-4 h-4 mr-2" />
+                                      View {event.category === "csr-events" ? "pledges" : "donations"}
+                                    </DropdownMenuItem>
+                                    )}
+                                    {canEditEvents && !isDraft && !isClosed && !event.cancellation && (
+                                    <DropdownMenuItem onClick={() => handleLifecycle(event, "close")}>
+                                      <Lock className="w-4 h-4 mr-2" />
+                                      Close
+                                    </DropdownMenuItem>
+                                    )}
+                                    {canEditEvents && listingTypeOf(event) === "event" && (
                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/events/create?duplicate=${event._id}`)}>
                                       <Copy className="w-4 h-4 mr-2" />
                                       Duplicate
                                     </DropdownMenuItem>
                                     )}
+                                    {!isDonation && (
+                                    <>
                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/events/scanner?eventId=${event._id}`)}>
                                       <ScanLine className="w-4 h-4 mr-2" />
                                       Scan QR
@@ -610,7 +737,9 @@ export default function EventsPage() {
                                       <RotateCcw className="w-4 h-4 mr-2" />
                                       {event.cancellation ? 'Process Refund for All Tickets' : 'Cancel and Refund All Tickets'}
                                     </DropdownMenuItem>
-                                    {!event.cancellation && (
+                                    </>
+                                    )}
+                                    {!event.cancellation && !isDraft && !isClosed && (
                                     <DropdownMenuItem onClick={() => handleToggleStatus(event._id, event.isActive)}>
                                       {event.isActive ? (
                                         <>
@@ -625,6 +754,8 @@ export default function EventsPage() {
                                       )}
                                     </DropdownMenuItem>
                                     )}
+                                    {!isDonation && (
+                                    <>
                                     <DropdownMenuItem onClick={() => { setRefundPolicyEvent(event); setRefundPolicyModalOpen(true) }}>
                                       {event.isRefundAllowed !== false && event.is_refund_allowed !== false ? (
                                         <>
@@ -648,6 +779,8 @@ export default function EventsPage() {
                                       <BarChart3 className="w-4 h-4 mr-2" />
                                       Refund Report
                                     </DropdownMenuItem>
+                                    </>
+                                    )}
                                     <DropdownMenuItem onClick={() => setCancelTarget({ event, intent: { kind: 'delete' } })}>
                                       <Trash2 className="w-4 h-4 mr-2" />
                                       Delete
@@ -669,5 +802,13 @@ export default function EventsPage() {
         </div>
       </DashboardLayout>
     </ProtectedRoute>
+  )
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense fallback={null}>
+      <EventsPageContent />
+    </Suspense>
   )
 }

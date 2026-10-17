@@ -27,6 +27,8 @@ import {
   Award,
 } from "lucide-react"
 import Link from "next/link"
+import { DonateForm } from "@/components/donations/donate-form"
+import { PledgeForm } from "@/components/donations/pledge-form"
 import {
   formatEventPriceDisplay,
   formatTierPrice,
@@ -104,6 +106,76 @@ function isActivelyRegistered(data: {
   if (!regStatus) return Boolean(data.isRegistered)
   if (regStatus === 'pending' || ['cancelled', 'canceled', 'refunded'].includes(regStatus)) return false
   return regStatus === 'confirmed' || Boolean(data.isRegistered)
+}
+
+function ActivityExtras({ activity, currency }: { activity: NonNullable<Event["activity"]>; currency?: string }) {
+  return (
+    <>
+      {activity.mode === "online" && activity.onlineUrl && (
+        <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 space-y-2">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Online</h2>
+          <a href={activity.onlineUrl} target="_blank" rel="noopener noreferrer" className="break-all font-medium underline underline-offset-4">
+            {activity.onlineUrl}
+          </a>
+        </section>
+      )}
+      {!!activity.inclusions?.length && (
+        <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">What's included</h2>
+          <ul className="list-disc space-y-1 pl-5">
+            {activity.inclusions.map((i) => <li key={i}>{i}</li>)}
+          </ul>
+        </section>
+      )}
+      {!!activity.addOns?.length && (
+        <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Add-ons</h2>
+          <ul className="space-y-2">
+            {activity.addOns.map((a) => (
+              <li key={a.name} className="flex justify-between gap-3 rounded-lg border border-border/60 bg-background/80 px-4 py-3">
+                <span className="font-medium">{a.name}</span>
+                <span className="font-semibold">{formatTierPrice(a.price, currency)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  )
+}
+
+function DonationSidebar({ event, clubId, primaryColor }: { event: Event; clubId: string; primaryColor: string }) {
+  const d = event.donation ?? {}
+  const now = Date.now()
+  const notStarted = event.startTime && new Date(event.startTime).getTime() > now
+  const ended = event.publishStatus === "closed" || (event.endTime && new Date(event.endTime).getTime() <= now)
+  const isItems = event.category === "csr-events"
+  return (
+    <div className="space-y-4">
+      {!isItems && (d.raisedAmount ?? 0) > 0 && (
+        <p className="text-sm text-muted-foreground">
+          <span className="text-xl font-bold text-foreground">{formatTierPrice(d.raisedAmount ?? 0, event.currency)}</span> raised from {d.donationCount} donations
+        </p>
+      )}
+      {ended ? (
+        <p className="rounded-lg bg-muted px-4 py-3 text-center text-sm font-medium">This drive has closed. Thank you to everyone who gave!</p>
+      ) : notStarted ? (
+        <p className="rounded-lg bg-muted px-4 py-3 text-center text-sm font-medium">Opens on {formatDisplayDate(event.startTime)}</p>
+      ) : isItems ? (
+        <PledgeForm clubId={clubId} eventId={event._id} donation={d} primaryColor={primaryColor} />
+      ) : (
+        <DonateForm
+          clubId={clubId}
+          eventId={event._id}
+          title={event.title}
+          presetAmounts={d.presetAmounts ?? []}
+          minAmount={d.minAmount ?? 1}
+          allowCustom={d.amountMode === "custom"}
+          primaryColor={primaryColor}
+        />
+      )}
+    </div>
+  )
 }
 
 export default function EventDetailPage() {
@@ -271,6 +343,7 @@ export default function EventDetailPage() {
   const rewardPointsNum = Number(event.attendancePoints)
   const rewardPoints = Number.isFinite(rewardPointsNum) && rewardPointsNum > 0 ? rewardPointsNum : null
   const returnPath = `/clubs/${slug}/events/${eventSlug}`
+  const isDonationDrive = event.listingType === "donation"
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -351,7 +424,9 @@ export default function EventDetailPage() {
               </section>
             ) : null}
 
-            {ticketRows.length > 0 && (multiVenue || isPaid) && (
+            {event.activity && <ActivityExtras activity={event.activity} currency={event.currency} />}
+
+            {ticketRows.length > 0 && !isDonationDrive && (multiVenue || isPaid) && (
               <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 sm:py-8 space-y-4">
                 <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <Ticket className="h-4 w-4" />
@@ -465,6 +540,9 @@ export default function EventDetailPage() {
 
                 <Separator className="my-1" />
 
+                {isDonationDrive ? (
+                  <DonationSidebar event={event} clubId={club._id} primaryColor={primaryColor} />
+                ) : (
                 <Button
                   className="w-full h-12 sm:h-[3.25rem] text-base font-bold rounded-xl mt-1"
                   style={isEventFull || !bookingOpen ? undefined : { backgroundColor: primaryColor, color: "white" }}
@@ -480,6 +558,7 @@ export default function EventDetailPage() {
                     ? getEventBuyCtaLabel(event)
                     : "Register Now"}
                 </Button>
+                )}
               </CardContent>
             </Card>
           </aside>

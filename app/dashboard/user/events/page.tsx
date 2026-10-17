@@ -1,4 +1,5 @@
 "use client";
+import { slugify } from "@/lib/utils"
 
 import { Suspense, useEffect, useState } from "react";
 import {
@@ -1197,10 +1198,10 @@ function UserEventsPageInner() {
                               return (
                                 <Button
                                   onClick={() =>
-                                    handleEventRegistration(event._id)
+                                    (event.listingType === 'donation' ? window.location.assign(donationHref(event)) : handleEventRegistration(event._id))
                                   }
                                   className="w-full">
-                                  {event.category === 'csr-events' ? 'Donate for Event' : 'Register for Event'}
+                                  {event.listingType === 'donation' ? (event.category === 'csr-events' ? 'Donate items' : 'Donate') : 'Register for Event'}
                                 </Button>
                               );
                             }
@@ -1464,6 +1465,12 @@ function UserEventsPageInner() {
       />
     </ProtectedRoute>
   );
+}
+
+/** Donation drives are given to on their public page (the route accepts a club id as the slug). */
+function donationHref(event: { clubId?: string | { _id?: string }; title: string }) {
+  const clubId = typeof event.clubId === "object" ? event.clubId?._id : event.clubId
+  return `/clubs/${clubId}/events/${slugify(event.title)}`
 }
 
 export default function UserEventsPage() {

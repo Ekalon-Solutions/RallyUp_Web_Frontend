@@ -195,7 +195,9 @@ function CreateEventForm() {
   const [partnerClubNames, setPartnerClubNames] = useState<string[]>([])
   const [newPartnerClub, setNewPartnerClub] = useState("")
   const [partnerClubToRemove, setPartnerClubToRemove] = useState<string | null>(null)
-  const [eventEditMeta, setEventEditMeta] = useState({ liveWithHolders: false, completed: false, ticketsSold: false })
+  const [eventEditMeta, setEventEditMeta] = useState({ liveWithHolders: false, completed: false, ticketsSold: false, isDraft: false, coreKey: "" })
+  const saveModeRef = useRef<"draft" | "publish">("publish")
+  const [showCoreImpactDialog, setShowCoreImpactDialog] = useState(false)
   const [showPolicyImpactDialog, setShowPolicyImpactDialog] = useState(false)
 
   const set = (field: string, value: string | boolean) =>
@@ -449,7 +451,13 @@ function CreateEventForm() {
             (v.tiers || []).some((t) => ((t as { sold?: number }).sold ?? 0) > 0)
           )
           const ticketsSold = confirmedRegs > 0 || (ev.currentAttendees ?? 0) > 0 || venueTiersSold
-          setEventEditMeta({ liveWithHolders, completed, ticketsSold })
+          setEventEditMeta({
+            liveWithHolders,
+            completed,
+            ticketsSold,
+            isDraft: ev.publishStatus === "draft",
+            coreKey: JSON.stringify([toDatetimeLocal(ev.startTime), toDatetimeLocal(ev.endTime), toDatetimeLocal(ev.bookingStartTime), toDatetimeLocal(ev.bookingEndTime), ev.venues?.length ? "" : (ev.venue ?? "")]),
+          })
         }
         setPartnerClubNames(ev.jointScreening?.partnerClubNames ?? [])
         if (ev.venues?.length) {
@@ -480,7 +488,22 @@ function CreateEventForm() {
     fetchEvent()
   }, [sourceId, isDuplicateMode, router])
 
-  const performSubmit = async (acknowledgeLivePolicyImpact = false) => {
+  const currentCoreKey = () =>
+    JSON.stringify([form.startTime, form.endTime, form.bookingStartTime, form.bookingEndTime, form.venue])
+
+  const performSubmit = async (acknowledgeLivePolicyImpact = false, acknowledgeCoreImpact = false) => {
+    // Published event that people already bought tickets for, with dates/venue changed: warn first.
+    if (
+      isEditMode &&
+      !acknowledgeCoreImpact &&
+      !eventEditMeta.isDraft &&
+      eventEditMeta.ticketsSold &&
+      eventEditMeta.coreKey !== currentCoreKey()
+    ) {
+      setShowCoreImpactDialog(true)
+      return
+    }
+
     if (
       isEditMode &&
       initialRefundAllowedRef.current !== null &&
@@ -587,15 +610,24 @@ function CreateEventForm() {
           return
         }
         targetEventId = editId
-        toast.success("Event updated successfully!")
+        if (eventEditMeta.isDraft && saveModeRef.current === "publish") {
+          const pub = await apiClient.publishEvent(editId)
+          if (!pub.success) {
+            toast.error(pub.message || pub.error || "Saved, but publishing failed")
+            return
+          }
+          toast.success("Event published!")
+        } else {
+          toast.success(eventEditMeta.isDraft ? "Draft saved" : "Event updated successfully!")
+        }
       } else {
-        const res = await apiClient.createEvent(payload)
+        const res = await apiClient.createEvent({ ...payload, publishStatus: saveModeRef.current === "draft" ? "draft" : "published" } as any)
         if (!res.success) {
           toast.error((res as any).message ?? res.error ?? "Failed to create event")
           return
         }
         targetEventId = res.data?.event?._id ?? null
-        toast.success("Event created successfully!")
+        toast.success(saveModeRef.current === "draft" ? "Saved as draft" : "Event created successfully!")
       }
 
       // Upload the poster(s) now that the event exists. Best-effort: a failure here
@@ -1312,9 +1344,22 @@ function CreateEventForm() {
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               ) : (
+                <>
+                {(!isEditMode || eventEditMeta.isDraft) && (
+                  <Button
+                    key="nav-draft"
+                    type="submit"
+                    variant="outline"
+                    disabled={loading}
+                    onClick={() => { saveModeRef.current = "draft" }}
+                  >
+                    Save as Draft
+                  </Button>
+                )}
                 <Button
                   key="nav-submit"
                   type="submit"
+                  onClick={() => { saveModeRef.current = "publish" }}
                   variant="ghost"
                   disabled={loading || !canPublish}
                   className={clubBtnClass}
@@ -1328,10 +1373,11 @@ function CreateEventForm() {
                     </>
                   ) : (
                     <>
-                      {isEditMode ? "Save Changes" : "Publish Event"}
+                      {isEditMode && !eventEditMeta.isDraft ? "Save Changes" : "Publish Event"}
                     </>
                   )}
                 </Button>
+                </>
               )}
             </div>
           </div>
@@ -1409,8 +1455,32 @@ function CreateEventForm() {
           onOpenChange={setShowPolicyImpactDialog}
           changingToNonRefundable={!form.isRefundAllowed}
           loading={loading}
-          onConfirm={() => performSubmit(true)}
+          onConfirm={() => performSubmit(true, true)}
         />
+
+        <AlertDialog open={showCoreImpactDialog} onOpenChange={setShowCoreImpactDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tickets have already been sold</AlertDialogTitle>
+              <AlertDialogDescription>
+                You are changing the dates, booking window or venue of a live event that members have
+                already bought tickets for. Their tickets are kept, but they may no longer match the new
+                details. Let ticket holders know about the change.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Go back</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowCoreImpactDialog(false)
+                  void performSubmit(false, true)
+                }}
+              >
+                Save anyway
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AlertDialog
           open={feeReminder !== null}

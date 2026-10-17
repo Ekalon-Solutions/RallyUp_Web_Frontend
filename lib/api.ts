@@ -821,6 +821,64 @@ export interface LogisticsReportResult {
   courierStats: LogisticsCourierRow[];
 }
 
+export type ListingType = 'event' | 'activity' | 'donation';
+export type PublishStatus = 'draft' | 'published' | 'closed';
+
+export interface ActivityDetails {
+  mode: 'online' | 'offline';
+  onlineUrl?: string;
+  inclusions?: string[];
+  addOns?: { name: string; price: number }[];
+}
+
+export interface DonationDetails {
+  amountMode?: 'preset' | 'custom';
+  presetAmounts?: number[];
+  minAmount?: number;
+  waiverCode?: string;
+  waiverPercent?: number;
+  items?: { name: string; targetCount?: number }[];
+  dropOff?: {
+    atLocation: boolean;
+    locationAddress?: string;
+    atNextEvent: boolean;
+    clubPickup: boolean;
+    pickupArrangedBy?: 'club' | 'wingman';
+    pickupAddressId?: string;
+  };
+  deliverySlots?: { day: number; enabled: boolean; time?: string }[];
+  raisedAmount?: number;
+  donationCount?: number;
+}
+
+export interface DonationRecord {
+  _id: string;
+  eventId?: { _id: string; title: string } | null;
+  kind: 'monetary' | 'items';
+  donor: { name: string; email?: string; phone?: string };
+  isGuest: boolean;
+  amount?: number;
+  currency?: string;
+  items?: { name: string; quantity: number }[];
+  dropOffMethod?: 'location' | 'next_event' | 'pickup';
+  pickupAddress?: string;
+  preferredSlot?: { day: number; time?: string };
+  status: 'paid' | 'pledged';
+  createdAt: string;
+}
+
+export interface PlatformFeeWaiver {
+  _id: string;
+  code: string;
+  percentOff: number;
+  clubId?: { _id: string; name: string } | null;
+  maxUses?: number;
+  uses: number;
+  expiresAt?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface Event {
   eventDate: string;
   eventTime: string;
@@ -828,6 +886,13 @@ export interface Event {
   _id: string;
   title: string;
   category: string;
+  /** Missing on legacy documents = 'event'. */
+  listingType?: ListingType;
+  /** Missing on legacy documents = 'published'. */
+  publishStatus?: PublishStatus;
+  closedAt?: string;
+  activity?: ActivityDetails;
+  donation?: DonationDetails;
   startTime: string;
   endTime?: string;
   venue: string;
@@ -1021,6 +1086,8 @@ export interface Club {
   _id: string;
   name: string;
   slug: string;
+  /** Always-on "Donate" entry point, independent of donation drives. */
+  donationSettings?: { enabled: boolean; minAmount: number; presetAmounts: number[] };
   description?: string;
   logo?: string;
   website?: string;
@@ -2843,6 +2910,68 @@ class ApiClient {
     return this.request(`/events/${id}/refund-all`, { method: 'POST', body: JSON.stringify({ refundBasis }) });
   }
 
+  async publishEvent(id: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.patch(`/events/${id}/publish`)
+  }
+
+  async closeEvent(id: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.patch(`/events/${id}/close`)
+  }
+
+  // ---- Donations ----
+
+  async getDonationConfig(clubId: string, eventId?: string): Promise<ApiResponse<{
+    clubName: string; kind: 'monetary' | 'items'; currency: string; minAmount: number; presetAmounts: number[]
+  }>> {
+    return this.get(`/donations/public/${clubId}/config`, { params: eventId ? { eventId } : undefined })
+  }
+
+  async createDonationOrder(payload: {
+    clubId: string; eventId?: string; amount: number; donor: { name?: string; email?: string; phone?: string }
+  }): Promise<ApiResponse<{ donationId: string; razorpayOrderId: string; keyId: string; amount: number; currency: string; clubName: string }>> {
+    return this.post('/donations/order', payload)
+  }
+
+  async verifyDonation(payload: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }): Promise<ApiResponse<{ success: boolean; donationId: string; amount: number; currency: string }>> {
+    return this.post('/donations/verify', payload)
+  }
+
+  async getDonationStatus(donationId: string): Promise<ApiResponse<{ status: 'pending' | 'paid' | 'pledged' | 'cancelled'; amount?: number; currency?: string }>> {
+    return this.get(`/donations/status/${donationId}`)
+  }
+
+  async createItemPledge(payload: {
+    clubId: string; eventId: string; items: { name: string; quantity: number }[];
+    dropOffMethod: 'location' | 'next_event' | 'pickup'; pickupAddress?: string;
+    preferredSlot?: { day: number }; donor: { name?: string; email?: string; phone?: string }
+  }): Promise<ApiResponse<{ success: boolean; pledgeId: string }>> {
+    return this.post('/donations/pledge', payload)
+  }
+
+  async getClubDonations(clubId: string, eventId?: string): Promise<ApiResponse<{ donations: DonationRecord[]; totalRaised: number; count: number }>> {
+    return this.get('/donations/club', { params: { clubId, ...(eventId ? { eventId } : {}) } })
+  }
+
+  async updateClubDonationSettings(clubId: string, settings: { enabled: boolean; minAmount: number; presetAmounts: number[] }): Promise<ApiResponse<{ enabled: boolean; minAmount: number; presetAmounts: number[] }>> {
+    return this.put('/donations/club/settings', { clubId, ...settings })
+  }
+
+  async validateFeeWaiver(code: string, clubId?: string): Promise<ApiResponse<{ code: string; percentOff: number }>> {
+    return this.get('/donations/waivers/validate', { params: { code, ...(clubId ? { clubId } : {}) } })
+  }
+
+  async getFeeWaivers(): Promise<ApiResponse<PlatformFeeWaiver[]>> {
+    return this.get('/donations/waivers')
+  }
+
+  async createFeeWaiver(payload: { code: string; percentOff: number; clubId?: string; maxUses?: number; expiresAt?: string }): Promise<ApiResponse<PlatformFeeWaiver>> {
+    return this.post('/donations/waivers', payload)
+  }
+
+  async setFeeWaiverActive(id: string, isActive: boolean): Promise<ApiResponse<PlatformFeeWaiver>> {
+    return this.patch(`/donations/waivers/${id}`, { isActive })
+  }
+
   async toggleEventStatus(id: string, isActive: boolean): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}/toggle-status`, {
       method: 'PATCH',
@@ -2882,6 +3011,7 @@ class ApiClient {
   }
 
   async createPendingRegistration(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     attendees?: Array<{ name: string; phone: string }>;
     couponCode?: string | null;
     razorpayOrderId: string;
@@ -2901,6 +3031,7 @@ class ApiClient {
   }
 
   async createPendingPublicRegistration(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     registrantName: string;
     registrantEmail?: string;
     registrantPhone?: string;
@@ -3023,6 +3154,7 @@ class ApiClient {
   }
 
   async bookVenueTierMatrix(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     items: VenueTierCartItem[];
     attendees?: Array<{ name: string; phone: string }>;
     razorpayOrderId?: string;
@@ -3044,6 +3176,7 @@ class ApiClient {
   }
 
   async bookPublicVenueTierMatrix(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     guestEmail: string;
     items: VenueTierCartItem[];
     attendees?: Array<{ name: string; phone: string }>;
@@ -3065,6 +3198,7 @@ class ApiClient {
   }
 
   async createPendingVenueTierBooking(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     items: VenueTierCartItem[];
     attendees?: Array<{ name: string; phone: string }>;
     razorpayOrderId: string;
@@ -3084,6 +3218,7 @@ class ApiClient {
   }
 
   async createPendingPublicVenueTierBooking(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     guestEmail: string;
     guestName?: string;
     items: VenueTierCartItem[];

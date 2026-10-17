@@ -58,6 +58,7 @@ import {
   Clock,
   Images,
   Vote,
+  HandHeart,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -293,6 +294,13 @@ export default function PublicClubPage() {
     router.push(`/clubs/${slug}/membership`)
   }
 
+  // Always-on club donation entry point (independent of donation drives).
+  const [donationsOpen, setDonationsOpen] = useState(false)
+  useEffect(() => {
+    if (!club?._id) return
+    apiClient.getDonationConfig(club._id).then((res) => setDonationsOpen(Boolean(res.success)))
+  }, [club?._id])
+
   const hasActiveMembership = Boolean(
     user &&
     "memberships" in user &&
@@ -417,6 +425,8 @@ export default function PublicClubPage() {
           // Keep listed until event end (API also filters); hide only once ended
           const filteredEvents = (eventsData || []).filter((e: any) => {
             if (e?.memberOnly) return false
+            // Open-ended donation / CSR drives have no end date and stay listed until closed.
+            if (e?.listingType === "donation" && !e?.endTime) return true
             const end = e?.endTime ? new Date(e.endTime) : e?.startTime ? new Date(e.startTime) : null
             if (!end || isNaN(end.getTime())) return false
             return end >= now
@@ -670,6 +680,17 @@ export default function PublicClubPage() {
           )}
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {donationsOpen && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="font-bold px-2.5 sm:px-4 text-xs sm:text-sm h-8 sm:h-9"
+                onClick={() => router.push(`/clubs/${slug}/donate`)}
+              >
+                <HandHeart className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">Donate</span>
+              </Button>
+            )}
             <Button
               size="sm"
               className="font-bold px-2.5 sm:px-4 lg:px-6 text-xs sm:text-sm h-8 sm:h-9"
@@ -996,7 +1017,9 @@ export default function PublicClubPage() {
                                       const isEventFull = max != null && count >= max
                                       const bookingOpen = isBookingWindowOpen(event)
                                       const blocked = isEventFull || !bookingOpen
-                                      const label = isEventFull
+                                      const label = event.listingType === "donation"
+                                        ? (event.category === "csr-events" ? "Donate items" : "Donate")
+                                        : isEventFull
                                         ? "Event Full"
                                         : !bookingOpen
                                         ? getBookingWindowClosedLabel(event)
