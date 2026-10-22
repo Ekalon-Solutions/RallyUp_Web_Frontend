@@ -35,6 +35,7 @@ import {
   Truck,
   AlertTriangle,
   Loader2,
+  HeartHandshake,
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -42,6 +43,7 @@ import { useClubFeatures } from '@/hooks/useClubFeatures'
 import { isFeatureEnabled } from '@/lib/clubFeatures'
 import { LockedFeaturePage, FeatureUnavailableOverlay } from '@/components/feature-gate'
 import { ReadyToShipModal } from '@/components/admin/ready-to-ship-modal'
+import { DonationsTable } from '@/components/donations/donations-table'
 import { LogisticsTimeline } from '@/components/admin/logistics-timeline'
 import { OrderAddressDisplay } from '@/components/order-address-display'
 import { AttendeeTicketSelectModal, CancellableAttendee } from '@/components/modals/attendee-ticket-select-modal'
@@ -234,7 +236,9 @@ export default function OrdersPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [typeFilter, setTypeFilter] = useState<'products' | 'events'>('events')
+  const [typeFilter, setTypeFilter] = useState<'products' | 'events' | 'donations'>('events')
+  const [donationFilter, setDonationFilter] = useState('all')
+  const [donationsKey, setDonationsKey] = useState(0)
   const [earlyBirdFilter, setEarlyBirdFilter] = useState<'all' | 'used' | 'not_used'>('all')
   const [couponFilter, setCouponFilter] = useState<'all' | 'used' | 'not_used'>('all')
   const [paymentDateFilter, setPaymentDateFilter] = useState('')
@@ -277,11 +281,20 @@ export default function OrdersPage() {
   // Load only the active tab's current page. Runs on mount and whenever the
   // club, tab, page, or a filter changes — so a first load fires a single
   // request instead of fetching both tabs (and duplicate calls) at once.
+  // Deep link from the listings table: ?tab=donations&eventId=<drive id>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tab') === 'donations') {
+      setTypeFilter('donations')
+      setDonationFilter(params.get('eventId') ?? 'all')
+    }
+  }, [])
+
   useEffect(() => {
     if (!isAdmin) return
     if (typeFilter === 'events') {
       loadEventRegistrations(eventCurrentPage)
-    } else {
+    } else if (typeFilter === 'products') {
       loadOrders()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -407,6 +420,7 @@ export default function OrdersPage() {
   }
 
   const refreshOrders = async () => {
+    if (typeFilter === 'donations') return setDonationsKey((k) => k + 1)
     setRefreshing(true)
     try {
       if (typeFilter === 'events') {
@@ -856,10 +870,10 @@ export default function OrdersPage() {
         {/* Tabs and Filters */}
         <Card>
           <CardContent className="p-6">
-            <Tabs value={typeFilter} onValueChange={(value) => setTypeFilter(value as 'products' | 'events')} className="w-full">
+            <Tabs value={typeFilter} onValueChange={(value) => setTypeFilter(value as 'products' | 'events' | 'donations')} className="w-full">
               {/* Search and Tabs in same row */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
-                <div className="flex-1 min-w-[200px]">
+              <div className={`flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between ${typeFilter === 'donations' ? '' : 'mb-6'}`}>
+                <div className={`flex-1 min-w-[200px] ${typeFilter === 'donations' ? 'invisible' : ''}`}>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
@@ -879,10 +893,15 @@ export default function OrdersPage() {
                     <Package className="w-4 h-4" />
                     Merchandise
                   </TabsTrigger>
+                  <TabsTrigger value="donations" className="flex items-center gap-2">
+                    <HeartHandshake className="w-4 h-4" />
+                    Donations
+                  </TabsTrigger>
                 </TabsList>
               </div>
               
               {/* Filters in row below */}
+              {typeFilter !== 'donations' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full">
@@ -942,6 +961,7 @@ export default function OrdersPage() {
                   </>
                 )}
               </div>
+              )}
               {amountFilter === 'range' && typeFilter === 'events' && (
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <div className="flex items-center gap-2">
@@ -977,6 +997,9 @@ export default function OrdersPage() {
         </Card>
 
         {/* Orders Table */}
+        {typeFilter === 'donations' ? (
+          clubId && <DonationsTable key={donationsKey} clubId={clubId} initialFilter={donationFilter} />
+        ) : (
         <Card>
           <CardHeader>
             <CardTitle>Orders</CardTitle>
@@ -1335,6 +1358,7 @@ export default function OrdersPage() {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Order Details Modal */}
         <Dialog open={showOrderModal} onOpenChange={setShowOrderModal}>
