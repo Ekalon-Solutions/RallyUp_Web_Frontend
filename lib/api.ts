@@ -1086,8 +1086,6 @@ export interface Club {
   _id: string;
   name: string;
   slug: string;
-  /** Always-on "Donate" entry point, independent of donation drives. */
-  donationSettings?: { enabled: boolean; minAmount: number; presetAmounts: number[] };
   description?: string;
   logo?: string;
   website?: string;
@@ -2951,10 +2949,6 @@ class ApiClient {
 
   async getClubDonations(clubId: string, eventId?: string): Promise<ApiResponse<{ donations: DonationRecord[]; totalRaised: number; count: number }>> {
     return this.get('/donations/club', { params: { clubId, ...(eventId ? { eventId } : {}) } })
-  }
-
-  async updateClubDonationSettings(clubId: string, settings: { enabled: boolean; minAmount: number; presetAmounts: number[] }): Promise<ApiResponse<{ enabled: boolean; minAmount: number; presetAmounts: number[] }>> {
-    return this.put('/donations/club/settings', { clubId, ...settings })
   }
 
   async validateFeeWaiver(code: string, clubId?: string): Promise<ApiResponse<{ code: string; percentOff: number }>> {

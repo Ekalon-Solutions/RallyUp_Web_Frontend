@@ -72,7 +72,8 @@ function EventsPageContent() {
 
   useEffect(() => {
     if (!clubId) return
-    apiClient.getClubById(clubId).then((res) => setClubSlug(res.data?.slug ?? null))
+    // Public endpoint: the authed one 403s for admins whose club access isn't on `club`/`clubs`.
+    apiClient.getClubById(clubId, true).then((res) => setClubSlug(res.data?.slug ?? null))
   }, [clubId])
 
   const fetchEvents = async () => {
@@ -537,7 +538,7 @@ function EventsPageContent() {
                                 <button
                                   type="button"
                                   className="shrink-0 cursor-help"
-                                  title="Publish this draft to open its event page"
+                                  title={isDraft ? "Publish this draft to open its event page" : "Loading club link…"}
                                   onClick={() => toast.info(isDraft ? "Publish this draft to open its event page" : "Loading club link…")}
                                 >
                                   {thumbnail}
@@ -691,7 +692,7 @@ function EventsPageContent() {
                                     </DropdownMenuItem>
                                     )}
                                     {isDonation && (
-                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/events/donations?eventId=${event._id}`)}>
+                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/orders?tab=donations&eventId=${event._id}`)}>
                                       <HandHeart className="w-4 h-4 mr-2" />
                                       View {event.category === "csr-events" ? "pledges" : "donations"}
                                     </DropdownMenuItem>
