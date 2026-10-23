@@ -261,21 +261,24 @@ export default function EventDetailPage() {
       }
 
       if (clubRes.success && clubRes.data) {
-        const eventsRes = await apiClient.getPublicEvents(clubRes.data._id)
-        if (eventsRes.success && eventsRes.data) {
-          const raw = eventsRes.data as Event[] | { events?: Event[] }
-          const eventsList = Array.isArray(raw) ? raw : raw.events ?? []
-          const found = eventsList.find((e) => slugify(e.title) === eventSlug)
-          if (found?._id) {
-            const fullRes = await apiClient.getPublicEventById(found._id)
-            // The list response includes club-derived checkout fields such as
-            // platformFeePercent. Preserve them when hydrating with event detail
-            // data so public checkout always uses the club's configured fee.
-            const loaded = fullRes.success && fullRes.data
-              ? { ...found, ...fullRes.data, platformFeePercent: found.platformFeePercent ?? (fullRes.data as Event).platformFeePercent }
-              : found
-            setEvent(normalizeEventVenues(loaded))
-          }
+        const findIn = async (includeHistory: boolean) => {
+          const res = await apiClient.getPublicEvents(clubRes.data!._id, { includeHistory })
+          const raw = (res.success && res.data ? res.data : []) as Event[] | { events?: Event[] }
+          const list = Array.isArray(raw) ? raw : raw.events ?? []
+          return list.find((e) => slugify(e.title) === eventSlug)
+        }
+        // The default list is upcoming + bookable only; past/inactive/closed listings (e.g. an
+        // admin opening one from the dashboard) need the history list, which requires sign-in.
+        const found = (await findIn(false)) ?? (await findIn(true))
+        if (found?._id) {
+          const fullRes = await apiClient.getPublicEventById(found._id)
+          // The list response includes club-derived checkout fields such as
+          // platformFeePercent. Preserve them when hydrating with event detail
+          // data so public checkout always uses the club's configured fee.
+          const loaded = fullRes.success && fullRes.data
+            ? { ...found, ...fullRes.data, platformFeePercent: found.platformFeePercent ?? (fullRes.data as Event).platformFeePercent }
+            : found
+          setEvent(normalizeEventVenues(loaded))
         }
       }
     } catch {
@@ -332,7 +335,9 @@ export default function EventDetailPage() {
 
   const { count: capacityCount, max: capacityMax } = getEventCapacity(event)
   const isEventFull = capacityMax != null && capacityCount >= capacityMax
-  const bookingOpen = isBookingWindowOpen(event)
+  const hasEnded = new Date(event.endTime || event.startTime).getTime() <= Date.now()
+  const bookingOpen =
+    isBookingWindowOpen(event) && event.isActive !== false && event.publishStatus !== "closed" && !hasEnded
   const isPaid = isEventPaid(event)
   const multiVenue = hasVenueTierMatrix(event)
   const venueDisplay = getEventVenueDisplay(event)
