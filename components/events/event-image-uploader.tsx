@@ -307,6 +307,15 @@ function CropDialog({
               }
             />
           )}
+          {/* Rule-of-thirds guide, LinkedIn-style; purely visual. */}
+          <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 border-2 border-white/90 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.25)]">
+            {Array.from({ length: 9 }, (_, i) => (
+              <div
+                key={i}
+                className={cn('border-white/70', i % 3 < 2 && 'border-r', i < 6 && 'border-b')}
+              />
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">Zoom</span>
