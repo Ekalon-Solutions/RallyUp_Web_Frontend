@@ -611,11 +611,11 @@ export default function GalleryManagementPage() {
       storageGb,
       autoRenew: addonAutoRenew,
       clubId: clubId || undefined,
-      razorpay_payment_id: paymentId,
-      razorpay_order_id: razorpayOrderId,
-      razorpay_subscription_id: razorpaySubscriptionId,
-      razorpay_signature: signature,
-    } as any)
+      razorpayPaymentId: paymentId,
+      razorpayOrderId,
+      razorpaySubscriptionId,
+      razorpaySignature: signature,
+    })
     if (!res.success) throw new Error(res.error || "Failed to activate storage")
     toast.success(`${storageGb} GB storage add-on activated (${BILLING_LABELS[plan]})`)
     await loadData()

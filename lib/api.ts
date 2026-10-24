@@ -5292,7 +5292,7 @@ class ApiClient {
     );
   }
 
-  async verifyPhoneNumber(data: {}): Promise<ApiResponse<any>> {
+  async verifyPhoneNumber(data: { otpProof?: string }): Promise<ApiResponse<any>> {
     return this.request('/phone/verify', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -6717,9 +6717,10 @@ class ApiClient {
     const payload = typeof optsOrEventId === 'object' && optsOrEventId !== null
       ? { code, ...optsOrEventId }
       : { code, eventId: optsOrEventId, ticketPrice, clubId, purchaseType };
+    const proof = 'phone' in payload && payload.phone ? this.guestPhoneProof(payload.phone) : {};
     return this.request('/coupons/validate', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, ...proof }),
     });
   }
 
@@ -6751,18 +6752,23 @@ class ApiClient {
       planId?: string;
     } | null;
   }>> {
-    const verifiedPhone = typeof window !== 'undefined' ? sessionStorage.getItem('rallyup_guest_verified_phone') : null;
-    const suppliedPhone = data.phone?.replace(/\D/g, '');
-    const guestVerificationToken = verifiedPhone && suppliedPhone === verifiedPhone && typeof window !== 'undefined'
-      ? sessionStorage.getItem('rallyup_guest_verification_token')
-      : null;
-    const countryCode = typeof window !== 'undefined'
-      ? sessionStorage.getItem('rallyup_guest_verified_country_code') || data.countryCode
-      : data.countryCode;
     return this.request('/coupons/highest-eligible', {
       method: 'POST',
-      body: JSON.stringify({ ...data, countryCode, guestVerificationToken }),
+      body: JSON.stringify({ ...data, ...this.guestPhoneProof(data.phone, data.countryCode) }),
     });
+  }
+
+  /** OTP-signed guest token for `phone`, only when it is the phone this browser verified. */
+  private guestPhoneProof(phone?: string, countryCode?: string): { countryCode?: string; guestVerificationToken: string | null } {
+    if (typeof window === 'undefined') return { countryCode, guestVerificationToken: null };
+    const verifiedPhone = sessionStorage.getItem('rallyup_guest_verified_phone');
+    const suppliedPhone = phone?.replace(/\D/g, '');
+    return {
+      countryCode: sessionStorage.getItem('rallyup_guest_verified_country_code') || countryCode,
+      guestVerificationToken: verifiedPhone && suppliedPhone === verifiedPhone
+        ? sessionStorage.getItem('rallyup_guest_verification_token')
+        : null,
+    };
   }
 
   async getCouponStats(id: string, clubId?: string): Promise<ApiResponse<any>> {
@@ -7058,10 +7064,10 @@ class ApiClient {
     storageGb: number;
     autoRenew?: boolean;
     clubId?: string;
-    razorpay_payment_id?: string;
-    razorpay_order_id?: string;
-    razorpay_subscription_id?: string;
-    razorpay_signature?: string;
+    razorpayPaymentId?: string;
+    razorpayOrderId?: string;
+    razorpaySubscriptionId?: string;
+    razorpaySignature?: string;
   }): Promise<ApiResponse<any>> {
     return this.request('/gallery/storage/upgrade', {
       method: 'POST',
@@ -7595,6 +7601,13 @@ class ApiClient {
     const formData = new FormData()
     formData.append("image", file)
     return this.request('/upload/card-background', { method: 'POST', body: formData })
+  }
+
+  /** Club logo / hero image → storage URL (audit L7: never store these as data: URLs). */
+  async uploadClubDesignImage(file: Blob, kind: 'logo' | 'hero-image'): Promise<ApiResponse<{ url: string; filename: string }>> {
+    const formData = new FormData()
+    formData.append("image", file, file instanceof File ? file.name : `${kind}.jpg`)
+    return this.request(`/upload/${kind}`, { method: 'POST', body: formData })
   }
 
   async uploadWhatsAppHeaderImage(

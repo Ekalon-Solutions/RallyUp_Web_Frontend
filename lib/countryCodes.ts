@@ -91,3 +91,21 @@ export function countryCodeLabel(code: string): string {
   const name = COUNTRY_NAMES[code as (typeof COUNTRY_DIAL_CODES)[number]]
   return name ? `${code} (${name})` : code
 }
+
+/**
+ * Digits-only local number for a phone that may carry its dial code
+ * ("+44 7700 900123" -> "7700900123" for "+44"). Mirrors the backend's
+ * normalizePhone (middleware/normalizePhoneBody.ts) so every checkout agrees.
+ */
+export function toLocalPhoneNumber(phone: string | null | undefined, countryCode: string | null | undefined): string {
+  const raw = String(phone ?? "").trim()
+  let digits = raw.replace(/\D/g, "")
+  const hadIntlPrefix = raw.startsWith("+") || raw.startsWith("00")
+  if (raw.startsWith("00")) digits = digits.slice(2)
+  const cc = String(countryCode ?? "").replace(/\D/g, "")
+  const looksIntl = hadIntlPrefix || digits.length > 10
+  if (looksIntl && cc && digits.startsWith(cc) && digits.length - cc.length >= 6) {
+    digits = digits.slice(cc.length)
+  }
+  return digits
+}

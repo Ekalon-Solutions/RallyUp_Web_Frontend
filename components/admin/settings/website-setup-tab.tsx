@@ -142,9 +142,15 @@ export function WebsiteSetupTab() {
       const offsetY = (targetHeight - drawHeight) / 2
 
       ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight)
-      setHeroImage(canvas.toDataURL("image/jpeg", 0.9))
-      toast.success("Hero image uploaded successfully")
       URL.revokeObjectURL(imageUrl)
+      // Audit L7: upload the resized JPEG and store only its URL.
+      canvas.toBlob(async (blob) => {
+        if (!blob) return toast.error("Failed to process image")
+        const uploaded = await apiClient.uploadClubDesignImage(blob, "hero-image")
+        if (!uploaded.success || !uploaded.data?.url) return toast.error(uploaded.message || "Hero image upload failed")
+        setHeroImage(uploaded.data.url)
+        toast.success("Hero image uploaded successfully")
+      }, "image/jpeg", 0.9)
     }
     image.onerror = () => {
       URL.revokeObjectURL(imageUrl)

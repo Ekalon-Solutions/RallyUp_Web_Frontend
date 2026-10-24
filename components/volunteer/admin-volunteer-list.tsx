@@ -42,7 +42,7 @@ import {
   Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils';
+import { triggerBlobDownload, formatDisplayDate, csvCell } from '@/lib/utils';
 import { apiClient, Volunteer } from '@/lib/api';
 
 interface AdminVolunteerListProps {
@@ -162,7 +162,7 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
         .join(', '),
     ]);
 
-    const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
+    const csvContent = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const filename = `volunteers-${new Date().toISOString().split('T')[0]}.csv`;
     triggerBlobDownload(blob, filename);
