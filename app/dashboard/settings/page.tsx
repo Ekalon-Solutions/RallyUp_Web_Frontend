@@ -12,8 +12,6 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 import { User, Mail, Phone, Shield, Save, Building2, MapPin, Globe, Loader2, CheckCircle, XCircle } from "lucide-react"
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
-import { auth } from "@/lib/firebase/config"
 import { apiClient } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 import { CurrencyPreferenceCard } from "@/components/currency-preference"
@@ -55,6 +53,10 @@ export default function SettingsPage() {
   const [otp, setOtp] = useState("")
   const [otpSent, setOtpSent] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
+  const [sessionInfo, setSessionInfo] = useState<string | null>(null)
+  const otpRole: "user" | "admin" | "system_owner" =
+    user?.role === "system_owner" ? "system_owner" : user?.role === "admin" || user?.role === "super_admin" ? "admin" : "user"
+  const otpCountryCode = () => (profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode)
 
   useEffect(() => {
     if (user) {
@@ -67,17 +69,6 @@ export default function SettingsPage() {
     }
   }, [user])
 
-  const setupRecaptcha = () => {
-    if (typeof window !== "undefined") {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          'size': 'invisible',
-        });
-      }
-      return window.recaptchaVerifier
-    }
-  }
-
   const handleSendOTP = async () => {
     if (!profileForm.phoneNumber) {
       toast.error("Please provide a phone number first")
@@ -86,10 +77,10 @@ export default function SettingsPage() {
 
     try {
       setLoading(true)
-      const phoneNumber = (profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode) + profileForm.phoneNumber
-      const verifier = setupRecaptcha()
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier)
-      window.confirmationResult = confirmationResult
+      // Backend OTP (WhatsApp/SMS) so /otp/verify returns the otpProof that /phone/verify requires
+      const res = await apiClient.sendOtp({ phoneNumber: profileForm.phoneNumber, countryCode: otpCountryCode(), role: otpRole })
+      if (!res.success) throw new Error((res as any).errorDetails?.details?.message || res.error || "Failed to send OTP")
+      setSessionInfo(res.data?.sessionInfo ?? null)
       setOtpSent(true)
       setShowOtpInput(true)
       toast.success("OTP sent to your phone number")
@@ -109,18 +100,24 @@ export default function SettingsPage() {
 
     try {
       setIsVerifying(true)
-      const confirmationResult = window.confirmationResult
-      if (!confirmationResult) {
+      if (!sessionInfo) {
         toast.error("Session expired. Please request a new OTP.")
         setShowOtpInput(false)
         return
       }
 
-      await confirmationResult.confirm(otp)
-      
+      const verifyRes = await apiClient.verifyOTP({
+        phoneNumber: profileForm.phoneNumber,
+        countryCode: otpCountryCode(),
+        otp,
+        sessionInfo,
+        role: otpRole,
+      })
+      if (!verifyRes.success) throw new Error(verifyRes.error || "Invalid OTP")
+
       // Call backend to update verification status
       if (user) {
-        const result = await apiClient.verifyPhoneNumber({})
+        const result = await apiClient.verifyPhoneNumber({ otpProof: verifyRes.data?.otpProof })
 
         if (result.success) {
           toast.success("Phone number verified successfully")
@@ -343,7 +340,6 @@ export default function SettingsPage() {
             </Card>
           </div>
 
-          <div id="recaptcha-container"></div>
 
           {/* Club Information (uses current selected club so it updates on club switch) */}
           {currentClub && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'system_owner') && (

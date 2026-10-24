@@ -33,6 +33,7 @@ import {
 } from "@/lib/razorpay-presentment"
 import { LoginModal } from "@/components/login-modal"
 import { cn } from "@/lib/utils"
+import { toLocalPhoneNumber } from "@/lib/countryCodes"
 import {
   attributeVisibleForCheckout,
   checkoutFieldValues,
@@ -286,7 +287,7 @@ function CheckoutContent() {
       email: prev.email || user.email || "",
       phoneNumber:
         prev.phoneNumber ||
-        (user.phoneNumber ? user.phoneNumber.replace(/^\+91/, "").replace(/\D/g, "") : ""),
+        toLocalPhoneNumber(user.phoneNumber, source.countryCode || prev.countryCode || "+91"),
       countryCode: prev.phoneNumber ? prev.countryCode : source.countryCode || prev.countryCode || "+91",
       username: prev.username || source.username || "",
       date_of_birth: prev.date_of_birth || (source.date_of_birth ? String(source.date_of_birth).slice(0, 10) : ""),

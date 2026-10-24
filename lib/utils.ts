@@ -19,6 +19,16 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, "")
 }
 
+/**
+ * One CSV cell: always quoted with quotes doubled, and a leading = + - @ tab
+ * or CR is prefixed with ' so spreadsheet apps don't run it as a formula.
+ */
+export function csvCell(value: unknown): string {
+  let s = String(value ?? '')
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
+  return `"${s.replace(/"/g, '""')}"`
+}
+
 export function triggerBlobDownload(blob: Blob, filename: string) {
   if (typeof window === 'undefined') return;
   const url = window.URL.createObjectURL(blob);

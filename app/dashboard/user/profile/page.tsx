@@ -279,7 +279,7 @@ export default function UserProfilePage() {
         role: "user",
       })
       if (verifyRes.success) {
-        const result = await apiClient.verifyPhoneNumber({})
+        const result = await apiClient.verifyPhoneNumber({ otpProof: verifyRes.data?.otpProof })
         if (result.success) {
           toast.success("Phone number verified successfully")
           setShowOtpInput(false)
