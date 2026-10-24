@@ -21,6 +21,8 @@ interface EventImageProps {
   className?: string;
   aspectClassName?: string;
   priority?: boolean;
+  /** Size the box to the image's own ratio once loaded, so nothing is cropped. */
+  naturalAspect?: boolean;
 }
 
 const VARIANT: Record<'list' | 'full', EventImageVariant> = {
@@ -47,6 +49,7 @@ export function EventImage({
   className,
   aspectClassName = 'aspect-video',
   priority = false,
+  naturalAspect = false,
 }: EventImageProps) {
   const { ref, isInViewport } = useInViewport<HTMLDivElement>();
   const { socket } = useSocket();
@@ -55,6 +58,7 @@ export function EventImage({
   const [failed, setFailed] = useState(false);
   const [version, setVersion] = useState(imageVersion);
   const [forceFetch, setForceFetch] = useState(false);
+  const [ratio, setRatio] = useState<number | null>(null);
 
   const shouldLoad = priority || isInViewport;
   const color = primaryColor || DEFAULT_CLUB_PRIMARY;
@@ -107,7 +111,8 @@ export function EventImage({
   return (
     <div
       ref={ref}
-      className={cn('relative w-full overflow-hidden bg-muted', aspectClassName, className)}
+      className={cn('relative w-full overflow-hidden bg-muted', !ratio && aspectClassName, className)}
+      style={ratio ? { aspectRatio: ratio } : undefined}
     >
       {!loaded && (
         <div
@@ -126,7 +131,11 @@ export function EventImage({
           alt={alt}
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
-          onLoad={() => setLoaded(true)}
+          onLoad={(e) => {
+            setLoaded(true);
+            const img = e.currentTarget;
+            if (naturalAspect && img.naturalHeight) setRatio(img.naturalWidth / img.naturalHeight);
+          }}
           onError={() => setFailed(true)}
           className={cn(
             'absolute inset-0 h-full w-full object-cover transition-opacity duration-500',

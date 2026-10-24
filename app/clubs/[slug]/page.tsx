@@ -917,6 +917,7 @@ export default function PublicClubPage() {
                                     directUrl={eventVariantUrl(event, "list")}
                                     primaryColor={primaryColor}
                                     alt={event.title}
+                                    naturalAspect
                                   />
                                   <CardHeader>
                                     <div className="flex items-start justify-between mb-2">

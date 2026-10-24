@@ -323,7 +323,7 @@ export default function EventDetailPage() {
           directUrl={eventVariantUrl(event, "full")}
           primaryColor={primaryColor}
           alt={event.title}
-          aspectClassName="aspect-[16/9] sm:aspect-[21/9]"
+          aspectClassName="aspect-[21/9]"
           className="mb-8 sm:mb-10 rounded-2xl border shadow-sm"
         />
 

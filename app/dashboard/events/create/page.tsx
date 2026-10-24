@@ -836,6 +836,7 @@ function CreateEventForm() {
                     existingImageUrl={existingImageUrl}
                     title="Upload 1080px detail image"
                     hint="Shown on the event detail page — up to 10MB"
+                    aspect={21 / 9}
                     disabled={loading}
                   />
                 </div>
