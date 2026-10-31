@@ -1,409 +1,88 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
+import { toast } from "sonner"
+import { Download, Loader2, Shield } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { SystemOwnerClubFilter } from "@/components/reports/SystemOwnerClubFilter"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { getEffectiveAdminRole } from "@/lib/adminPermissions"
 import { authorizeReportAccess } from "@/hooks/useReportAuthorization"
+import { resolveExportClubId } from "@/lib/reportHelpers"
+import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  Search,
-  FileBarChart,
-  Users,
-  CreditCard,
-  DollarSign,
-  Shield,
-  Package,
-  Truck,
-  Gift,
-  Coins,
-  PackageX,
-  ShieldAlert,
-  Ticket,
-  ExternalLink,
-  ShoppingCart,
-  RotateCcw,
-  Receipt,
-  MessageSquare,
-  BarChart3,
-  UserPlus,
-  TrendingUp,
-  Calendar,
-  Grid3X3,
-  Target,
-} from "lucide-react"
+import { SystemOwnerClubFilter } from "@/components/reports/SystemOwnerClubFilter"
+import { EmbeddedReportContext } from "@/components/reports/ReportShell"
+import { REPORT_TABS, type TabId } from "@/components/reports/hub/report-tabs"
+import { TabOverview, overviewStartDate } from "@/components/reports/hub/tab-overview"
 import { cn } from "@/lib/utils"
 
-// ─── Report Definitions ────────────────────────────────────────────────────────
+type Download = (p: Record<string, any>) => Promise<{ success: boolean; error?: string }>
 
-interface ReportDefinition {
-  id: string
-  name: string
-  description: string
-  category: string
-  href: string
-  icon: React.ElementType
-  badge?: string
+const DOWNLOADERS: Record<string, Download> = {
+  "total-order-summary": (p) => apiClient.downloadTotalOrderSummaryReport(p),
+  "merchandise-refunds": (p) => apiClient.downloadMerchandiseRefundsReport(p),
+  "best-seller": (p) => apiClient.downloadBestSellerReport(p),
+  inventory: (p) => apiClient.downloadInventoryReport(p),
+  "external-tickets": (p) => apiClient.downloadExternalTicketReport(p),
+  "refund-log": (p) => apiClient.downloadRefundLogReport(p),
+  "event-ticket-sales": (p) => apiClient.downloadEventTicketSalesReport(p),
+  "event-ticket-refunds": (p) => apiClient.downloadEventTicketRefundsReport(p),
+  "event-passes-scanned": (p) => apiClient.downloadEventPassesScannedReport(p),
+  "member-directory": (p) => apiClient.downloadMemberDirectoryReport(p),
+  "membership-growth": (p) => apiClient.downloadMembershipGrowthReport(p),
+  "membership-purchases": (p) => apiClient.downloadMembershipPurchaseReport(p),
+  "membership-renewals": (p) => apiClient.downloadMembershipRenewalReport(p),
+  "pickup-delivery": (p) => apiClient.downloadPickupDeliveryReport(p),
+  rto: (p) => apiClient.downloadRTOReport(p),
+  "reward-points-granted": (p) => apiClient.downloadRewardPointsGrantedReport(p),
+  "reward-points-redemption": (p) => apiClient.downloadRewardPointsRedemptionReport(p),
+  "admin-audit": (p) => apiClient.downloadAdminAuditLogReport(p),
+  "elevate-demote": (p) => apiClient.downloadElevateDemoteLogReport(p),
+  "feature-selector": (p) => apiClient.downloadFeatureSelectorReport(p),
+  "super-admin-audit-log": (p) => apiClient.downloadSuperAdminAuditLogReport(p),
+  "subscription-billing": (p) => apiClient.downloadSubscriptionBillingReport(p),
+  "whatsapp-billing": (p) => apiClient.downloadWhatsAppBillingReport(p),
 }
 
-const ALL_REPORTS: ReportDefinition[] = [
-  // ─── Revenue Reports ────────────────────────────────────────────────────
-  {
-    id: "total-order-summary",
-    name: "Merchandise Sales / Order Report",
-    description: "Comprehensive order breakdown with revenue, order status, payment methods, and customer analytics.",
-    category: "Revenue",
-    href: "/dashboard/reports/total-order-summary",
-    icon: ShoppingCart,
-  },
-  {
-    id: "event-ticket-sales",
-    name: "Event Ticket Sales",
-    description: "Event registration revenue with ticket tiers, pricing, registrations, and capacity utilization.",
-    category: "Events",
-    href: "/dashboard/reports/event-ticket-sales",
-    icon: Ticket,
-  },
-  {
-    id: "event-ticket-refunds",
-    name: "Event Ticket Refunds",
-    description: "Event cancellation and refund tracking with refund amounts, methods, and customer details.",
-    category: "Events",
-    href: "/dashboard/reports/event-ticket-refunds",
-    icon: RotateCcw,
-  },
-  {
-    id: "merchandise-refunds",
-    name: "Merchandise Refunds",
-    description: "Store order returns with refund status, returned quantities, and product-wise breakdown.",
-    category: "Revenue",
-    href: "/dashboard/reports/merchandise-refunds",
-    icon: RotateCcw,
-  },
-  {
-    id: "best-seller",
-    name: "Featured Product Sales Report",
-    description: "Ranking of merchandise products and ticketed events by units sold and revenue generated.",
-    category: "Revenue",
-    href: "/dashboard/reports/best-seller",
-    icon: Target,
-  },
-  {
-    id: "inventory",
-    name: "Inventory Report",
-    description: "Current merchandise stock, reserved stock, available stock, and low-stock indicators.",
-    category: "Revenue",
-    href: "/dashboard/reports/inventory",
-    icon: Package,
-  },
-  {
-    id: "external-tickets",
-    name: "External Ticket Report",
-    description: "Third-party ticketing requests with approval status, event details, and applicant information.",
-    category: "Revenue",
-    href: "/dashboard/reports/external-tickets",
-    icon: ExternalLink,
-  },
-  {
-    id: "refund-log",
-    name: "Overall Refund Log",
-    description: "Unified refund audit trail across all revenue streams with amounts, methods, and timestamps.",
-    category: "Revenue",
-    href: "/dashboard/reports/refund-log",
-    icon: RotateCcw,
-  },
-
-  // ─── Membership / Lifecycle Reports ─────────────────────────────────────
-  {
-    id: "member-directory",
-    name: "Member Directory",
-    description: "Complete membership roster with plans, status, contact details, and renewal dates.",
-    category: "Membership",
-    href: "/dashboard/reports/member-directory",
-    icon: Users,
-  },
-  {
-    id: "membership-growth",
-    name: "Membership Growth",
-    description: "New member registrations, renewals, expired memberships, and net growth metrics over time.",
-    category: "Membership",
-    href: "/dashboard/reports/membership-growth",
-    icon: TrendingUp,
-  },
-  {
-    id: "membership-purchases",
-    name: "Membership Purchases",
-    description: "Paid membership acquisition with revenue, plan selection, and payment method breakdown.",
-    category: "Membership",
-    href: "/dashboard/reports/membership-purchases",
-    icon: CreditCard,
-  },
-  {
-    id: "membership-renewals",
-    name: "Membership Renewals",
-    description: "Renewal activity tracking with renewal rates, lapse rates, and retention metrics.",
-    category: "Membership",
-    href: "/dashboard/reports/membership-renewals",
-    icon: Calendar,
-  },
-
-  // ─── Events Reports ─────────────────────────────────────────────────────
-  {
-    id: "event-passes-scanned",
-    name: "Event Passes Scanned",
-    description: "Attendance tracking with scan timestamps, vendor activity, and check-in rates.",
-    category: "Events",
-    href: "/dashboard/reports/event-passes-scanned",
-    icon: Ticket,
-  },
-
-  // ─── Governance Reports ─────────────────────────────────────────────────
-  {
-    id: "admin-audit",
-    name: "Admin Audit Log",
-    description: "Administrative action tracking with actor details, timestamps, risk levels, and IP addresses.",
-    category: "Governance",
-    href: "/dashboard/reports/admin-audit",
-    icon: Shield,
-    badge: "Super Admin",
-  },
-  {
-    id: "feature-selector",
-    name: "Feature Selector Audit",
-    description: "Feature configuration changes with actor details, old/new values, and reason codes.",
-    category: "Governance",
-    href: "/dashboard/reports/feature-selector",
-    icon: Grid3X3,
-  },
-  {
-    id: "elevate-demote",
-    name: "Elevate / Demote Log",
-    description: "Administrative promotions, role demotions, privilege escalations, and permission changes.",
-    category: "Governance",
-    href: "/dashboard/reports/elevate-demote",
-    icon: UserPlus,
-    badge: "Super Admin",
-  },
-  {
-    id: "super-admin-audit-log",
-    name: "Super Admin Audit Log",
-    description: "Cross-tenant audit trail for system owner actions and critical operations.",
-    category: "Governance",
-    href: "/dashboard/reports/super-admin-audit-log",
-    icon: ShieldAlert,
-    badge: "System Owner",
-  },
-
-  // ─── Logistics Reports ──────────────────────────────────────────────────
-  {
-    id: "pickup-delivery",
-    name: "Pickup & Delivery",
-    description: "Shipment fulfillment status, courier performance, AWB tracking codes, and delivery timelines.",
-    category: "Logistics",
-    href: "/dashboard/reports/pickup-delivery",
-    icon: Truck,
-  },
-  {
-    id: "rto",
-    name: "RTO (Return to Origin)",
-    description: "Failed delivery tracking with courier performance, RTO charges, and timeline analysis.",
-    category: "Logistics",
-    href: "/dashboard/reports/rto",
-    icon: PackageX,
-  },
-
-  // ─── Billing Reports ────────────────────────────────────────────────────
-  {
-    id: "subscription-billing",
-    name: "Subscription Billing",
-    description: "Platform SaaS subscription invoices, tier changes, add-on charges, and settlement statuses.",
-    category: "Billing",
-    href: "/dashboard/reports/subscription-billing",
-    icon: Receipt,
-  },
-  {
-    id: "whatsapp-billing",
-    name: "WhatsApp Billing",
-    description: "WhatsApp messaging cost tracking with message volumes, credits, debits, and invoice history.",
-    category: "Billing",
-    href: "/dashboard/reports/whatsapp-billing",
-    icon: MessageSquare,
-  },
-
-  // ─── Platform Analytics Reports ────────────────────────────────────────
-  {
-    id: "reward-points-granted",
-    name: "Reward Points Accumulation Report",
-    description: "Member-wise breakdown of loyalty points awarded through attendance, manual adjustments, and other sources.",
-    category: "Platform",
-    href: "/dashboard/reports/reward-points-granted",
-    icon: Gift,
-  },
-  {
-    id: "reward-points-redemption",
-    name: "Reward Points Redemption",
-    description: "Redemption history tracking points reserved, discount amounts, status changes, and balance impact.",
-    category: "Platform",
-    href: "/dashboard/reports/reward-points-redemption",
-    icon: Coins,
-  },
-
-  // ─── Ads / Monetization Reports ─────────────────────────────────────────
-  // ⚠️ NOTE: These reports require Ad Platform infrastructure (not yet implemented)
-  // Frontend definitions included for completeness and future activation
-  {
-    id: "ads-generated-vs-money",
-    name: "Ads Generated vs Money Earned",
-    description: "ROI analysis of local sponsor and network ads with impression, click, and revenue tracking.",
-    category: "Ads",
-    href: "/dashboard/reports/ads-generated-vs-money",
-    icon: DollarSign,
-    badge: "System Owner",
-  },
-  {
-    id: "ads-performance",
-    name: "Ad Performance Report",
-    description: "Impressions, clicks, CTR, conversions, and ROAS metrics for club-specific advertising campaigns.",
-    category: "Ads",
-    href: "/dashboard/reports/ads-performance",
-    icon: BarChart3,
-    badge: "System Owner",
-  },
-  {
-    id: "ads-config",
-    name: "Ads Configuration Report",
-    description: "Configuration overview for ad placements, sponsor settings, and monetization controls.",
-    category: "Ads",
-    href: "/dashboard/reports/ads-config",
-    icon: Grid3X3,
-    badge: "System Owner",
-  },
-]
-
-// ─── Category Metadata ──────────────────────────────────────────────────────────
-
-interface CategoryMeta {
-  label: string
-  icon: React.ElementType
-  color: string
-  description: string
-}
-
-const CATEGORY_META: Record<string, CategoryMeta> = {
-  Revenue: {
-    label: "Revenue",
-    icon: DollarSign,
-    color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
-    description: "Sales, orders, refunds, and inventory analytics",
-  },
-  Membership: {
-    label: "Membership",
-    icon: Users,
-    color: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
-    description: "Member lifecycle, growth, renewals, and expirations",
-  },
-  Events: {
-    label: "Events",
-    icon: Ticket,
-    color: "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300",
-    description: "Attendance tracking and event analytics",
-  },
-  Governance: {
-    label: "Governance",
-    icon: Shield,
-    color: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-    description: "Audit logs, permissions, and admin actions",
-  },
-  Logistics: {
-    label: "Logistics",
-    icon: Truck,
-    color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300",
-    description: "Shipment tracking and delivery analytics",
-  },
-  Billing: {
-    label: "Billing",
-    icon: Receipt,
-    color: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
-    description: "Subscription and platform billing reports",
-  },
-  Platform: {
-    label: "Platform",
-    icon: BarChart3,
-    color: "bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300",
-    description: "Reward points, RTO, and platform analytics",
-  },
-  Ads: {
-    label: "Ads & Monetization",
-    icon: Target,
-    color: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
-    description: "Advertising campaigns, ROI, and sponsor analytics",
-  },
-}
-
-// ─── Component ──────────────────────────────────────────────────────────────────
+const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
 
 export default function ReportsHubPage() {
-  const router = useRouter()
   const { user } = useAuth()
   const clubId = useRequiredClubId()
   const { selectedClubId, setSelectedClubId, isSystemOwner } = useSystemOwnerReportScope()
   const activeClubId = isSystemOwner ? selectedClubId : clubId
   const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
 
-  const [searchQuery, setSearchQuery] = useState("")
-
   const effectiveRole = getEffectiveAdminRole(user, activeClubId)
   const canViewReportsHub = ["admin", "super_admin", "system_owner"].includes(effectiveRole)
 
-  // Filter reports based on user permissions
-  const accessibleReports = useMemo(() => {
-    return ALL_REPORTS.filter(
-      (report) => authorizeReportAccess(report.id, user, activeClubId, clubFeatureConfig).authorized
-    )
-  }, [user, activeClubId, clubFeatureConfig])
+  const accessible = useMemo(
+    () => new Set(REPORT_TABS.flatMap((t) => t.reports).filter((r) => authorizeReportAccess(r.id, user, activeClubId, clubFeatureConfig).authorized).map((r) => r.id)),
+    [user, activeClubId, clubFeatureConfig],
+  )
+  const tabs = useMemo(
+    () => REPORT_TABS.map((t) => ({ ...t, reports: t.reports.filter((r) => accessible.has(r.id)) })).filter((t) => t.reports.length > 0),
+    [accessible],
+  )
 
-  // Filter reports based on search query
-  const filteredReports = useMemo(() => {
-    if (!searchQuery.trim()) return accessibleReports
+  const [tabId, setTabId] = useState<TabId>("revenue")
+  const [reportByTab, setReportByTab] = useState<Partial<Record<TabId, string>>>({})
+  const [exporting, setExporting] = useState(false)
 
-    const query = searchQuery.toLowerCase()
-    return accessibleReports.filter(
-      (report) =>
-        report.name.toLowerCase().includes(query) ||
-        report.description.toLowerCase().includes(query) ||
-        report.category.toLowerCase().includes(query)
-    )
-  }, [accessibleReports, searchQuery])
+  const tab = tabs.find((t) => t.id === tabId) ?? tabs[0]
+  const report = tab?.reports.find((r) => r.id === reportByTab[tab.id]) ?? tab?.reports[0]
+  const scope = useMemo(() => resolveExportClubId({ clubId, selectedClubId, isSystemOwner }), [clubId, selectedClubId, isSystemOwner])
 
-  // Group reports by category
-  const reportsByCategory = useMemo(() => {
-    const groups: Record<string, ReportDefinition[]> = {}
-    filteredReports.forEach((report) => {
-      if (!groups[report.category]) {
-        groups[report.category] = []
-      }
-      groups[report.category].push(report)
-    })
-    return groups
-  }, [filteredReports])
-
-  const categories = Object.keys(reportsByCategory).filter((cat) => cat !== "Ads").sort()
-
-  if (!canViewReportsHub) {
+  if (!canViewReportsHub || !tab || !report) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Access Denied</h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              You don't have permission to view reports.
+            <h2 className="text-2xl font-bold text-foreground">{canViewReportsHub ? "No reports available" : "Access Denied"}</h2>
+            <p className="text-muted-foreground">
+              {canViewReportsHub ? "No reports are available with your current permissions." : "You don't have permission to view reports."}
             </p>
           </div>
         </div>
@@ -411,134 +90,100 @@ export default function ReportsHubPage() {
     )
   }
 
+  const exportAll = async () => {
+    setExporting(true)
+    let failed = 0
+    for (const r of tab.reports) {
+      const res = await DOWNLOADERS[r.id]?.({ format: "xlsx", ...scope }).catch(() => ({ success: false }))
+      if (!res?.success) failed++
+    }
+    setExporting(false)
+    if (failed) toast.error(`${failed} of ${tab.reports.length} exports failed`)
+    else toast.success(`Exported ${tab.reports.length} ${tab.label.toLowerCase()} report${tab.reports.length > 1 ? "s" : ""}`)
+  }
+
+  const pills = (
+    <div className="flex flex-wrap gap-2">
+      {tab.reports.map((r) => (
+        <button
+          key={r.id}
+          type="button"
+          onClick={() => setReportByTab((m) => ({ ...m, [tab.id]: r.id }))}
+          className={cn(
+            "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors",
+            r.id === report.id
+              ? "border-[var(--ra-ink)] bg-[var(--ra-ink)] text-[var(--ra-bg)]"
+              : "border-[var(--ra-line)] text-[var(--ra-mid)] hover:border-[var(--ra-mid)] hover:text-[var(--ra-ink)]",
+          )}
+        >
+          {r.label}
+        </button>
+      ))}
+    </div>
+  )
+
+  const ActiveReport = report.Component
+
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="ra-scope relative space-y-6 text-[var(--ra-ink)]">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-foreground flex items-center gap-3">
-              <FileBarChart className="w-8 h-8 text-primary" />
-              Reporting & Analytics
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Comprehensive analytics and insights across all platform modules.
-              {accessibleReports.length > 0 && (
-                <span className="ml-1 font-semibold text-primary">
-                  ({accessibleReports.length} report{accessibleReports.length !== 1 ? "s" : ""} available)
-                </span>
-              )}
-            </p>
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="max-w-2xl">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Reporting &amp; Analytics — {tab.title}</h1>
+            <p className="mt-2 text-sm text-[var(--ra-mid)]">{tab.description}</p>
           </div>
-
-          {/* Club Scope Filter for System Owner */}
-          {isSystemOwner && (
-            <div className="flex items-center gap-4">
-              <SystemOwnerClubFilter
-                selectedClubId={selectedClubId}
-                onChange={setSelectedClubId}
-              />
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {isSystemOwner && <SystemOwnerClubFilter selectedClubId={selectedClubId} onChange={setSelectedClubId} />}
+            <button
+              type="button"
+              onClick={exportAll}
+              disabled={exporting}
+              className="inline-flex items-center gap-2 rounded-md border border-[var(--ra-line)] px-3.5 py-2 text-xs font-semibold hover:border-[var(--ra-mid)] disabled:opacity-50"
+            >
+              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              Export all {tab.label.toLowerCase()} reports (Excel)
+            </button>
+          </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-2xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search reports by name, description, or category..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 text-base"
+        {/* Tabs */}
+        <div className="border-b border-[var(--ra-line)] overflow-x-auto">
+          <div className="flex gap-6 min-w-max">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTabId(t.id)}
+                className={cn(
+                  "-mb-px border-b-2 pb-2.5 text-sm font-semibold transition-colors",
+                  t.id === tab.id ? "border-[var(--ra-accent)] text-[var(--ra-ink)]" : "border-transparent text-[var(--ra-mid)] hover:text-[var(--ra-ink)]",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-xs text-[var(--ra-mid)]">
+          Overview covers {fmtDate(overviewStartDate())} – {fmtDate(new Date().toISOString())} · tables below accept their own filters
+        </p>
+
+        {/* Overview: KPIs + charts, with the shield watermark behind */}
+        <div className="relative">
+          <Shield
+            aria-hidden
+            strokeWidth={1}
+            className="pointer-events-none absolute -top-10 right-0 hidden lg:block h-72 w-72 text-[var(--ra-accent)] opacity-[0.12] fill-[var(--ra-accent)]/10"
           />
+          <TabOverview tab={tab.id} accessible={accessible} scope={scope} />
         </div>
 
-        {/* Report Cards by Category */}
-        {categories.length === 0 ? (
-          <Card className="p-12">
-            <div className="text-center text-muted-foreground">
-              <FileBarChart className="w-16 h-16 mx-auto mb-4 opacity-20" />
-              <p className="text-lg font-semibold">No reports found</p>
-              <p className="text-sm mt-1">
-                {searchQuery
-                  ? "Try a different search term"
-                  : "No reports are available with your current permissions"}
-              </p>
-            </div>
-          </Card>
-        ) : (
-          <div className="space-y-8">
-            {categories.map((category) => {
-              const meta = CATEGORY_META[category] || {
-                label: category,
-                icon: FileBarChart,
-                color: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
-                description: "",
-              }
-              const CategoryIcon = meta.icon
-
-              return (
-                <div key={category} className="space-y-4">
-                  {/* Category Header */}
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-lg", meta.color)}>
-                      <CategoryIcon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-foreground">{meta.label}</h2>
-                      {meta.description && (
-                        <p className="text-sm text-muted-foreground">{meta.description}</p>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="ml-auto">
-                      {reportsByCategory[category].length} report
-                      {reportsByCategory[category].length !== 1 ? "s" : ""}
-                    </Badge>
-                  </div>
-
-                  {/* Report Cards Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {reportsByCategory[category].map((report) => {
-                      const ReportIcon = report.icon
-                      return (
-                        <Card
-                          key={report.id}
-                          className="group hover:shadow-lg hover:border-primary/50 transition-all duration-200 cursor-pointer"
-                          onClick={() => router.push(report.href)}
-                        >
-                          <CardContent className="p-6 space-y-3">
-                            {/* Icon & Badge */}
-                            <div className="flex items-start justify-between">
-                              <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                                <ReportIcon className="w-6 h-6 text-primary" />
-                              </div>
-                              {report.badge && (
-                                <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 border-0">
-                                  {report.badge}
-                                </Badge>
-                              )}
-                            </div>
-
-                            {/* Title */}
-                            <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
-                              {report.name}
-                            </h3>
-
-                            {/* Description */}
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {report.description}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        {/* Sub-report: the existing report page, laid out inline */}
+        <EmbeddedReportContext.Provider value={{ pills, showSummary: tab.showSummary }}>
+          <ActiveReport key={report.id} />
+        </EmbeddedReportContext.Provider>
       </div>
     </DashboardLayout>
   )
