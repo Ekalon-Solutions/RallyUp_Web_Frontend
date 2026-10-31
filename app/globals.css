@@ -119,7 +119,7 @@ input[type='number'] {
 html.public-page,
 html.public-page.dark,
 .public-theme {
-  --background: 0 0% 3.9%; /* #0A0A0A */
+  --background: 0 0% 13%;
   --foreground: 0 0% 95%;
   --card: 220 20% 12%;
   --card-foreground: 0 0% 95%;
