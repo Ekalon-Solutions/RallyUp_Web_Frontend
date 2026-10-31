@@ -279,8 +279,9 @@ function DashboardSidebar({
         : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:translate-x-1",
     )
 
+  // Fill the parent: a fixed w-72 overflowed the desktop wrapper (w-72 incl. its border-r) and painted over the border.
   return (
-    <div className={cn("flex flex-col h-full min-h-0 bg-background", mobile ? "w-full max-w-full" : "w-72")}>
+    <div className="flex flex-col h-full min-h-0 w-full max-w-full bg-background">
       <Link href="/" className="flex items-center gap-2 h-14 sm:h-16 p-2 border-b hover:opacity-90 transition-opacity shrink-0">
         <div className="relative w-9 h-9 sm:w-10 sm:h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5 shrink-0">
           <Image
