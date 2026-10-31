@@ -441,3 +441,21 @@ html.dashboard-theme.dark,
 .animate-fade-in {
   animation: fade-in 0.4s ease-out;
 }
+/* ─── Reporting & Analytics hub (app/dashboard/reports) ─────────────────── */
+.ra-scope {
+  --ra-bg: #F7F5F0;
+  --ra-ink: #141414;
+  --ra-mid: #8E8B84;
+  --ra-soft: #D9D5CC;
+  --ra-line: rgba(20, 20, 20, 0.09);
+  --ra-accent: #E5252A;
+}
+.dark .ra-scope {
+  --ra-bg: #0A0A0A;
+  --ra-ink: #F2F2F2;
+  --ra-mid: #7A7A7A;
+  --ra-soft: #2A2A2A;
+  --ra-line: rgba(255, 255, 255, 0.1);
+}
+main:has(.ra-scope) { background: #F7F5F0; }
+.dark main:has(.ra-scope) { background: #0A0A0A; }
