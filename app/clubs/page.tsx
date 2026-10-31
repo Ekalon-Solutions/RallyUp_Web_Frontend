@@ -882,7 +882,7 @@ function ClubsPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas-light public-theme overflow-x-hidden">
+    <div className="min-h-screen bg-white public-theme overflow-x-hidden">
       <SiteNavbar brandName="Wingman Pro" />
       <div className="relative overflow-hidden bg-primary py-14 sm:py-20 md:py-32">
         <div className="absolute inset-0 bg-black/10"></div>

@@ -783,7 +783,7 @@ function FAQ() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-canvas-light text-slate-900 relative overflow-x-clip public-theme">
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-x-clip public-theme">
       {/* <JellyCursor /> */}
       <SiteNavbar brandName="Wingman Pro" />
       <FadeIn>
