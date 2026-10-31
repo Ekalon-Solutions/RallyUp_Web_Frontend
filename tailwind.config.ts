@@ -21,6 +21,11 @@ const config: Config = {
 				'wingman-green': 'hsl(var(--wingman-green) / <alpha-value>)',
 				'wingman-dark': 'hsl(var(--wingman-dark) / <alpha-value>)',
 				'wingman-gray': 'hsl(var(--wingman-gray) / <alpha-value>)',
+				// Site canvas: light #F7F5F0, dark #0A0A0A (also --background in globals.css)
+				canvas: {
+					light: '#F7F5F0',
+					dark: '#0A0A0A'
+				},
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				card: {

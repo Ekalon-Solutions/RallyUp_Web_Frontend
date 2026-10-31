@@ -9,7 +9,7 @@ export function ThemeColorMeta() {
   useEffect(() => {
     const currentTheme = resolvedTheme || theme || "light"
     
-    const themeColor = currentTheme === "dark" ? "#0f172a" : "#0ea5e9"
+    const themeColor = currentTheme === "dark" ? "#0A0A0A" : "#F7F5F0"
     
     let metaThemeColor = document.querySelector('meta[name="theme-color"]')
     
