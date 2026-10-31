@@ -10,7 +10,7 @@ import Image from "next/image"
 
 export default function AffiliationsPage(): React.JSX.Element {
   return (
-    <main className="min-h-screen bg-white text-slate-900 relative overflow-x-clip font-sans public-theme">
+    <main className="min-h-screen bg-canvas-light text-slate-900 relative overflow-x-clip font-sans public-theme">
       <SiteNavbar brandName="Wingman Pro" />
 
       {/* Top Section */}
