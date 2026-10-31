@@ -146,7 +146,7 @@ export function ReportFilters({
     <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-3 sm:gap-4 text-sm">
       {/* Date Range Filters (Immediate refresh on selection) */}
       {showDateRange && (
-        <div className="grid grid-cols-2 gap-3 sm:contents">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 sm:contents">
           <div className="space-y-1.5 min-w-0">
             <Label className="text-xs text-muted-foreground">From Date</Label>
             <Input
@@ -209,8 +209,12 @@ export function ReportFilters({
         </div>
       )}
 
-      {/* Custom Extra Filters */}
-      {children}
+      {/* Custom Extra Filters — stretched to full width on phones */}
+      {children && (
+        <div className="contents max-sm:[&>*]:w-full max-sm:[&_button[role=combobox]]:w-full">
+          {children}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto">

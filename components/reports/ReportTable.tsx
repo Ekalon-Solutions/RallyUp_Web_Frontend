@@ -283,8 +283,8 @@ export function ReportTable<T extends Record<string, unknown>>({
 
       {/* ── Pagination ──────────────────────────────────────────────────── */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between gap-4 px-4 py-3 border-t border-border text-sm text-muted-foreground">
-          <span>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-3 border-t border-border text-xs sm:text-sm text-muted-foreground">
+          <span className="text-center sm:text-left">
             Showing{" "}
             <strong className="text-foreground">
               {(pagination.page - 1) * pagination.limit + 1}–
@@ -292,7 +292,7 @@ export function ReportTable<T extends Record<string, unknown>>({
             </strong>{" "}
             of <strong className="text-foreground">{pagination.totalItems.toLocaleString()}</strong> records
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between sm:justify-start gap-1">
             <Button
               variant="outline"
               size="sm"
@@ -301,7 +301,7 @@ export function ReportTable<T extends Record<string, unknown>>({
             >
               Previous
             </Button>
-            <span className="px-3 text-xs">
+            <span className="px-2 sm:px-3 text-xs whitespace-nowrap">
               Page {pagination.page} of {pagination.totalPages}
             </span>
             <Button
