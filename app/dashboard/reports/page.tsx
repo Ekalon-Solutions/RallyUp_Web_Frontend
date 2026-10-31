@@ -103,14 +103,15 @@ export default function ReportsHubPage() {
   }
 
   const pills = (
-    <div className="flex flex-wrap gap-2">
+    // One swipeable row on phones; wraps from sm up.
+    <div className="-mx-3 px-3 flex gap-2 overflow-x-auto sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {tab.reports.map((r) => (
         <button
           key={r.id}
           type="button"
           onClick={() => setReportByTab((m) => ({ ...m, [tab.id]: r.id }))}
           className={cn(
-            "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors",
+            "shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors",
             r.id === report.id
               ? "border-[var(--ra-ink)] bg-[var(--ra-ink)] text-[var(--ra-bg)]"
               : "border-[var(--ra-line)] text-[var(--ra-mid)] hover:border-[var(--ra-mid)] hover:text-[var(--ra-ink)]",
@@ -130,16 +131,16 @@ export default function ReportsHubPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="max-w-2xl">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Reporting &amp; Analytics — {tab.title}</h1>
+            <h1 className="text-xl min-[400px]:text-2xl sm:text-3xl font-black tracking-tight break-words">Reporting &amp; Analytics — {tab.title}</h1>
             <p className="mt-2 text-sm text-[var(--ra-mid)]">{tab.description}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 w-full md:w-auto">
             {isSystemOwner && <SystemOwnerClubFilter selectedClubId={selectedClubId} onChange={setSelectedClubId} />}
             <button
               type="button"
               onClick={exportAll}
               disabled={exporting}
-              className="inline-flex items-center gap-2 rounded-md border border-[var(--ra-line)] px-3.5 py-2 text-xs font-semibold hover:border-[var(--ra-mid)] disabled:opacity-50"
+              className="inline-flex w-full sm:w-auto justify-center items-center gap-2 rounded-md border border-[var(--ra-line)] px-3.5 py-2 text-xs font-semibold hover:border-[var(--ra-mid)] disabled:opacity-50"
             >
               {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
               Export all {tab.label.toLowerCase()} reports (Excel)
@@ -148,8 +149,8 @@ export default function ReportsHubPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-[var(--ra-line)] overflow-x-auto">
-          <div className="flex gap-6 min-w-max">
+        <div className="-mx-3 px-3 sm:mx-0 sm:px-0 border-b border-[var(--ra-line)] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-5 sm:gap-6 min-w-max">
             {tabs.map((t) => (
               <button
                 key={t.id}

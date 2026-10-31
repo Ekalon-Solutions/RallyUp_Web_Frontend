@@ -6,6 +6,7 @@ import {
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts"
 import { cn } from "@/lib/utils"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
 
@@ -14,6 +15,8 @@ export const inr = (n: number) =>
 export const inrShort = (n: number) =>
   n >= 1e7 ? `₹${(n / 1e7).toFixed(1)}Cr` : n >= 1e5 ? `₹${(n / 1e5).toFixed(1)}L` : n >= 1e3 ? `₹${(n / 1e3).toFixed(1)}k` : `₹${Math.round(n)}`
 export const num = (n: number) => (n || 0).toLocaleString("en-IN")
+const compactFmt = new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 })
+export const compact = (n: number) => compactFmt.format(n || 0)
 export const pct = (n: number) => `${(Number.isFinite(n) ? n : 0).toFixed(1)}%`
 
 // ─── Month buckets ────────────────────────────────────────────────────────────
@@ -56,12 +59,23 @@ export function KpiStrip({ kpis, loading }: { kpis: Kpi[]; loading?: boolean }) 
   return (
     <div className={cn("relative z-10 grid grid-cols-2 border-y border-[var(--ra-line)]", kpis.length > 2 ? "lg:grid-cols-4" : "lg:grid-cols-2")}>
       {kpis.map((k, i) => (
-        <div key={k.label} className={cn("py-5 px-1 sm:px-5 first:pl-0 border-[var(--ra-line)]", i > 0 && "lg:border-l", i % 2 === 1 && "border-l")}>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--ra-mid)]">{k.label}</p>
+        <div
+          key={k.label}
+          className={cn(
+            "min-w-0 py-4 sm:py-5 border-[var(--ra-line)]",
+            // 2×2 on phones/tablets: left column flush, right column divided; second row divided from the first
+            i % 2 === 0 ? "pr-3 sm:pr-5" : "pl-3 sm:pl-5 border-l",
+            i >= 2 && "border-t lg:border-t-0",
+            // single row on desktop
+            kpis.length > 2 && "lg:px-5 lg:first:pl-0",
+            i > 0 && "lg:border-l",
+          )}
+        >
+          <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-wide text-[var(--ra-mid)]">{k.label}</p>
           {loading ? (
-            <div className="mt-2 h-8 w-32 animate-pulse rounded bg-[var(--ra-line)]" />
+            <div className="mt-2 h-7 sm:h-8 w-24 sm:w-32 max-w-full animate-pulse rounded bg-[var(--ra-line)]" />
           ) : (
-            <p className={cn("mt-1.5 text-2xl sm:text-[28px] font-black tracking-tight tabular-nums", k.alert ? "text-[var(--ra-accent)]" : "text-[var(--ra-ink)]")}>
+            <p className={cn("mt-1.5 text-lg min-[400px]:text-[22px] sm:text-[28px] leading-tight font-black tracking-tight tabular-nums break-words", k.alert ? "text-[var(--ra-accent)]" : "text-[var(--ra-ink)]")}>
               {k.value}
             </p>
           )}
@@ -141,17 +155,19 @@ export interface Series { key: string; label: string; color: string }
 
 /** Stacked monthly bars; first series sits at the bottom. Total labelled on top. */
 export function StackedBars({ data, series, format = num }: { data: Row[]; series: Series[]; format?: (n: number) => string }) {
+  // Total labels collide on phones; the tooltip still shows them there.
+  const isMobile = useIsMobile()
   const withTotal = data.map((d) => ({ ...d, __total: series.reduce((s, x) => s + (Number(d[x.key]) || 0), 0) }))
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={withTotal} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={isMobile ? 220 : 260}>
+      <BarChart data={withTotal} margin={{ top: isMobile ? 8 : 20, right: 0, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="var(--ra-line)" />
         <XAxis dataKey="label" {...AXIS} />
         <YAxis hide />
         <Tooltip {...TOOLTIP} formatter={(v: number, name) => [format(v), series.find((s) => s.key === name)?.label ?? name]} />
         {series.map((s, i) => (
           <Bar key={s.key} dataKey={s.key} stackId="a" fill={s.color} maxBarSize={44}>
-            {i === series.length - 1 && (
+            {i === series.length - 1 && !isMobile && (
               <LabelList dataKey="__total" position="top" formatter={(v: number) => (v ? format(v) : "")} style={{ fill: "var(--ra-mid)", fontSize: 10 }} />
             )}
           </Bar>
@@ -162,15 +178,16 @@ export function StackedBars({ data, series, format = num }: { data: Row[]; serie
 }
 
 export function TrendLines({ data, series, area }: { data: Row[]; series: Series[]; area?: boolean }) {
+  const isMobile = useIsMobile()
   // An array, not a Fragment: recharts only finds axes/grid among direct children.
   const common = [
     <CartesianGrid key="grid" vertical={false} stroke="var(--ra-line)" />,
     <XAxis key="x" dataKey="label" {...AXIS} />,
-    <YAxis key="y" {...AXIS} width={44} tickFormatter={(v: number) => (v >= 1000 ? `${v / 1000}k` : String(v))} />,
+    <YAxis key="y" {...AXIS} width={isMobile ? 32 : 44} tickFormatter={compact} />,
     <Tooltip key="tip" {...TOOLTIP} cursor={{ stroke: "var(--ra-line)" }} formatter={(v: number, name) => [num(v), series.find((s) => s.key === name)?.label ?? name]} />,
   ]
   return (
-    <ResponsiveContainer width="100%" height={260}>
+    <ResponsiveContainer width="100%" height={isMobile ? 220 : 260}>
       {area ? (
         <AreaChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
           {common}
