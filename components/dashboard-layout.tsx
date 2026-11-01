@@ -164,6 +164,7 @@ const adminNavigation = [
 
 const systemOwnerNavigation = [
   { name: "Club Management", href: "/dashboard/club-management", icon: Building },
+  { name: "Team & Access", href: "/dashboard/elevate-admin", icon: Shield },
   { name: "Service Matrix", href: "/dashboard/feature-matrix", icon: Grid3X3 },
   { name: "Reporting & Analytics", href: "/dashboard/reports", icon: FileBarChart },
   { name: "Audit Logs", href: "/dashboard/admin-audit", icon: Shield },

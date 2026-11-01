@@ -17,7 +17,8 @@ export function usePrimaryClubOwner() {
     let cancelled = false
 
     const run = async () => {
-      if (!clubId || user?.role !== "super_admin") {
+      // System owners may manage any club's Team & Access; the backend confirms access.
+      if (!clubId || (user?.role !== "super_admin" && user?.role !== "system_owner")) {
         if (!cancelled) {
           setIsPrimaryOwner(false)
           setQuota(null)
