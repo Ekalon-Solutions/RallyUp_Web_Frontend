@@ -1,12 +1,15 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Image from "next/image"
 import { toast } from "sonner"
 import { Download, Loader2, Shield } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { useAccessibleClubs } from "@/hooks/useSelectedClubId"
+import { getAccessibleClub } from "@/lib/clubContext"
 import { getEffectiveAdminRole } from "@/lib/adminPermissions"
 import { authorizeReportAccess } from "@/hooks/useReportAuthorization"
 import { resolveExportClubId } from "@/lib/reportHelpers"
@@ -54,6 +57,7 @@ export default function ReportsHubPage() {
   const { selectedClubId, setSelectedClubId, isSystemOwner } = useSystemOwnerReportScope()
   const activeClubId = isSystemOwner ? selectedClubId : clubId
   const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
+  const clubLogo = getAccessibleClub(activeClubId ?? "", useAccessibleClubs())?.logo
 
   const effectiveRole = getEffectiveAdminRole(user, activeClubId)
   const canViewReportsHub = ["admin", "super_admin", "system_owner"].includes(effectiveRole)
@@ -171,13 +175,19 @@ export default function ReportsHubPage() {
           Overview covers {fmtDate(overviewStartDate())} – {fmtDate(new Date().toISOString())} · tables below accept their own filters
         </p>
 
-        {/* Overview: KPIs + charts, with the shield watermark behind */}
+        {/* Overview: KPIs + charts, with the club logo watermark behind (shield if the club has no logo) */}
         <div className="relative">
-          <Shield
-            aria-hidden
-            strokeWidth={1}
-            className="pointer-events-none absolute -top-10 right-0 hidden lg:block h-72 w-72 text-[var(--ra-accent)] opacity-[0.12] fill-[var(--ra-accent)]/10"
-          />
+          {clubLogo ? (
+            <div aria-hidden className="pointer-events-none absolute -top-10 right-0 hidden lg:block h-72 w-72 opacity-[0.12]">
+              <Image src={clubLogo} alt="" fill sizes="288px" className="object-contain" />
+            </div>
+          ) : (
+            <Shield
+              aria-hidden
+              strokeWidth={1}
+              className="pointer-events-none absolute -top-10 right-0 hidden lg:block h-72 w-72 text-[var(--ra-accent)] opacity-[0.12] fill-[var(--ra-accent)]/10"
+            />
+          )}
           <TabOverview tab={tab.id} accessible={accessible} scope={scope} />
         </div>
 

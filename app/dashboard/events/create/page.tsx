@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Loader2, Plus, X, ChevronRight, ChevronLeft, Check } from "lucide-react"
+import { ArrowLeft, Loader2, Plus, X, ChevronRight, ChevronLeft } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -42,6 +42,7 @@ import {
 import { EventRefundToggleSection, RefundTier } from "@/components/admin/event-refund-toggle-section"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
 import { EventCreatePreview } from "@/components/admin/event-create-preview"
+import { StepPills } from "@/components/listings/listing-wizard-chrome"
 import { EventFeeManagementSection } from "@/components/admin/event-fee-management-section"
 import { EventImageUploader } from "@/components/events/event-image-uploader"
 import { useCanManageFees } from "@/hooks/useCanManageFees"
@@ -685,7 +686,7 @@ function CreateEventForm() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 w-full max-w-7xl -mx-2 md:-mx-4 lg:-mx-6">
+      <div className="space-y-6 w-full">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/events">
             <Button variant="ghost" size="sm">
@@ -722,40 +723,12 @@ function CreateEventForm() {
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] lg:items-start">
           <div className="min-w-0 space-y-6">
-        <nav aria-label="Event creation steps" className="flex flex-wrap gap-2">
-          {WIZARD_STEPS.map((step, index) => {
-            const done = index < wizardStep
-            const current = index === wizardStep
-            return (
-              <button
-                key={step.id}
-                type="button"
-                onClick={() => {
-                  if (index < wizardStep) setWizardStep(index)
-                }}
-                disabled={index > wizardStep}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border transition-colors",
-                  current && "border-secondary bg-[hsl(var(--success)/0.12)] text-secondary",
-                  done && "border-border bg-muted/50 text-foreground cursor-pointer hover:bg-muted",
-                  !current && !done && "border-border text-muted-foreground opacity-60 cursor-not-allowed"
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-full text-xs",
-                    current && "bg-secondary text-secondary-foreground",
-                    done && "bg-muted-foreground/20",
-                    !current && !done && "bg-muted"
-                  )}
-                >
-                  {done ? <Check className="h-3.5 w-3.5" /> : index + 1}
-                </span>
-                {step.label}
-              </button>
-            )
-          })}
-        </nav>
+        <StepPills
+          steps={WIZARD_STEPS.map((s) => s.label)}
+          current={wizardStep}
+          onSelect={setWizardStep}
+          primaryColor={primaryColor}
+        />
 
         <form
           onSubmit={handleSubmit}

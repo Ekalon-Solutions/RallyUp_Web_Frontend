@@ -15,6 +15,8 @@ import { ACTIVITY_CATEGORIES } from "@/lib/listings"
 import { validateEventSchedule } from "@/lib/event-pricing-validation"
 import { useSelectedClubId, useAccessibleClubs } from "@/hooks/useSelectedClubId"
 import { getAccessibleClub } from "@/lib/clubContext"
+import { useClubSettings } from "@/hooks/useClubSettings"
+import { getClubPrimaryColor } from "@/lib/clubThemeButton"
 import { useCanManageFees } from "@/hooks/useCanManageFees"
 import { useListingSave } from "@/hooks/useListingSave"
 import { PublishingTo, StepPills, WizardFooter, WizardHeader } from "@/components/listings/listing-wizard-chrome"
@@ -32,6 +34,7 @@ function ActivityForm() {
   const editId = searchParams.get("edit")
   const clubId = useSelectedClubId() ?? ""
   const club = getAccessibleClub(clubId, useAccessibleClubs())
+  const primaryColor = getClubPrimaryColor(useClubSettings(clubId || undefined).settings)
   const canManageFees = useCanManageFees()
 
   const [step, setStep] = useState(0)
@@ -171,11 +174,11 @@ function ActivityForm() {
 
   return (
     <DashboardLayout>
-      <div className="grid w-full max-w-7xl gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+      <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
         <div className="min-w-0 space-y-5">
           <WizardHeader title={editId ? "Edit Activity" : "Create Activity"} backHref={RETURN_TO} />
           <PublishingTo clubName={club?.name} />
-          <StepPills steps={STEPS} current={step} onSelect={setStep} />
+          <StepPills steps={STEPS} current={step} onSelect={setStep} primaryColor={primaryColor} />
 
           {step === 0 && (
             <>

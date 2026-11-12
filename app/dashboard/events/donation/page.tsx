@@ -16,6 +16,8 @@ import { DONATION_CATEGORIES } from "@/lib/listings"
 import { calculateAbsorbedTransactionFees, calculateTransactionFees, PLATFORM_FEE_PERCENT } from "@/lib/transactionFees"
 import { useSelectedClubId, useAccessibleClubs } from "@/hooks/useSelectedClubId"
 import { getAccessibleClub } from "@/lib/clubContext"
+import { useClubSettings } from "@/hooks/useClubSettings"
+import { getClubPrimaryColor } from "@/lib/clubThemeButton"
 import { useListingSave } from "@/hooks/useListingSave"
 import { PublishingTo, StepPills, WizardFooter, WizardHeader } from "@/components/listings/listing-wizard-chrome"
 import { EventSettingsSection, PosterSection, SectionCard } from "@/components/listings/listing-form-sections"
@@ -32,6 +34,7 @@ function DonationForm() {
   const editId = searchParams.get("edit")
   const clubId = useSelectedClubId() ?? ""
   const club = getAccessibleClub(clubId, useAccessibleClubs())
+  const primaryColor = getClubPrimaryColor(useClubSettings(clubId || undefined).settings)
 
   const [step, setStep] = useState(0)
   const [loaded, setLoaded] = useState(!editId)
@@ -172,11 +175,11 @@ function DonationForm() {
 
   return (
     <DashboardLayout>
-      <div className="grid w-full max-w-7xl gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+      <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
         <div className="min-w-0 space-y-5">
           <WizardHeader title={editId ? "Edit Donation Drive" : "Create Donation Drive"} backHref={RETURN_TO} />
           <PublishingTo clubName={club?.name} />
-          <StepPills steps={STEPS} current={step} onSelect={setStep} />
+          <StepPills steps={STEPS} current={step} onSelect={setStep} primaryColor={primaryColor} />
 
           {step === 0 && (
             <>
