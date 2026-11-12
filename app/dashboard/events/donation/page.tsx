@@ -252,6 +252,7 @@ function DonationForm() {
 
         <aside className="lg:sticky lg:top-6">
           <ListingPreview
+            primaryColor={primaryColor}
             clubName={club?.name}
             title={basics.title}
             chips={[isItems ? "CSR" : "Donation", step === 0 && basics.memberOnly && "Member's Only"]}

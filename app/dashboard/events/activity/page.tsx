@@ -256,6 +256,7 @@ function ActivityForm() {
 
         <aside className="lg:sticky lg:top-6">
           <ListingPreview
+            primaryColor={primaryColor}
             clubName={club?.name}
             title={basics.title}
             chips={[categoryLabel, isPaid ? money(Number(pricing.fee) || 0, basics.currency) : "Free", basics.memberOnly && "Member's Only", isPaid && pricing.isRefundAllowed && "Refundable"]}
