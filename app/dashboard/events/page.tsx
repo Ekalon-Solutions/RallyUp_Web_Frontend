@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3, XOctagon, RotateCcw, ChevronDown, Send, Lock, HandHeart, Ticket, Award } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3, XOctagon, RotateCcw, ChevronDown, Send, Lock, HandHeart, Ticket, Award } from "lucide-react"
 import Link from "next/link"
 import { listingEditHref, listingPublicHref, listingTypeLabel, listingTypeOf } from "@/lib/listings"
 import { money } from "@/components/listings/listing-preview"
@@ -293,7 +293,6 @@ function EventsPageContent() {
               {canEditEvents && (
               <div className="flex flex-1 sm:flex-none">
                 <Button onClick={() => router.push("/dashboard/events/create")} className="flex-1 rounded-r-none">
-                  <Plus className="w-4 h-4 mr-2" />
                   Create
                 </Button>
                 <DropdownMenu modal={false}>
