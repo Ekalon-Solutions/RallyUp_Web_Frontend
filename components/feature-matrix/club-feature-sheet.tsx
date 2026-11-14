@@ -66,7 +66,7 @@ const FEATURE_GROUPS: {
     label: "Engagement",
     tier: "Starter",
     tierColor: "border-blue-300 text-blue-600 dark:border-blue-800 dark:text-blue-400",
-    keys: ["gallery", "polls", "chants", "external_ticketing", "volunteer"],
+    keys: ["gallery", "polls", "chants", "forum", "external_ticketing", "volunteer"],
   },
   {
     id: "commerce",

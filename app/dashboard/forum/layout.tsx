@@ -27,8 +27,8 @@ export default function ForumLayout({ children }: { children: ReactNode }) {
   const clubId = useRequiredClubId()
   const { config } = useClubFeatures(clubId ?? null)
 
-  if (!isFeatureEnabled(config, "chants")) {
-    return <LockedFeaturePage featureKey="chants" featureLabel="Forum & Chants" clubId={clubId ?? ""} currentTier={config?.billing_tier} />
+  if (!isFeatureEnabled(config, "forum")) {
+    return <LockedFeaturePage featureKey="forum" featureLabel="Community Forum" clubId={clubId ?? ""} currentTier={config?.billing_tier} />
   }
 
   if (!clubId) return null

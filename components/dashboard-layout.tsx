@@ -943,6 +943,9 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
         if (item.name === 'Club Chants') {
           return canShowSection('chants')
         }
+        if (item.name === 'Community Forum') {
+          return memberEntitlementsKnown && isMemberFeatureEnabled('forum')
+        }
         if (item.name === 'Members') {
           return canShowSection('members')
         }
