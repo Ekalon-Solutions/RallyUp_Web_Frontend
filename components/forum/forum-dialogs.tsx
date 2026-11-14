@@ -98,7 +98,7 @@ export const ReviewReportDialog = ({ open, onOpenChange, report }: Base & { repo
         <DialogHeader><DialogTitle>Review reported comment</DialogTitle><DialogDescription>{report.count} report{report.count === 1 ? "" : "s"} · first reported {ago(report.createdAt)}</DialogDescription></DialogHeader>
         <div className="rounded-lg border bg-muted/30 p-3 text-sm">
           <p className="text-xs text-muted-foreground">in: {report.thread}</p>
-          <p className="my-1 flex items-center gap-2 font-semibold">{report.author}<Badge variant="outline" className="font-normal">Member</Badge></p>
+          <div className="my-1 flex items-center gap-2 font-semibold">{report.author}<Badge variant="outline" className="font-normal">Member</Badge></div>
           <p>{report.text}</p>
         </div>
         <div>
