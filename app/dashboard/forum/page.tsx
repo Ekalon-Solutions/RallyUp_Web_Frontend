@@ -1,541 +1,94 @@
 "use client"
 
-import { useState } from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
+import { useMemo, useState } from "react"
+import { MessageCircle, Heart, Pin, Plus, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import {
-  Search,
-  MessageSquare,
-  Users,
-  Shield,
-  Eye,
-  Trash2,
-  Edit,
-  Pin,
-  Lock,
-  Unlock,
-  UserCheck,
-  UserX,
-  AlertTriangle,
-} from "lucide-react"
-import { useRequiredClubId } from "@/hooks/useRequiredClubId"
-import { useClubFeatures } from "@/hooks/useClubFeatures"
-import { isFeatureEnabled } from "@/lib/clubFeatures"
-import { LockedFeaturePage } from "@/components/feature-gate"
+import { CreateThreadDialog, LockThreadDialog, RemoveThreadDialog } from "@/components/forum/forum-dialogs"
+import { ClubCard, PinnedPanel, RulesPanel } from "@/components/forum/forum-side-panels"
+import { ago, useForum } from "@/components/forum/forum-store"
+import type { Thread } from "@/types/forum"
+import { cn } from "@/lib/utils"
 
-const forumStats = [
-  { title: "Total Topics", value: "1,247", icon: MessageSquare, color: "text-blue-600" },
-  { title: "Total Posts", value: "8,932", icon: MessageSquare, color: "text-green-600" },
-  { title: "Active Members", value: "456", icon: Users, color: "text-purple-600" },
-  { title: "Moderators", value: "8", icon: Shield, color: "text-orange-600" },
-]
+type Sort = "hot" | "new" | "top"
+const Pill = ({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) => (
+  <Button size="sm" variant={active ? "default" : "outline"} className="rounded-full" onClick={onClick}>{children}</Button>
+)
 
-const sampleTopics = [
-  {
-    id: 1,
-    title: "Match Discussion: Arsenal vs Chelsea",
-    author: "John Doe",
-    category: "Match Discussion",
-    replies: 23,
-    views: 156,
-    lastActivity: "2 hours ago",
-    status: "Active",
-    isPinned: true,
-    isLocked: false,
-  },
-  {
-    id: 2,
-    title: "Season Ticket Exchange",
-    author: "Jane Smith",
-    category: "Tickets",
-    replies: 8,
-    views: 45,
-    lastActivity: "5 hours ago",
-    status: "Active",
-    isPinned: false,
-    isLocked: false,
-  },
-  {
-    id: 3,
-    title: "Away Day Travel Arrangements",
-    author: "Mike Johnson",
-    category: "Travel",
-    replies: 15,
-    views: 89,
-    lastActivity: "1 day ago",
-    status: "Closed",
-    isPinned: false,
-    isLocked: true,
-  },
-]
+export default function DiscussionsPage() {
+  const { threads, subTopics, patchThread } = useForum()
+  const [tab, setTab] = useState<"active" | "archived">("active")
+  const [sort, setSort] = useState<Sort>("hot")
+  const [q, setQ] = useState(""); const [sub, setSub] = useState("all"); const [author, setAuthor] = useState("all")
+  const [create, setCreate] = useState(false); const [lock, setLock] = useState<Thread | null>(null); const [remove, setRemove] = useState<Thread | null>(null)
 
-const sampleReports = [
-  {
-    id: 1,
-    type: "Inappropriate Content",
-    reporter: "User123",
-    reported: "BadUser456",
-    topic: "Match Discussion: Arsenal vs Chelsea",
-    reason: "Offensive language and harassment",
-    status: "Pending",
-    date: "2 hours ago",
-  },
-  {
-    id: 2,
-    type: "Spam",
-    reporter: "ModeratorX",
-    reported: "SpamBot789",
-    topic: "Season Ticket Exchange",
-    reason: "Repeated promotional posts",
-    status: "Resolved",
-    date: "1 day ago",
-  },
-]
+  const subName = (id: string) => subTopics.find((s) => s.id === id)?.name
+  const authors = useMemo(() => Array.from(new Set(threads.map((t) => t.author))), [threads])
+  const list = useMemo(() => {
+    const rank = (t: Thread) => (sort === "top" ? t.likes : sort === "hot" ? t.likes + t.comments * 3 : 0)
+    return threads
+      .filter((t) => t.archived === (tab === "archived"))
+      .filter((t) => (sub === "all" || t.subTopicId === sub) && (author === "all" || t.author === author))
+      .filter((t) => `${t.title} ${t.body} ${t.author}`.toLowerCase().includes(q.toLowerCase()))
+      .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (sort === "new" ? b.createdAt.localeCompare(a.createdAt) : rank(b) - rank(a)))
+  }, [threads, tab, sort, q, sub, author])
 
-const sampleModerators = [
-  {
-    id: 1,
-    name: "Alice Cooper",
-    email: "alice@example.com",
-    role: "Senior Moderator",
-    permissions: ["Delete Posts", "Ban Users", "Pin Topics", "Lock Topics"],
-    joinDate: "Jan 2024",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Bob Wilson",
-    email: "bob@example.com",
-    role: "Moderator",
-    permissions: ["Delete Posts", "Pin Topics"],
-    joinDate: "Mar 2024",
-    status: "Active",
-  },
-]
-
-export default function ForumPage() {
-  const clubId = useRequiredClubId()
-  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
-  const [activeTab, setActiveTab] = useState("overview")
-  const [searchQuery, setSearchQuery] = useState("")
-
-  if (!isFeatureEnabled(clubFeatureConfig, 'chants')) {
-    return (
-      <DashboardLayout>
-        <LockedFeaturePage
-          featureKey="chants"
-          featureLabel="Forum & Chants"
-          clubId={clubId ?? ""}
-          currentTier={clubFeatureConfig?.billing_tier}
-        />
-      </DashboardLayout>
-    )
-  }
+  const pin = (t: Thread) => patchThread(t.id, { pinned: !t.pinned })
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Inter Club Forum Management</h1>
-            <p className="text-muted-foreground">Manage discussions, moderation, and community interactions</p>
-          </div>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="topics">Topics</TabsTrigger>
-            <TabsTrigger value="moderation">Moderation</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="moderators">Moderators</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            {/* Forum Stats */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {forumStats.map((stat) => (
-                <Card key={stat.title}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stat.value}</div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Recent Activity */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Topics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {sampleTopics.slice(0, 3).map((topic) => (
-                      <div key={topic.id} className="flex items-start space-x-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback>
-                            {topic.author
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium">{topic.title}</p>
-                            {topic.isPinned && <Pin className="w-3 h-3 text-primary" />}
-                            {topic.isLocked && <Lock className="w-3 h-3 text-muted-foreground" />}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            by {topic.author} • {topic.replies} replies • {topic.lastActivity}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Moderation Queue</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {sampleReports
-                      .filter((r) => r.status === "Pending")
-                      .map((report) => (
-                        <div key={report.id} className="flex items-start space-x-3">
-                          <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5" />
-                          <div className="flex-1 space-y-1">
-                            <p className="text-sm font-medium">{report.type}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {report.reporter} reported {report.reported} • {report.date}
-                            </p>
-                          </div>
-                          <Button size="sm" variant="outline">
-                            Review
-                          </Button>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="topics" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Forum Topics</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                      <Input
-                        placeholder="Search topics..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 w-64"
-                      />
-                    </div>
-                    <Select defaultValue="all">
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="match">Match Discussion</SelectItem>
-                        <SelectItem value="tickets">Tickets</SelectItem>
-                        <SelectItem value="travel">Travel</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Topic</TableHead>
-                      <TableHead>Author</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Replies</TableHead>
-                      <TableHead>Views</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sampleTopics.map((topic) => (
-                      <TableRow key={topic.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {topic.isPinned && <Pin className="w-4 h-4 text-primary" />}
-                            {topic.isLocked && <Lock className="w-4 h-4 text-muted-foreground" />}
-                            <span className="font-medium">{topic.title}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{topic.author}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{topic.category}</Badge>
-                        </TableCell>
-                        <TableCell>{topic.replies}</TableCell>
-                        <TableCell>{topic.views}</TableCell>
-                        <TableCell>
-                          <Badge variant={topic.status === "Active" ? "default" : "secondary"}>{topic.status}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="sm">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              {topic.isPinned ? <Pin className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              {topic.isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="reports" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Reported Content</CardTitle>
-                <CardDescription>Review and manage reported posts and users</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Reporter</TableHead>
-                      <TableHead>Reported User</TableHead>
-                      <TableHead>Topic</TableHead>
-                      <TableHead>Reason</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sampleReports.map((report) => (
-                      <TableRow key={report.id}>
-                        <TableCell>
-                          <Badge variant="outline">{report.type}</Badge>
-                        </TableCell>
-                        <TableCell>{report.reporter}</TableCell>
-                        <TableCell>{report.reported}</TableCell>
-                        <TableCell className="max-w-xs truncate">{report.topic}</TableCell>
-                        <TableCell className="max-w-xs truncate">{report.reason}</TableCell>
-                        <TableCell>
-                          <Badge variant={report.status === "Pending" ? "destructive" : "default"}>
-                            {report.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{report.date}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <UserCheck className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <UserX className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="moderators" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Forum Moderators</CardTitle>
-                  <Button>
-                    <Users className="w-4 h-4 mr-2" />
-                    Add Moderator
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Permissions</TableHead>
-                      <TableHead>Join Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sampleModerators.map((moderator) => (
-                      <TableRow key={moderator.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-8 h-8">
-                              <AvatarFallback>
-                                {moderator.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{moderator.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{moderator.email}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{moderator.role}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {moderator.permissions.slice(0, 2).map((perm) => (
-                              <Badge key={perm} variant="outline" className="text-xs">
-                                {perm}
-                              </Badge>
-                            ))}
-                            {moderator.permissions.length > 2 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{moderator.permissions.length - 2}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{moderator.joinDate}</TableCell>
-                        <TableCell>
-                          <Badge variant="default">{moderator.status}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="sm">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Forum Settings</CardTitle>
-                <CardDescription>Configure forum behavior and moderation rules</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="auto-moderation">Auto Moderation</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Automatically flag posts with inappropriate content
-                      </p>
-                    </div>
-                    <Switch id="auto-moderation" />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="member-approval">Member Approval Required</Label>
-                      <p className="text-sm text-muted-foreground">New members need approval before posting</p>
-                    </div>
-                    <Switch id="member-approval" />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="anonymous-posting">Allow Anonymous Posting</Label>
-                      <p className="text-sm text-muted-foreground">Members can post without revealing identity</p>
-                    </div>
-                    <Switch id="anonymous-posting" />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="email-notifications">Email Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Send email notifications for new posts and replies
-                      </p>
-                    </div>
-                    <Switch id="email-notifications" defaultChecked />
-                  </div>
-                </div>
-
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="max-posts">Maximum Posts Per Day</Label>
-                    <Input id="max-posts" type="number" defaultValue="10" className="w-32" />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="banned-words">Banned Words (comma separated)</Label>
-                    <Textarea id="banned-words" placeholder="Enter words to automatically flag or block" rows={3} />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="welcome-message">Welcome Message for New Members</Label>
-                    <Textarea
-                      id="welcome-message"
-                      placeholder="Enter a welcome message that new forum members will see"
-                      rows={4}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button>Save Forum Settings</Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div><h1 className="text-2xl font-bold sm:text-3xl">Discussions</h1><p className="text-muted-foreground">Moderate threads, pin important posts and keep the community on topic.</p></div>
+        <Button onClick={() => setCreate(true)}><Plus className="mr-1 h-4 w-4" />Create thread</Button>
       </div>
-    </DashboardLayout>
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Pill active={tab === "active"} onClick={() => setTab("active")}>Active ({threads.filter((t) => !t.archived).length})</Pill>
+            <Pill active={tab === "archived"} onClick={() => setTab("archived")}>Archived ({threads.filter((t) => t.archived).length})</Pill>
+            <span className="ml-auto text-sm text-muted-foreground">Sort by</span>
+            {(["hot", "new", "top"] as Sort[]).map((s) => <Pill key={s} active={sort === s} onClick={() => setSort(s)}>{s[0].toUpperCase() + s.slice(1)}</Pill>)}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="relative min-w-[200px] flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Search threads, members or keywords..." value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            <Select value={sub} onValueChange={setSub}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sub-topics</SelectItem>{subTopics.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select>
+            <Select value={author} onValueChange={setAuthor}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All authors</SelectItem>{authors.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent></Select>
+          </div>
+          {list.map((t) => (
+            <Card key={t.id}><CardContent className="space-y-3 p-5">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-semibold">{t.author}</span>
+                <Badge variant="outline" className={cn("font-normal", t.isAdmin && "border-red-500/50 text-red-600")}>{t.isAdmin ? "Admin" : "Member"}</Badge>
+                <span className="text-xs text-muted-foreground">· {ago(t.createdAt)}</span>
+                <Badge variant="secondary" className="font-normal">{subName(t.subTopicId)}</Badge>
+                {t.pinned && <Badge variant="outline" className="ml-auto border-orange-500/50 text-orange-600">Pinned</Badge>}
+                {t.locked && <Badge variant="outline" className="ml-auto border-red-500/50 text-red-600">Locked</Badge>}
+              </div>
+              <Link href={`/dashboard/forum/${t.id}`} className="block text-lg font-semibold hover:underline">{t.title}</Link>
+              {t.body && <p className="text-sm text-muted-foreground">{t.body}</p>}
+                      <div className="flex flex-wrap items-center gap-2">
+                <span className="flex items-center gap-1 rounded-full border px-3 py-1 text-sm"><Heart className="h-4 w-4" />{t.likes}</span>
+                <span className="flex items-center gap-1 rounded-full border px-3 py-1 text-sm"><MessageCircle className="h-4 w-4" />{t.comments}</span>
+                <div className="ml-auto flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => pin(t)}><Pin className="mr-1 h-3.5 w-3.5" />{t.pinned ? "Unpin" : "Pin"}</Button>
+                  <Button size="sm" variant="outline" onClick={() => (t.locked ? patchThread(t.id, { locked: false }) : setLock(t))}>{t.locked ? "Unlock" : "Lock"}</Button>
+                  <Button size="sm" variant="outline" onClick={() => patchThread(t.id, { archived: !t.archived, pinned: false })}>{t.archived ? "Restore" : "Archive"}</Button>
+                  <Button size="sm" variant="outline" onClick={() => setRemove(t)}>Delete</Button>
+                </div>
+              </div>
+            </CardContent></Card>
+          ))}
+          {list.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">No threads match.</p>}
+        </div>
+        <aside className="space-y-4"><ClubCard /><PinnedPanel /><RulesPanel /></aside>
+      </div>
+      <CreateThreadDialog open={create} onOpenChange={setCreate} />
+      <LockThreadDialog open={!!lock} onOpenChange={(o) => !o && setLock(null)} thread={lock} />
+      <RemoveThreadDialog open={!!remove} onOpenChange={(o) => !o && setRemove(null)} thread={remove} />
+    </div>
   )
 }

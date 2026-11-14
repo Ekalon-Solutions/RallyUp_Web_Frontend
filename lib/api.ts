@@ -8,6 +8,7 @@ import {
 } from './clubFeatures';
 import type { PlanAttributes, PlanMemberDiscount } from './membershipPlanConfig';
 import type { BackgroundMode, FieldPositions } from './membershipCardFields';
+import type { ForumComment, ForumSettings, MemberOverview, ReactionRow, ReactionType, Report, SubTopic, Thread, ThreadPatch } from '../types/forum';
 
 const API_BASE_URL = getApiUrl('');
 
@@ -6221,6 +6222,39 @@ class ApiClient {
     const query = queryParams.toString();
     return this.request(`/chants/club/${clubId}${query ? `?${query}` : ''}`);
   }
+
+  // ---- Community forum (member) ----
+  getForumOverview(clubId: string, sort: string) { return this.request<MemberOverview>(`/forum/member/club/${clubId}/overview?sort=${sort}`); }
+  getMemberForumThread(clubId: string, id: string) { return this.request<{ thread: Thread; comments: ForumComment[] }>(`/forum/member/club/${clubId}/threads/${id}`); }
+  createMemberForumThread(clubId: string, data: { title: string; body: string; files: File[] }) {
+    const fd = new FormData();
+    fd.append('title', data.title); fd.append('body', data.body);
+    data.files.forEach((f) => fd.append('files', f));
+    return this.post<Thread>(`/forum/member/club/${clubId}/threads`, fd);
+  }
+  addMemberForumComment(clubId: string, threadId: string, data: { body: string; parentId?: string | null }) { return this.post(`/forum/member/club/${clubId}/threads/${threadId}/comments`, data); }
+  editMemberForumComment(clubId: string, id: string, body: string) { return this.put(`/forum/member/club/${clubId}/comments/${id}`, { body }); }
+  deleteMemberForumComment(clubId: string, id: string) { return this.delete(`/forum/member/club/${clubId}/comments/${id}`); }
+  reactForum(clubId: string, targetType: 'thread' | 'comment', targetId: string, type: ReactionType) { return this.post(`/forum/member/club/${clubId}/react`, { targetType, targetId, type }); }
+  getForumReactions(clubId: string, targetId: string) { return this.request<{ reactions: ReactionRow[] }>(`/forum/member/club/${clubId}/reactions/${targetId}`); }
+  toggleForumFavorite(clubId: string, threadId: string) { return this.post(`/forum/member/club/${clubId}/threads/${threadId}/favorite`); }
+  reportForumComment(clubId: string, commentId: string, reason: string) { return this.post(`/forum/club/${clubId}/comments/${commentId}/report`, { reason }); }
+
+  // ---- Community forum (admin) ----
+  getForumSettings(clubId: string) { return this.request<ForumSettings>(`/forum/club/${clubId}/settings`); }
+  saveForumSettings(clubId: string, data: Partial<ForumSettings>) { return this.put<ForumSettings>(`/forum/club/${clubId}/settings`, data); }
+  getForumSubTopics(clubId: string) { return this.request<{ subTopics: SubTopic[] }>(`/forum/club/${clubId}/sub-topics`); }
+  createForumSubTopic(clubId: string, data: { name: string; description?: string; archived?: boolean }) { return this.post(`/forum/club/${clubId}/sub-topics`, data); }
+  updateForumSubTopic(clubId: string, id: string, data: { name?: string; description?: string; archived?: boolean }) { return this.put(`/forum/club/${clubId}/sub-topics/${id}`, data); }
+  getForumThreads(clubId: string) { return this.request<{ threads: Thread[] }>(`/forum/club/${clubId}/threads`); }
+  createForumThread(clubId: string, data: { title: string; body: string; subTopicId: string; pinned: boolean }) { return this.post<Thread>(`/forum/club/${clubId}/threads`, data); }
+  getForumThread(clubId: string, id: string) { return this.request<{ thread: Thread; comments: ForumComment[] }>(`/forum/club/${clubId}/threads/${id}`); }
+  updateForumThread(clubId: string, id: string, data: ThreadPatch) { return this.patch<Thread>(`/forum/club/${clubId}/threads/${id}`, data); }
+  deleteForumThread(clubId: string, id: string) { return this.delete(`/forum/club/${clubId}/threads/${id}`); }
+  addForumComment(clubId: string, threadId: string, data: { body: string; parentId?: string | null }) { return this.post<ForumComment>(`/forum/club/${clubId}/threads/${threadId}/comments`, data); }
+  removeForumComment(clubId: string, commentId: string) { return this.delete(`/forum/club/${clubId}/comments/${commentId}`); }
+  getForumReports(clubId: string) { return this.request<{ reports: Report[] }>(`/forum/club/${clubId}/reports`); }
+  resolveForumReport(clubId: string, commentId: string, data: { action: 'keep' | 'remove'; note?: string }) { return this.post(`/forum/club/${clubId}/reports/${commentId}/resolve`, data); }
 
   async getChantById(id: string): Promise<ApiResponse<Chant>> {
     return this.request(`/chants/${id}`);
