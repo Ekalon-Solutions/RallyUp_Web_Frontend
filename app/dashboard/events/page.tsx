@@ -568,7 +568,7 @@ function EventsPageContent() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col items-start gap-1">
-                              <Badge variant="secondary">
+                              <Badge variant="secondary" className={`${PILL} w-28`}>
                                 {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
                               </Badge>
                               {listingTypeOf(event) !== "event" && (
@@ -627,13 +627,13 @@ function EventsPageContent() {
                           <TableCell>
                             <div className="flex flex-col gap-1">
                               {event.cancellation ? (
-                                <Badge variant="destructive">{event.cancellation.status === 'refunded' ? 'Cancelled · Refunded' : 'Cancelled'}</Badge>
+                                <Badge variant="destructive" className={`${PILL} w-28`}>{event.cancellation.status === 'refunded' ? 'Cancelled · Refunded' : 'Cancelled'}</Badge>
                               ) : isDraft ? (
-                                <Badge variant="outline">Draft</Badge>
+                                <Badge variant="outline" className={`${PILL} w-28`}>Draft</Badge>
                               ) : isClosed ? (
-                                <Badge variant="secondary">Closed</Badge>
+                                <Badge variant="secondary" className={`${PILL} w-28`}>Closed</Badge>
                               ) : !event.isActive && (
-                                <Badge variant="secondary">Inactive</Badge>
+                                <Badge variant="secondary" className={`${PILL} w-28`}>Inactive</Badge>
                               )}
                               {!isDraft && !isClosed && event.startTime && (() => {
                                 const now = new Date()
@@ -795,6 +795,9 @@ function EventsPageContent() {
     </ProtectedRoute>
   )
 }
+
+// Fixed-width pills: centered text, long labels wrap instead of stretching the pill.
+const PILL = "justify-center text-center whitespace-normal"
 
 export default function EventsPage() {
   return (
