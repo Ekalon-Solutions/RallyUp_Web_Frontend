@@ -229,6 +229,17 @@ const userNavigation = [
   { name: "My Profile", href: "/dashboard/user/profile", icon: User },
 ]
 
+const FORUM_HREF = "/dashboard/forum"
+const FORUM_SUBNAV = [
+  { name: "Discussions", href: FORUM_HREF },
+  { name: "Moderation Queue", href: `${FORUM_HREF}/moderation` },
+  { name: "Sub-topics", href: `${FORUM_HREF}/sub-topics` },
+  { name: "Forum Settings", href: `${FORUM_HREF}/settings` },
+]
+// Discussions also owns thread detail pages (/dashboard/forum/<id>).
+const forumSubActive = (pathname: string, href: string) =>
+  href === FORUM_HREF ? !FORUM_SUBNAV.slice(1).some((x) => pathname.startsWith(x.href)) : pathname.startsWith(href)
+
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
@@ -277,7 +288,7 @@ function DashboardSidebar({
   const activeRowClass = (href: string) =>
     cn(
       "flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative w-full text-left",
-      pathname === href
+      (href === FORUM_HREF ? pathname.startsWith(href) : pathname === href)
         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]"
         : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:translate-x-1",
     )
@@ -303,25 +314,43 @@ function DashboardSidebar({
 
       <nav className="flex-1 p-3 sm:p-6 space-y-1.5 overflow-y-auto overscroll-y-contain custom-scrollbar min-h-0">
         {/* ── Active / enabled nav items ─────────────────────── */}
-        {navigation.map((item) => (
+        {navigation.map((item) => {
+          const forumOpen = item.href === FORUM_HREF && pathname.startsWith(FORUM_HREF)
+          const rowActive = item.href === FORUM_HREF ? forumOpen : pathname === item.href
+          return (
+          <Fragment key={item.name}>
           <Link
-            key={item.name}
             href={item.href}
             className={activeRowClass(item.href)}
             onClick={() => mobile && onCloseMobile?.()}
           >
             <item.icon className={cn(
               "w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
-              pathname === item.href
+              rowActive
                 ? "text-primary-foreground"
                 : "text-muted-foreground group-hover:text-primary"
             )} />
             <span className="truncate flex-1">{item.name}</span>
-            {pathname === item.href && (
+            {rowActive && (
               <div className="absolute left-0 w-1 h-6 bg-primary-foreground rounded-r-full my-auto inset-y-0" />
             )}
           </Link>
-        ))}
+          {forumOpen && FORUM_SUBNAV.map((sub) => (
+            <Link
+              key={sub.href}
+              href={sub.href}
+              onClick={() => mobile && onCloseMobile?.()}
+              className={cn(
+                "block rounded-xl py-2.5 pl-12 pr-4 text-sm font-semibold transition-colors",
+                forumSubActive(pathname, sub.href) ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+              )}
+            >
+              {sub.name}
+            </Link>
+          ))}
+          </Fragment>
+          )
+        })}
 
         {/* ── Available Add-ons ──────────────────────────────── */}
         {addOnNavigation.length > 0 && (
