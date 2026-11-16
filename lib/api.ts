@@ -2462,9 +2462,13 @@ class ApiClient {
     return this.request('/events');
   }
 
-  async getEventsByClub(clubId?: string): Promise<ApiResponse<Event[]>> {
-    const endpoint = clubId ? `/events/club?clubId=${encodeURIComponent(clubId)}` : '/events/club';
-    return this.request(endpoint);
+  /** `status` filters and sorts on the server (admin list tabs); omit it for every event. */
+  async getEventsByClub(clubId?: string, status?: 'upcoming' | 'active' | 'past' | 'cancelled'): Promise<ApiResponse<Event[]>> {
+    const query = new URLSearchParams();
+    if (clubId) query.set('clubId', clubId);
+    if (status) query.set('status', status);
+    const qs = query.toString();
+    return this.request(qs ? `/events/club?${qs}` : '/events/club');
   }
 
   async getClubEventRegistrations(

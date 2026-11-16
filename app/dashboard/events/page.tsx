@@ -84,7 +84,9 @@ function EventsPageContent() {
         setLoading(false)
         return
       }
-      const response = await apiClient.getEventsByClub(clubId)
+      // Time tab is filtered and sorted by the backend, same rules as the app.
+      const status = timeFilter === "live" ? "active" : timeFilter === "all" ? undefined : (timeFilter as "upcoming" | "past" | "cancelled")
+      const response = await apiClient.getEventsByClub(clubId, status)
 
       if (response.success && response.data) {
         // All listing types (events, contests, donation drives, drafts) share this table.
@@ -106,19 +108,6 @@ function EventsPageContent() {
           filteredEvents = filteredEvents.filter(event => {
             if (statusFilter === "draft" || statusFilter === "closed") return event.publishStatus === statusFilter
             return statusFilter === "active" ? event.isActive : !event.isActive
-          })
-        }
-
-        if (timeFilter !== "all") {
-          const now = new Date()
-          filteredEvents = filteredEvents.filter(event => {
-            // Open-ended donation drives have no start date: treat as live.
-            if (!event.startTime) return timeFilter === "live" && !event.endTime
-            const start = new Date(event.startTime)
-            const end = event.endTime ? new Date(event.endTime) : null
-            if (timeFilter === "upcoming") return start > now
-            if (timeFilter === "live") return start <= now && (!end || end > now)
-            return end ? end <= now : start < now
           })
         }
 
@@ -472,6 +461,7 @@ function EventsPageContent() {
                     <SelectItem value="upcoming">Upcoming</SelectItem>
                     <SelectItem value="live">🔴 Live Now</SelectItem>
                     <SelectItem value="past">Past</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
