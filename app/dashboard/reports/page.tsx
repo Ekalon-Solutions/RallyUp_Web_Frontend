@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useClubSettings } from "@/hooks/useClubSettings"
 import Image from "next/image"
 import { toast } from "sonner"
 import { Download, Loader2, Shield } from "lucide-react"
@@ -57,7 +58,11 @@ export default function ReportsHubPage() {
   const { selectedClubId, setSelectedClubId, isSystemOwner } = useSystemOwnerReportScope()
   const activeClubId = isSystemOwner ? selectedClubId : clubId
   const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
-  const clubLogo = getAccessibleClub(activeClubId ?? "", useAccessibleClubs())?.logo
+  const { settings: clubSettings } = useClubSettings(activeClubId ?? null)
+  // Club logos live in design settings (same source as the sidebar); club.logo is usually empty.
+  const clubLogo =
+    (clubSettings as any)?.designSettings?.logo ||
+    getAccessibleClub(activeClubId ?? "", useAccessibleClubs())?.logo
 
   const effectiveRole = getEffectiveAdminRole(user, activeClubId)
   const canViewReportsHub = ["admin", "super_admin", "system_owner"].includes(effectiveRole)
