@@ -60,9 +60,10 @@ export default function ReportsHubPage() {
   const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
   const { settings: clubSettings } = useClubSettings(activeClubId ?? null)
   // Club logos live in design settings (same source as the sidebar); club.logo is usually empty.
+  const accessibleClubs = useAccessibleClubs()
   const clubLogo =
     (clubSettings as any)?.designSettings?.logo ||
-    getAccessibleClub(activeClubId ?? "", useAccessibleClubs())?.logo
+    getAccessibleClub(activeClubId ?? "", accessibleClubs)?.logo
 
   const effectiveRole = getEffectiveAdminRole(user, activeClubId)
   const canViewReportsHub = ["admin", "super_admin", "system_owner"].includes(effectiveRole)
