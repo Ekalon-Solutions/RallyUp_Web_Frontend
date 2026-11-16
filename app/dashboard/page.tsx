@@ -107,7 +107,7 @@ export default function DashboardPage() {
           new Date(event.startTime || event.date) >= new Date()
         ).length
 
-        const orderStatsResponse = await apiClient.getOrderStats()
+        const orderStatsResponse = await apiClient.getOrderStats(clubId)
         const orderStatsBody = orderStatsResponse.success ? (orderStatsResponse.data as any) : null
         const orderStatsOverview = orderStatsBody?.data?.overview ?? orderStatsBody?.overview ?? orderStatsBody
 

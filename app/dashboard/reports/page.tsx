@@ -58,7 +58,7 @@ export default function ReportsHubPage() {
   const { selectedClubId, setSelectedClubId, isSystemOwner } = useSystemOwnerReportScope()
   const activeClubId = isSystemOwner ? selectedClubId : clubId
   const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
-  const { settings: clubSettings } = useClubSettings(activeClubId ?? null)
+  const { settings: clubSettings } = useClubSettings(activeClubId ?? undefined)
   // Club logos live in design settings (same source as the sidebar); club.logo is usually empty.
   const accessibleClubs = useAccessibleClubs()
   const clubLogo =

@@ -7032,14 +7032,14 @@ class ApiClient {
     return this.request(`/clubs/${clubId}/stats`);
   }
 
-  async getOrderStats(): Promise<ApiResponse<{
+  async getOrderStats(clubId?: string): Promise<ApiResponse<{
     totalRevenue: number;
     totalOrders: number;
     pendingOrders: number;
     completedOrders: number;
     cancelledOrders: number;
   }>> {
-    return this.request('/orders/admin/stats');
+    return this.request(clubId ? `/orders/admin/stats?clubId=${encodeURIComponent(clubId)}` : '/orders/admin/stats');
   }
 
   async getPublicGalleryAlbums(clubId: string): Promise<ApiResponse<{ albums: Album[] }>> {
