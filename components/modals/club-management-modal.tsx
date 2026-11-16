@@ -12,20 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Building, Settings, Users, Mail, Phone, Globe, MapPin, Save, Edit, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
-import { auth } from "@/lib/firebase/config"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
-
-const setupRecaptcha = () => {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-club-delete', {
-      'size': 'invisible',
-    });
-  }
-  return window.recaptchaVerifier
-}
 
 interface Club {
   _id: string
@@ -63,6 +52,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
   const [isEditing, setIsEditing] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
+  const [otpToken, setOtpToken] = useState<string | null>(null)
   const [otp, setOtp] = useState("")
   const [resendCountdown, setResendCountdown] = useState(0)
   const [formData, setFormData] = useState({
@@ -141,31 +131,18 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
     }
   }, [resendCountdown])
 
+  // The backend generates, delivers and verifies this OTP itself (POST /auth/otp-generate →
+  // POST /clubs/delete with otpToken + otp); a browser-only OTP proves nothing to the server.
   const handleSendOTP = async () => {
     if (!user || !club) return
-
-    const phoneNumber = (user as any).phoneNumber || (user as any).phoneNumber
-    const countryCode = (user as any).countryCode || '+91'
-
-    if (!phoneNumber || phoneNumber.trim() === '') {
-      const userType = (user as any).role === 'system_owner' ? 'system owner' : 'admin'
-      toast.error(`Phone number not found in your ${userType} profile. Please update your profile with a phone number to delete clubs.`)
-      return
-    }
-
-    if (!countryCode || countryCode.trim() === '') {
-      toast.error("Country code not found. Please update your profile with a valid country code.")
-      return
-    }
-
-    const fullPhoneNumber = `${countryCode}${phoneNumber}`
-
     try {
-      const recaptchaVerifier = setupRecaptcha()
-      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, recaptchaVerifier)
-
-      window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${fullPhoneNumber}`)
+      const resp = await apiClient.generateClubDeletionOTP({ clubId: club._id, action: 'delete' })
+      if (!resp.success || !resp.data?.otpToken) {
+        toast.error(resp.error || "Failed to send OTP. Please try again.")
+        return
+      }
+      setOtpToken(resp.data.otpToken)
+      toast.success(resp.data.message || "OTP sent to your registered email and phone")
       setOtpSent(true)
       setResendCountdown(10)
     } catch (error) {
@@ -178,29 +155,25 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
       toast.error("Please enter the OTP")
       return
     }
+    if (!otpToken) {
+      toast.error("Please request an OTP first")
+      return
+    }
 
     try {
       setLoading(true)
-      const confirmationResult = window.confirmationResult
-      if (!confirmationResult) {
-        toast.error("Please request an OTP first")
-        return
-      }
-      const firebaseResult = await confirmationResult.confirm(otp)
+      const response = await apiClient.deleteClubWithOTP({ clubId: club._id, otpToken, otp })
 
-      if (firebaseResult.user) {
-        const response = await apiClient.deleteClub(club._id)
-
-        if (response.success) {
-          toast.success("Club deleted successfully!")
-          setIsDeleteDialogOpen(false)
-          setOtpSent(false)
-          setOtp("")
-          onClose()
-          onClubUpdated?.()
-        } else {
-          toast.error(response.error || "Failed to delete club")
-        }
+      if (response.success) {
+        toast.success("Club deleted successfully!")
+        setIsDeleteDialogOpen(false)
+        setOtpSent(false)
+        setOtpToken(null)
+        setOtp("")
+        onClose()
+        onClubUpdated?.()
+      } else {
+        toast.error(response.error || "Invalid OTP. Please try again.")
       }
     } catch (error) {
       toast.error("Invalid OTP. Please try again.")
@@ -617,7 +590,6 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
               </div>
             )}
           </div>
-          <div id="recaptcha-container-club-delete"></div>
           <DialogFooter>
             <Button
               type="button"

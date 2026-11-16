@@ -76,7 +76,7 @@ import { getModuleAccess } from "@/lib/adminPermissions"
 import { ClubFeaturesProvider } from "@/contexts/club-features-context"
 import { useFcmRegistration } from "@/hooks/useFcmRegistration"
 import { ChevronDown, ChevronRight } from "lucide-react"
-import { MessageSquare } from "lucide-react"
+import { MessageSquare, BadgePercent } from "lucide-react"
 
 const ROLE_LABELS: Record<string, string> = {
   member: 'Member',
@@ -147,6 +147,7 @@ const adminNavigation = [
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
+  { name: "Community Forum", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   // { name: "Logistics", href: "/dashboard/logistics", icon: Truck },
@@ -169,6 +170,7 @@ const systemOwnerNavigation = [
   { name: "Reporting & Analytics", href: "/dashboard/reports", icon: FileBarChart },
   { name: "Audit Logs", href: "/dashboard/admin-audit", icon: Shield },
   { name: "Billing Auditor", href: "/dashboard/billing-auditor", icon: Receipt },
+  { name: "Fee Waiver Codes", href: "/dashboard/fee-waivers", icon: BadgePercent },
   { name: "WhatsApp / AiSensy", href: "/dashboard/whatsapp-config", icon: MessageSquare },
   { name: "WhatsApp Opt-in Log", href: "/dashboard/whatsapp-marketing-logs", icon: MessageSquare },
   { name: "WhatsApp Billing", href: "/dashboard/whatsapp-billing", icon: Receipt },
@@ -190,6 +192,7 @@ const superAdminNavigation = [
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
+  { name: "Community Forum", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   // { name: "Logistics", href: "/dashboard/logistics", icon: Truck },
@@ -211,6 +214,7 @@ const userNavigation = [
   { name: "Wingman Predictor", href: "/dashboard/user/guess-the-score", icon: Trophy },
   { name: "Gallery", href: "/dashboard/user/gallery", icon: Images },
   { name: "Club Chants", href: "/dashboard/user/chants", icon: Music },
+  { name: "Community Forum", href: "/dashboard/user/forum", icon: MessageSquare },
   { name: "Leaderboard", href: "/dashboard/user/leaderboard", icon: ChartNoAxesColumn },
   { name: "Merchandise", href: "/merchandise", icon: Shirt },
   { name: "External Ticketing", href: "/dashboard/user/external-ticketing", icon: ExternalLink },
@@ -225,6 +229,17 @@ const userNavigation = [
   { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },
   { name: "My Profile", href: "/dashboard/user/profile", icon: User },
 ]
+
+const FORUM_HREF = "/dashboard/forum"
+const FORUM_SUBNAV = [
+  { name: "Discussions", href: FORUM_HREF },
+  { name: "Moderation Queue", href: `${FORUM_HREF}/moderation` },
+  { name: "Sub-topics", href: `${FORUM_HREF}/sub-topics` },
+  { name: "Forum Settings", href: `${FORUM_HREF}/settings` },
+]
+// Discussions also owns thread detail pages (/dashboard/forum/<id>).
+const forumSubActive = (pathname: string, href: string) =>
+  href === FORUM_HREF ? !FORUM_SUBNAV.slice(1).some((x) => pathname.startsWith(x.href)) : pathname.startsWith(href)
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -274,13 +289,14 @@ function DashboardSidebar({
   const activeRowClass = (href: string) =>
     cn(
       "flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative w-full text-left",
-      pathname === href
+      (href === FORUM_HREF ? pathname.startsWith(href) : pathname === href)
         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]"
         : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:translate-x-1",
     )
 
+  // Fill the parent: a fixed w-72 overflowed the desktop wrapper (w-72 incl. its border-r) and painted over the border.
   return (
-    <div className={cn("flex flex-col h-full min-h-0 bg-card", mobile ? "w-full max-w-full" : "w-72")}>
+    <div className="flex flex-col h-full min-h-0 w-full max-w-full bg-background">
       <Link href="/" className="flex items-center gap-2 h-14 sm:h-16 p-2 border-b hover:opacity-90 transition-opacity shrink-0">
         <div className="relative w-9 h-9 sm:w-10 sm:h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5 shrink-0">
           <Image
@@ -299,25 +315,43 @@ function DashboardSidebar({
 
       <nav className="flex-1 p-3 sm:p-6 space-y-1.5 overflow-y-auto overscroll-y-contain custom-scrollbar min-h-0">
         {/* ── Active / enabled nav items ─────────────────────── */}
-        {navigation.map((item) => (
+        {navigation.map((item) => {
+          const forumOpen = item.href === FORUM_HREF && pathname.startsWith(FORUM_HREF)
+          const rowActive = item.href === FORUM_HREF ? forumOpen : pathname === item.href
+          return (
+          <Fragment key={item.name}>
           <Link
-            key={item.name}
             href={item.href}
             className={activeRowClass(item.href)}
             onClick={() => mobile && onCloseMobile?.()}
           >
             <item.icon className={cn(
               "w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
-              pathname === item.href
+              rowActive
                 ? "text-primary-foreground"
                 : "text-muted-foreground group-hover:text-primary"
             )} />
             <span className="truncate flex-1">{item.name}</span>
-            {pathname === item.href && (
+            {rowActive && (
               <div className="absolute left-0 w-1 h-6 bg-primary-foreground rounded-r-full my-auto inset-y-0" />
             )}
           </Link>
-        ))}
+          {forumOpen && FORUM_SUBNAV.map((sub) => (
+            <Link
+              key={sub.href}
+              href={sub.href}
+              onClick={() => mobile && onCloseMobile?.()}
+              className={cn(
+                "block rounded-xl py-2.5 pl-12 pr-4 text-sm font-semibold transition-colors",
+                forumSubActive(pathname, sub.href) ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+              )}
+            >
+              {sub.name}
+            </Link>
+          ))}
+          </Fragment>
+          )
+        })}
 
         {/* ── Available Add-ons ──────────────────────────────── */}
         {addOnNavigation.length > 0 && (
@@ -938,6 +972,9 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
         }
         if (item.name === 'Club Chants') {
           return canShowSection('chants')
+        }
+        if (item.name === 'Community Forum') {
+          return memberEntitlementsKnown && isMemberFeatureEnabled('forum')
         }
         if (item.name === 'Members') {
           return canShowSection('members')

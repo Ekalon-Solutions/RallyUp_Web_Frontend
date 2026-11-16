@@ -12,6 +12,7 @@ import { getLogoDimensionPx } from '@/lib/membershipCardLogo';
 import { hasCustomProfilePicture, resolveProfilePictureUrl } from '@/lib/membershipCardProfile';
 import {
   CARD_BG_HEIGHT,
+  CARD_BG_SCRIM,
   CARD_BG_WIDTH,
   CARD_FIELD_LABELS,
   CardFieldKey,
@@ -275,7 +276,8 @@ export function MembershipCard({
           aspectRatio: `${CARD_BG_WIDTH} / ${CARD_BG_HEIGHT}`,
           containerType: 'inline-size',
           backgroundColor: '#000000',
-          backgroundImage: backgroundImage ? `url("${backgroundImage}")` : undefined,
+          // Scrim keeps text legible on bright/busy images (WCAG 1.4.3).
+          backgroundImage: backgroundImage ? `linear-gradient(${CARD_BG_SCRIM}, ${CARD_BG_SCRIM}), url("${backgroundImage}")` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           color: fontColor,
@@ -283,6 +285,7 @@ export function MembershipCard({
           ...getFontFamilyStyle(),
         }}
       >
+        {backgroundImage && custom.backgroundAlt && <span className="sr-only">{custom.backgroundAlt}</span>}
         {!backgroundImage && isEditable && (
             <p
               style={{

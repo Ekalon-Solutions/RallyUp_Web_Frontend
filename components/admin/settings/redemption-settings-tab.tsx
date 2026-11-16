@@ -7,8 +7,12 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function RedemptionSettingsTab() {
+  // Point value is platform-wide; the backend only accepts changes from the system owner.
+  const { user } = useAuth()
+  const canEdit = (user as any)?.role === 'system_owner'
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<any>(null)
   const [onePointValue, setOnePointValue] = useState<number>(0)
@@ -91,6 +95,10 @@ export default function RedemptionSettingsTab() {
 
   return (
     <div className="space-y-6 p-2">
+      {!canEdit && (
+        <p className="text-sm text-muted-foreground">These settings apply to every club and can only be changed by the platform owner.</p>
+      )}
+      <fieldset disabled={!canEdit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border rounded p-4">
           <Label>Points per conversion</Label>
@@ -144,6 +152,7 @@ export default function RedemptionSettingsTab() {
         </div>
       </div>
 
+      {canEdit && (
       <div className="flex items-center gap-3">
         <Button onClick={() => handleSave(false)}>Save</Button>
         {confirming && (
@@ -153,6 +162,8 @@ export default function RedemptionSettingsTab() {
           </>
         )}
       </div>
+      )}
+      </fieldset>
     </div>
   )
 }

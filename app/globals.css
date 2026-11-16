@@ -42,7 +42,7 @@ input[type='number'] {
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 42.9 30.4% 95.5%; /* #F7F5F0 */
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
@@ -58,8 +58,8 @@ input[type='number'] {
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
+    --border: 41.5 16% 84.1%; /* #DDD9D0 */
+    --input: 41.5 16% 84.1%;
     --ring: 0 0% 3.9%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -67,7 +67,7 @@ input[type='number'] {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 42.9 30.4% 95.5%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
@@ -79,7 +79,7 @@ input[type='number'] {
     --success-foreground: 0 0% 100%;
   }
   .dark {
-    --background: 0 0% 3.9%;
+    --background: 0 0% 3.9%; /* #0A0A0A */
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
     --card-foreground: 0 0% 98%;
@@ -103,7 +103,7 @@ input[type='number'] {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
+    --sidebar-background: 0 0% 3.9%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -158,7 +158,7 @@ html.public-page.dark,
 
 html.dashboard-theme,
 .dashboard-theme {
-  --background: 0 0% 100%;
+  --background: 42.9 30.4% 95.5%; /* #F7F5F0 */
   --foreground: 0 0% 3.9%;
   --card: 0 0% 100%;
   --card-foreground: 0 0% 3.9%;
@@ -174,8 +174,8 @@ html.dashboard-theme,
   --accent-foreground: 0 0% 9%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 89.8%;
-  --input: 0 0% 89.8%;
+  --border: 41.5 16% 84.1%; /* #DDD9D0 */
+  --input: 41.5 16% 84.1%;
   --ring: 0 0% 3.9%;
   --chart-1: 12 76% 61%;
   --chart-2: 173 58% 39%;
@@ -183,7 +183,7 @@ html.dashboard-theme,
   --chart-4: 43 74% 66%;
   --chart-5: 27 87% 67%;
   --radius: 0.5rem;
-  --sidebar-background: 0 0% 98%;
+  --sidebar-background: 42.9 30.4% 95.5%;
   --sidebar-foreground: 240 5.3% 26.1%;
   --sidebar-primary: 240 5.9% 10%;
   --sidebar-primary-foreground: 0 0% 98%;
@@ -197,7 +197,7 @@ html.dashboard-theme,
 
 html.dashboard-theme.dark,
 .dark .dashboard-theme {
-  --background: 0 0% 3.9%;
+  --background: 0 0% 3.9%; /* #0A0A0A */
   --foreground: 0 0% 98%;
   --card: 0 0% 3.9%;
   --card-foreground: 0 0% 98%;
@@ -221,7 +221,7 @@ html.dashboard-theme.dark,
   --chart-3: 30 80% 55%;
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
-  --sidebar-background: 240 5.9% 10%;
+  --sidebar-background: 0 0% 3.9%;
   --sidebar-foreground: 240 4.8% 95.9%;
   --sidebar-primary: 224.3 76.3% 48%;
   --sidebar-primary-foreground: 0 0% 100%;
@@ -440,4 +440,19 @@ html.dashboard-theme.dark,
 
 .animate-fade-in {
   animation: fade-in 0.4s ease-out;
+}
+/* ─── Reporting & Analytics hub (app/dashboard/reports) ─────────────────── */
+.ra-scope {
+  --ra-bg: hsl(var(--background));
+  --ra-ink: #141414;
+  --ra-mid: #8E8B84;
+  --ra-soft: #D9D5CC;
+  --ra-line: rgba(20, 20, 20, 0.09);
+  --ra-accent: #E5252A;
+}
+.dark .ra-scope {
+  --ra-ink: #F2F2F2;
+  --ra-mid: #7A7A7A;
+  --ra-soft: #2A2A2A;
+  --ra-line: rgba(255, 255, 255, 0.1);
 }

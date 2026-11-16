@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sun, Moon, Menu, X } from "lucide-react"
 import { useTheme } from "next-themes"
-import { LoginModal } from "@/components/login-modal"
+import { LoginModal, getSafeRedirectPath } from "@/components/login-modal"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 
@@ -24,8 +24,8 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
   useEffect(() => {
     if (isLoading) return
     if (typeof window === "undefined") return
-    const redirect = new URLSearchParams(window.location.search).get("redirect")
-    if (!redirect?.startsWith("/") || redirect.startsWith("//")) return
+    const redirect = getSafeRedirectPath()
+    if (!redirect) return
     if (isAuthenticated) {
       router.replace(redirect)
       return

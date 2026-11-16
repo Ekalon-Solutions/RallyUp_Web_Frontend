@@ -130,7 +130,7 @@ export function DesignSettingsTab() {
     }
   }
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       if (!file.type.startsWith('image/')) {
@@ -138,17 +138,19 @@ export function DesignSettingsTab() {
         return
       }
 
-      if (file.size > 25 * 1024 * 1024) {
-        toast.error("File size must be less than 25MB")
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB")
         return
       }
 
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setSettings({ ...settings, logo: reader.result as string })
-        toast.success("Logo uploaded successfully")
+      // Audit L7: upload to storage and keep only the URL (no inline base64 in club settings).
+      const uploaded = await apiClient.uploadClubDesignImage(file, 'logo')
+      if (!uploaded.success || !uploaded.data?.url) {
+        toast.error(uploaded.message || "Logo upload failed")
+        return
       }
-      reader.readAsDataURL(file)
+      setSettings((prev) => ({ ...prev, logo: uploaded.data!.url }))
+      toast.success("Logo uploaded successfully")
     }
   }
 
@@ -325,7 +327,7 @@ export function DesignSettingsTab() {
                   className="cursor-pointer"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  PNG or JPG (max 2MB)
+                  PNG or JPG (max 5MB)
                 </p>
               </div>
             </div>

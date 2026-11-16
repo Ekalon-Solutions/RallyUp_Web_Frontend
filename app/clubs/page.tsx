@@ -58,6 +58,7 @@ import { cn } from "@/lib/utils"
 import { apiClient } from "@/lib/api"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/contexts/auth-context"
+import { formatMoney } from "@/lib/display-currency"
 
 interface Club {
   _id: string
@@ -765,12 +766,7 @@ function ClubsPageContent() {
     }
   }
 
-  const formatPrice = (price: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(price)
-  }
+  const formatPrice = (price: number, currency: string) => formatMoney(price, currency)
 
   const getPlanSalesState = (plan: MembershipPlan) => {
     const now = Date.now()

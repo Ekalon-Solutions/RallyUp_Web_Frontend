@@ -8,6 +8,7 @@ import {
 } from './clubFeatures';
 import type { PlanAttributes, PlanMemberDiscount } from './membershipPlanConfig';
 import type { BackgroundMode, FieldPositions } from './membershipCardFields';
+import type { ForumComment, ForumSettings, MemberOverview, ReactionRow, ReactionType, Report, SubTopic, Thread, ThreadPatch } from '../types/forum';
 
 const API_BASE_URL = getApiUrl('');
 
@@ -444,6 +445,8 @@ export interface User {
   city?: string;
   state_province?: string;
   zip_code?: string;
+  country?: string;
+  preferredCurrency?: string | null;
 
   club?: Club;
   membershipPlan?: string;
@@ -548,6 +551,7 @@ export interface Admin {
     start_date: string;
     end_date?: string;
   }>;
+  preferredCurrency?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -562,6 +566,7 @@ export interface SystemOwner {
   role: 'system_owner';
   isActive?: boolean;
   profilePicture?: string;
+  preferredCurrency?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -740,6 +745,8 @@ export interface EventVenue {
   _id: string;
   name: string;
   tiers: VenueTier[];
+  /** Set when an admin cancelled just this venue. */
+  cancelledAt?: string;
 }
 
 export interface VenueTierCartItem {
@@ -815,6 +822,64 @@ export interface LogisticsReportResult {
   courierStats: LogisticsCourierRow[];
 }
 
+export type ListingType = 'event' | 'activity' | 'donation';
+export type PublishStatus = 'draft' | 'published' | 'closed';
+
+export interface ActivityDetails {
+  mode: 'online' | 'offline';
+  onlineUrl?: string;
+  inclusions?: string[];
+  addOns?: { name: string; price: number }[];
+}
+
+export interface DonationDetails {
+  amountMode?: 'preset' | 'custom';
+  presetAmounts?: number[];
+  minAmount?: number;
+  waiverCode?: string;
+  waiverPercent?: number;
+  items?: { name: string; targetCount?: number }[];
+  dropOff?: {
+    atLocation: boolean;
+    locationAddress?: string;
+    atNextEvent: boolean;
+    clubPickup: boolean;
+    pickupArrangedBy?: 'club' | 'wingman';
+    pickupAddressId?: string;
+  };
+  deliverySlots?: { day: number; enabled: boolean; time?: string }[];
+  raisedAmount?: number;
+  donationCount?: number;
+}
+
+export interface DonationRecord {
+  _id: string;
+  eventId?: { _id: string; title: string } | null;
+  kind: 'monetary' | 'items';
+  donor: { name: string; email?: string; phone?: string };
+  isGuest: boolean;
+  amount?: number;
+  currency?: string;
+  items?: { name: string; quantity: number }[];
+  dropOffMethod?: 'location' | 'next_event' | 'pickup';
+  pickupAddress?: string;
+  preferredSlot?: { day: number; time?: string };
+  status: 'paid' | 'pledged';
+  createdAt: string;
+}
+
+export interface PlatformFeeWaiver {
+  _id: string;
+  code: string;
+  percentOff: number;
+  clubId?: { _id: string; name: string } | null;
+  maxUses?: number;
+  uses: number;
+  expiresAt?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface Event {
   eventDate: string;
   eventTime: string;
@@ -822,6 +887,13 @@ export interface Event {
   _id: string;
   title: string;
   category: string;
+  /** Missing on legacy documents = 'event'. */
+  listingType?: ListingType;
+  /** Missing on legacy documents = 'published'. */
+  publishStatus?: PublishStatus;
+  closedAt?: string;
+  activity?: ActivityDetails;
+  donation?: DonationDetails;
   startTime: string;
   endTime?: string;
   venue: string;
@@ -890,6 +962,13 @@ export interface Event {
   refund_cutoff_hours?: number;
   refundTiers?: { daysBefore: number; hoursBefore?: number; unit?: 'days' | 'hours'; refundPercentage: number }[];
   refundPolicyLastUpdated?: string;
+  /** Present once an admin has cancelled the venue/event. Irreversible. */
+  cancellation?: {
+    status: 'cancelled' | 'refunded';
+    cancelledAt: string;
+    reason?: string;
+    refundSummary?: { processed: number; failed: number; lastRunAt: string };
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -1085,6 +1164,8 @@ export interface MembershipCard {
 export interface MembershipCardImageCustomization {
   backgroundMode?: BackgroundMode;
   backgroundImage?: string;
+  /** Screen-reader description of the background image; empty = decorative. */
+  backgroundAlt?: string;
   fontColor?: string;
   showClubName?: boolean;
   showStatus?: boolean;
@@ -1677,11 +1758,20 @@ class ApiClient {
     });
   }
 
-  async verifyEmailOTP(params: { email: string; otp: string; role?: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
-    return this.request('/otp/verify-email-otp', {
+  async verifyEmailOTP(params: { email: string; otp: string; role?: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string; otpProof?: string } & (User | Admin | SystemOwner)>> {
+    const res = await this.request<{ token: string; otpProof?: string } & (User | Admin | SystemOwner)>('/otp/verify-email-otp', {
       method: 'POST',
       body: JSON.stringify(params),
     });
+    this.rememberOtpProof(res);
+    return res;
+  }
+
+  /** The backend's /login endpoints refuse to mint a session without this proof. */
+  private rememberOtpProof(res: ApiResponse<{ otpProof?: string }>): void {
+    if (res.success && res.data?.otpProof && typeof window !== 'undefined') {
+      window.otpProof = res.data.otpProof;
+    }
   }
 
   async verifyOTP(params: { 
@@ -1694,15 +1784,25 @@ class ApiClient {
   }): Promise<ApiResponse<{
     verified: boolean;
     token?: string;
+    otpProof?: string;
     channel?: string;
     idToken?: string;
     /** Present only when the backend issued a token; `userData.role` is the caller's real role. */
     userData?: { _id: string; name?: string; email?: string; phoneNumber?: string; countryCode?: string; role?: string };
   }>> {
-    return this.request('/otp/verify', {
+    const res = await this.request<{
+      verified: boolean;
+      token?: string;
+      otpProof?: string;
+      channel?: string;
+      idToken?: string;
+      userData?: { _id: string; name?: string; email?: string; phoneNumber?: string; countryCode?: string; role?: string };
+    }>('/otp/verify', {
       method: 'POST',
       body: JSON.stringify(params),
     });
+    this.rememberOtpProof(res);
+    return res;
   }
 
   async resendOTP(data: {
@@ -1736,10 +1836,16 @@ class ApiClient {
     otp: string;
     sessionInfo: string;
   }): Promise<ApiResponse<{ verified: boolean; channel?: string; guestToken?: string }>> {
-    return this.request('/otp/verify-phone/verify', {
+    const response = await this.request<{ verified: boolean; channel?: string; guestToken?: string }>('/otp/verify-phone/verify', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    if (response.success && response.data?.guestToken && typeof window !== 'undefined') {
+      sessionStorage.setItem('rallyup_guest_verification_token', response.data.guestToken);
+      sessionStorage.setItem('rallyup_guest_verified_phone', data.phoneNumber.replace(/\D/g, ''));
+      sessionStorage.setItem('rallyup_guest_verified_country_code', data.countryCode);
+    }
+    return response;
   }
 
   async resendGuestPhoneVerificationOTP(data: {
@@ -1927,6 +2033,7 @@ class ApiClient {
     state_province?: string;
     zip_code?: string;
     country?: string;
+    preferredCurrency?: string | null;
     club_member_id?: string;
     clubId?: string;
     emailChangeToken?: string;
@@ -1944,7 +2051,13 @@ class ApiClient {
     };
   }): Promise<ApiResponse<User>> {
     const userStr = localStorage.getItem('user');
-    const userRole = JSON.parse(userStr || "{}")?.role || localStorage.getItem('userType');
+    let storedRole: string | undefined;
+    try {
+      storedRole = userStr ? JSON.parse(userStr)?.role : undefined;
+    } catch {
+      localStorage.removeItem('user');
+    }
+    const userRole = storedRole || localStorage.getItem('userType');
     let endpoint = '/users/profile';
 
     if (userRole) {
@@ -2002,6 +2115,7 @@ class ApiClient {
     if (data.state_province !== undefined) backendData.state_province = data.state_province;
     if (data.zip_code !== undefined) backendData.zip_code = data.zip_code;
     if (data.country !== undefined) backendData.country = data.country;
+    if (data.preferredCurrency !== undefined) backendData.preferredCurrency = data.preferredCurrency;
 
     if (data.notificationPreferences !== undefined) {
       backendData.notificationPreferences = data.notificationPreferences;
@@ -2058,6 +2172,75 @@ class ApiClient {
       method: 'POST',
       body: formData,
     });
+  }
+
+  async getCurrencySession(params?: {
+    timezone?: string;
+    locale?: string;
+    preferred?: string;
+  }): Promise<import('./display-currency').DisplayCurrencySession> {
+    const { DEFAULT_DISPLAY_SESSION } = await import('./display-currency');
+    // Same-origin Vercel route; the backend can't see the visitor's geo header itself.
+    const ipCountry = await fetch('/api/geo')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d?.country || undefined)
+      .catch(() => undefined);
+    const res = await this.get<{
+      success?: boolean;
+      data?: {
+        currency: string;
+        locale: string;
+        source: import('./display-currency').CurrencySource;
+        country: string | null;
+        locked?: boolean;
+        rates: Record<string, number>;
+        ratesAsOf: string;
+        ratesSource: 'live' | 'fallback';
+        supported: import('./display-currency').SupportedCurrencyOption[];
+        collectableCurrencies?: string[];
+        chargeCurrency?: string;
+        fxMarkupPercent?: number;
+        fallbackNotice?: string | null;
+      };
+    }>('/currency/session', { params: { ...params, ipCountry } });
+    const payload = (res.data as any)?.data ?? res.data;
+    if (!res.success || !payload?.currency) {
+      return { ...DEFAULT_DISPLAY_SESSION };
+    }
+    return {
+      currency: payload.currency,
+      locale: payload.locale,
+      source: payload.source,
+      country: payload.country ?? null,
+      rates: payload.rates || DEFAULT_DISPLAY_SESSION.rates,
+      ratesAsOf: payload.ratesAsOf,
+      ratesSource: payload.ratesSource || 'fallback',
+      supported: payload.supported || DEFAULT_DISPLAY_SESSION.supported,
+      preferredCurrency: params?.preferred ?? null,
+      locked: Boolean(payload.locked),
+      collectableCurrencies: payload.collectableCurrencies || DEFAULT_DISPLAY_SESSION.collectableCurrencies,
+      chargeCurrency: payload.chargeCurrency || payload.currency,
+      fxMarkupPercent: payload.fxMarkupPercent ?? 1,
+      fallbackNotice: payload.fallbackNotice ?? null,
+    };
+  }
+
+  async setCurrencyPreference(currency: string | null): Promise<ApiResponse<{
+    preferredCurrency: string | null;
+    currency: string;
+    locale: string;
+    source: string;
+  }>> {
+    const res = await this.put<{ success?: boolean; data?: {
+      preferredCurrency: string | null;
+      currency: string;
+      locale: string;
+      source: string;
+    } }>('/currency/preference', { currency: currency ?? 'AUTO' });
+    if (res.success && (res.data as any)?.data) {
+      return { ...res, data: (res.data as any).data };
+    }
+    return res as any;
   }
 
   async getUserProfile(): Promise<ApiResponse<User & {
@@ -2279,9 +2462,13 @@ class ApiClient {
     return this.request('/events');
   }
 
-  async getEventsByClub(clubId?: string): Promise<ApiResponse<Event[]>> {
-    const endpoint = clubId ? `/events/club?clubId=${encodeURIComponent(clubId)}` : '/events/club';
-    return this.request(endpoint);
+  /** `status` filters and sorts on the server (admin list tabs); omit it for every event. */
+  async getEventsByClub(clubId?: string, status?: 'upcoming' | 'active' | 'past' | 'cancelled'): Promise<ApiResponse<Event[]>> {
+    const query = new URLSearchParams();
+    if (clubId) query.set('clubId', clubId);
+    if (status) query.set('status', status);
+    const qs = query.toString();
+    return this.request(qs ? `/events/club?${qs}` : '/events/club');
   }
 
   async getClubEventRegistrations(
@@ -2365,10 +2552,6 @@ class ApiClient {
     return this._normalizeResendResult(res);
   }
 
-  async resendEventTicketEmail(registrationId: string): Promise<ResendTicketResult> {
-    return this.resendEventTicketWhatsApp(registrationId);
-  }
-
   async cancelClubEventRegistration(
     registrationId: string,
     reason?: string,
@@ -2395,8 +2578,15 @@ class ApiClient {
     });
   }
 
-  async getPublicEvents(clubId?: string): Promise<ApiResponse<Event[]>> {
-    const endpoint = clubId ? `/events/public?clubId=${clubId}` : '/events/public';
+  async getPublicEvents(
+    clubId?: string,
+    options?: { includeHistory?: boolean }
+  ): Promise<ApiResponse<Event[]>> {
+    const params = new URLSearchParams();
+    if (clubId) params.set('clubId', clubId);
+    if (options?.includeHistory) params.set('includeHistory', 'true');
+    const query = params.toString();
+    const endpoint = query ? `/events/public?${query}` : '/events/public';
     return this.request(endpoint);
   }
 
@@ -2712,6 +2902,76 @@ class ApiClient {
     return this.request(`/events/${eventId}/refund-policy/history?limit=${limit}`);
   }
 
+  async cancelEvent(id: string, mode: 'cancel' | 'cancel_refund', reason?: string, venueIds?: string[], refundBasis: 'policy' | 'full' = 'policy'): Promise<ApiResponse<{
+    message: string;
+    data: { ticketsCancelled: number; pendingCancelled: number; urgent: boolean; venueIds: string[] | null; refunds: { processed: number; failed: number } | null; cancellation: Event['cancellation'] };
+  }>> {
+    return this.request(`/events/${id}/cancel`, { method: 'POST', body: JSON.stringify({ mode, reason, venueIds, refundBasis }) });
+  }
+
+  async refundAllEventTickets(id: string, refundBasis: 'policy' | 'full' = 'policy'): Promise<ApiResponse<{ message: string; data: { processed: number; failed: number; skipped: number; status: 'cancelled' | 'refunded' } }>> {
+    return this.request(`/events/${id}/refund-all`, { method: 'POST', body: JSON.stringify({ refundBasis }) });
+  }
+
+  async publishEvent(id: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.patch(`/events/${id}/publish`)
+  }
+
+  async closeEvent(id: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.patch(`/events/${id}/close`)
+  }
+
+  // ---- Donations ----
+
+  async getDonationConfig(clubId: string, eventId?: string): Promise<ApiResponse<{
+    clubName: string; kind: 'monetary' | 'items'; currency: string; minAmount: number; presetAmounts: number[]
+    feeHandlingType?: 'pass_to_buyer' | 'absorb'; platformFeePercent?: number
+  }>> {
+    return this.get(`/donations/public/${clubId}/config`, { params: eventId ? { eventId } : undefined })
+  }
+
+  async createDonationOrder(payload: {
+    clubId: string; eventId?: string; amount: number; donor: { name?: string; email?: string; phone?: string }
+  }): Promise<ApiResponse<{ donationId: string; razorpayOrderId: string; keyId: string; amount: number; currency: string; clubName: string }>> {
+    return this.post('/donations/order', payload)
+  }
+
+  async verifyDonation(payload: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }): Promise<ApiResponse<{ success: boolean; donationId: string; amount: number; currency: string }>> {
+    return this.post('/donations/verify', payload)
+  }
+
+  async getDonationStatus(donationId: string): Promise<ApiResponse<{ status: 'pending' | 'paid' | 'pledged' | 'cancelled'; amount?: number; currency?: string }>> {
+    return this.get(`/donations/status/${donationId}`)
+  }
+
+  async createItemPledge(payload: {
+    clubId: string; eventId: string; items: { name: string; quantity: number }[];
+    dropOffMethod: 'location' | 'next_event' | 'pickup'; pickupAddress?: string;
+    preferredSlot?: { day: number }; donor: { name?: string; email?: string; phone?: string }
+  }): Promise<ApiResponse<{ success: boolean; pledgeId: string }>> {
+    return this.post('/donations/pledge', payload)
+  }
+
+  async getClubDonations(clubId: string, eventId?: string): Promise<ApiResponse<{ donations: DonationRecord[]; totalRaised: number; count: number }>> {
+    return this.get('/donations/club', { params: { clubId, ...(eventId ? { eventId } : {}) } })
+  }
+
+  async validateFeeWaiver(code: string, clubId?: string): Promise<ApiResponse<{ code: string; percentOff: number }>> {
+    return this.get('/donations/waivers/validate', { params: { code, ...(clubId ? { clubId } : {}) } })
+  }
+
+  async getFeeWaivers(): Promise<ApiResponse<PlatformFeeWaiver[]>> {
+    return this.get('/donations/waivers')
+  }
+
+  async createFeeWaiver(payload: { code: string; percentOff: number; clubId?: string; maxUses?: number; expiresAt?: string }): Promise<ApiResponse<PlatformFeeWaiver>> {
+    return this.post('/donations/waivers', payload)
+  }
+
+  async setFeeWaiverActive(id: string, isActive: boolean): Promise<ApiResponse<PlatformFeeWaiver>> {
+    return this.patch(`/donations/waivers/${id}`, { isActive })
+  }
+
   async toggleEventStatus(id: string, isActive: boolean): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}/toggle-status`, {
       method: 'PATCH',
@@ -2751,6 +3011,7 @@ class ApiClient {
   }
 
   async createPendingRegistration(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     attendees?: Array<{ name: string; phone: string }>;
     couponCode?: string | null;
     razorpayOrderId: string;
@@ -2770,6 +3031,7 @@ class ApiClient {
   }
 
   async createPendingPublicRegistration(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     registrantName: string;
     registrantEmail?: string;
     registrantPhone?: string;
@@ -2790,17 +3052,34 @@ class ApiClient {
     });
   }
 
-  async checkRazorpayOrder(razorpayOrderId: string): Promise<ApiResponse<{
+  async checkRazorpayOrder(
+    razorpayOrderId: string,
+    context?: {
+      orderId?: string;
+      eventId?: string;
+      registrationId?: string;
+      clubId?: string;
+      intent?: 'gallery_storage';
+    },
+  ): Promise<ApiResponse<{
     success?: boolean;
     razorpay_payment_id?: string;
     razorpay_order_id?: string;
     razorpay_signature?: string;
     status?: string;
     paymentStatus?: string;
+    error?: string;
   }>> {
     return this.request('/razorpay/check-order', {
       method: 'POST',
-      body: JSON.stringify({ razorpay_order_id: razorpayOrderId }),
+      body: JSON.stringify({
+        razorpay_order_id: razorpayOrderId,
+        ...(context?.orderId ? { orderId: context.orderId } : {}),
+        ...(context?.eventId ? { eventId: context.eventId } : {}),
+        ...(context?.registrationId ? { registrationId: context.registrationId } : {}),
+        ...(context?.clubId ? { clubId: context.clubId } : {}),
+        ...(context?.intent ? { intent: context.intent } : {}),
+      }),
     });
   }
 
@@ -2875,6 +3154,7 @@ class ApiClient {
   }
 
   async bookVenueTierMatrix(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     items: VenueTierCartItem[];
     attendees?: Array<{ name: string; phone: string }>;
     razorpayOrderId?: string;
@@ -2896,6 +3176,7 @@ class ApiClient {
   }
 
   async bookPublicVenueTierMatrix(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     guestEmail: string;
     items: VenueTierCartItem[];
     attendees?: Array<{ name: string; phone: string }>;
@@ -2917,6 +3198,7 @@ class ApiClient {
   }
 
   async createPendingVenueTierBooking(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     items: VenueTierCartItem[];
     attendees?: Array<{ name: string; phone: string }>;
     razorpayOrderId: string;
@@ -2936,6 +3218,7 @@ class ApiClient {
   }
 
   async createPendingPublicVenueTierBooking(eventId: string, data: {
+    addOns?: Array<{ name: string; quantity: number }>;
     guestEmail: string;
     guestName?: string;
     items: VenueTierCartItem[];
@@ -2956,9 +3239,10 @@ class ApiClient {
     });
   }
 
-  async createReservation(points: number, clubId: string, orderTotal?: number): Promise<ApiResponse<{ reservationToken: string; discountAmount?: number }>> {
-    const body: any = { points, clubId };
-    if (orderTotal !== undefined) body.orderTotal = Number(orderTotal);
+  async createReservation(points: number, clubId: string, _orderTotal?: number): Promise<ApiResponse<{ reservationToken: string; discountAmount?: number }>> {
+    // Purchase totals are server-authoritative. The legacy third argument is
+    // retained for call-site compatibility but is deliberately not transmitted.
+    const body = { points, clubId };
     return this.request('/points/reservations/create', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -3441,6 +3725,9 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        if (response.status === 401 && token && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+        }
         const text = await response.text();
         return { success: false, error: `HTTP ${response.status}: ${text}` };
       }
@@ -4160,9 +4447,6 @@ class ApiClient {
       isMember?: boolean;
       name?: string;
     }>(`/membership-plans/referral-check?${params.toString()}`);
-    if (res.success && res.data) {
-      return { ...res, data: (res.data as any).exists !== undefined ? res.data : (res.data as any) };
-    }
     return res;
   }
 
@@ -5027,7 +5311,7 @@ class ApiClient {
     );
   }
 
-  async verifyPhoneNumber(data: {}): Promise<ApiResponse<any>> {
+  async verifyPhoneNumber(data: { otpProof?: string }): Promise<ApiResponse<any>> {
     return this.request('/phone/verify', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -5327,7 +5611,8 @@ class ApiClient {
   async searchUsers(query: string): Promise<ApiResponse<User[]>> {
     const endpoint = `/users/search?q=${encodeURIComponent(query)}`;
     const response = await this.request<any>(endpoint);
-    const users = response.success ? (Array.isArray(response.data) ? response.data : []) : [];
+    const payload = response.data?.data ?? response.data;
+    const users = response.success ? (Array.isArray(payload) ? payload : []) : [];
 
     return {
       success: response.success,
@@ -5942,6 +6227,39 @@ class ApiClient {
     return this.request(`/chants/club/${clubId}${query ? `?${query}` : ''}`);
   }
 
+  // ---- Community forum (member) ----
+  getForumOverview(clubId: string, sort: string) { return this.request<MemberOverview>(`/forum/member/club/${clubId}/overview?sort=${sort}`); }
+  getMemberForumThread(clubId: string, id: string) { return this.request<{ thread: Thread; comments: ForumComment[] }>(`/forum/member/club/${clubId}/threads/${id}`); }
+  createMemberForumThread(clubId: string, data: { title: string; body: string; files: File[] }) {
+    const fd = new FormData();
+    fd.append('title', data.title); fd.append('body', data.body);
+    data.files.forEach((f) => fd.append('files', f));
+    return this.post<Thread>(`/forum/member/club/${clubId}/threads`, fd);
+  }
+  addMemberForumComment(clubId: string, threadId: string, data: { body: string; parentId?: string | null }) { return this.post(`/forum/member/club/${clubId}/threads/${threadId}/comments`, data); }
+  editMemberForumComment(clubId: string, id: string, body: string) { return this.put(`/forum/member/club/${clubId}/comments/${id}`, { body }); }
+  deleteMemberForumComment(clubId: string, id: string) { return this.delete(`/forum/member/club/${clubId}/comments/${id}`); }
+  reactForum(clubId: string, targetType: 'thread' | 'comment', targetId: string, type: ReactionType) { return this.post(`/forum/member/club/${clubId}/react`, { targetType, targetId, type }); }
+  getForumReactions(clubId: string, targetId: string) { return this.request<{ reactions: ReactionRow[] }>(`/forum/member/club/${clubId}/reactions/${targetId}`); }
+  toggleForumFavorite(clubId: string, threadId: string) { return this.post(`/forum/member/club/${clubId}/threads/${threadId}/favorite`); }
+  reportForumComment(clubId: string, commentId: string, reason: string) { return this.post(`/forum/club/${clubId}/comments/${commentId}/report`, { reason }); }
+
+  // ---- Community forum (admin) ----
+  getForumSettings(clubId: string) { return this.request<ForumSettings>(`/forum/club/${clubId}/settings`); }
+  saveForumSettings(clubId: string, data: Partial<ForumSettings>) { return this.put<ForumSettings>(`/forum/club/${clubId}/settings`, data); }
+  getForumSubTopics(clubId: string) { return this.request<{ subTopics: SubTopic[] }>(`/forum/club/${clubId}/sub-topics`); }
+  createForumSubTopic(clubId: string, data: { name: string; description?: string; archived?: boolean }) { return this.post(`/forum/club/${clubId}/sub-topics`, data); }
+  updateForumSubTopic(clubId: string, id: string, data: { name?: string; description?: string; archived?: boolean }) { return this.put(`/forum/club/${clubId}/sub-topics/${id}`, data); }
+  getForumThreads(clubId: string) { return this.request<{ threads: Thread[] }>(`/forum/club/${clubId}/threads`); }
+  createForumThread(clubId: string, data: { title: string; body: string; subTopicId: string; pinned: boolean }) { return this.post<Thread>(`/forum/club/${clubId}/threads`, data); }
+  getForumThread(clubId: string, id: string) { return this.request<{ thread: Thread; comments: ForumComment[] }>(`/forum/club/${clubId}/threads/${id}`); }
+  updateForumThread(clubId: string, id: string, data: ThreadPatch) { return this.patch<Thread>(`/forum/club/${clubId}/threads/${id}`, data); }
+  deleteForumThread(clubId: string, id: string) { return this.delete(`/forum/club/${clubId}/threads/${id}`); }
+  addForumComment(clubId: string, threadId: string, data: { body: string; parentId?: string | null }) { return this.post<ForumComment>(`/forum/club/${clubId}/threads/${threadId}/comments`, data); }
+  removeForumComment(clubId: string, commentId: string) { return this.delete(`/forum/club/${clubId}/comments/${commentId}`); }
+  getForumReports(clubId: string) { return this.request<{ reports: Report[] }>(`/forum/club/${clubId}/reports`); }
+  resolveForumReport(clubId: string, commentId: string, data: { action: 'keep' | 'remove'; note?: string }) { return this.post(`/forum/club/${clubId}/reports/${commentId}/resolve`, data); }
+
   async getChantById(id: string): Promise<ApiResponse<Chant>> {
     return this.request(`/chants/${id}`);
   }
@@ -6323,6 +6641,15 @@ class ApiClient {
     return this.post('/support-tickets', data);
   }
 
+  async createContactInquiry(data: {
+    name: string;
+    email: string;
+    topic: string;
+    message: string;
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.post('/contact-inquiries', data);
+  }
+
   async searchSportsTeams(clubId: string, q: string): Promise<ApiResponse<any[]>> {
     return this.get(`/club-settings/${clubId}/sports/search`, { params: { q } });
   }
@@ -6442,9 +6769,10 @@ class ApiClient {
     const payload = typeof optsOrEventId === 'object' && optsOrEventId !== null
       ? { code, ...optsOrEventId }
       : { code, eventId: optsOrEventId, ticketPrice, clubId, purchaseType };
+    const proof = 'phone' in payload && payload.phone ? this.guestPhoneProof(payload.phone) : {};
     return this.request('/coupons/validate', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, ...proof }),
     });
   }
 
@@ -6462,6 +6790,7 @@ class ApiClient {
     cartSubtotal?: number;
     eventId?: string;
     purchaseType?: 'membership';
+    countryCode?: string;
   }): Promise<ApiResponse<{
     coupon: {
       /** Absent for plan-based discounts — there is no code to type in. */
@@ -6477,8 +6806,21 @@ class ApiClient {
   }>> {
     return this.request('/coupons/highest-eligible', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, ...this.guestPhoneProof(data.phone, data.countryCode) }),
     });
+  }
+
+  /** OTP-signed guest token for `phone`, only when it is the phone this browser verified. */
+  private guestPhoneProof(phone?: string, countryCode?: string): { countryCode?: string; guestVerificationToken: string | null } {
+    if (typeof window === 'undefined') return { countryCode, guestVerificationToken: null };
+    const verifiedPhone = sessionStorage.getItem('rallyup_guest_verified_phone');
+    const suppliedPhone = phone?.replace(/\D/g, '');
+    return {
+      countryCode: sessionStorage.getItem('rallyup_guest_verified_country_code') || countryCode,
+      guestVerificationToken: verifiedPhone && suppliedPhone === verifiedPhone
+        ? sessionStorage.getItem('rallyup_guest_verification_token')
+        : null,
+    };
   }
 
   async getCouponStats(id: string, clubId?: string): Promise<ApiResponse<any>> {
@@ -6577,6 +6919,8 @@ class ApiClient {
     limit?: number;
     status?: string;
     clubId?: string;
+    eventId?: string;
+    q?: string;
   }): Promise<ApiResponse<{
     refunds: any[];
     pagination: {
@@ -6772,10 +7116,10 @@ class ApiClient {
     storageGb: number;
     autoRenew?: boolean;
     clubId?: string;
-    razorpay_payment_id?: string;
-    razorpay_order_id?: string;
-    razorpay_subscription_id?: string;
-    razorpay_signature?: string;
+    razorpayPaymentId?: string;
+    razorpayOrderId?: string;
+    razorpaySubscriptionId?: string;
+    razorpaySignature?: string;
   }): Promise<ApiResponse<any>> {
     return this.request('/gallery/storage/upgrade', {
       method: 'POST',
@@ -7302,6 +7646,20 @@ class ApiClient {
     const formData = new FormData()
     formData.append("image", file)
     return this.request('/upload/logo', { method: 'POST', body: formData })
+  }
+
+  /** Server re-encodes to a 1012×638 sRGB JPEG (EXIF applied + stripped). */
+  async uploadMembershipCardBackground(file: File): Promise<ApiResponse<{ url: string; filename: string }>> {
+    const formData = new FormData()
+    formData.append("image", file)
+    return this.request('/upload/card-background', { method: 'POST', body: formData })
+  }
+
+  /** Club logo / hero image → storage URL (audit L7: never store these as data: URLs). */
+  async uploadClubDesignImage(file: Blob, kind: 'logo' | 'hero-image'): Promise<ApiResponse<{ url: string; filename: string }>> {
+    const formData = new FormData()
+    formData.append("image", file, file instanceof File ? file.name : `${kind}.jpg`)
+    return this.request(`/upload/${kind}`, { method: 'POST', body: formData })
   }
 
   async uploadWhatsAppHeaderImage(

@@ -279,13 +279,8 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,19
         const rawIdProofType = (row.id_proof_type || row['ID Proof Type'] || 'Aadhar').trim()
         const rawGender = (row.gender || row.Gender || 'male').trim()
 
-        let zip_code = (row.zip_code || row.zip || row.zipCode || row['Zip Code'] || '').trim()
-        if (/^[a-zA-Z\s]+$/.test(zip_code) && zip_code.length > 5) {
-          zip_code = '000000'
-        }
-        if (zip_code.length > 10) {
-          zip_code = zip_code.substring(0, 10)
-        }
+        // Keep the ZIP as given; the per-row validation below rejects bad ones.
+        const zip_code = (row.zip_code || row.zip || row.zipCode || row['Zip Code'] || '').trim()
 
         const rawDob = (row.date_of_birth || row.date_of_bi || row['Date of Birth'] || '1990-01-01').trim()
         let date_of_birth = '1990-01-01'

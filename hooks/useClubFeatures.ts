@@ -94,14 +94,8 @@ export function useClubFeatures(
   }, []);
 
   const loadFromCacheWithFallback = useCallback(async (id: string) => {
-    const { config: cached, expired, tampered } = await readFeatureCache(id);
+    const { config: cached, expired } = await readFeatureCache(id);
     if (clubIdRef.current && String(id) !== String(clubIdRef.current)) return;
-
-    if (tampered) {
-      console.warn('[features] Tampered cache detected for club', id, '— using locked safe state');
-      applyConfig(lockedSafeConfig(id));
-      return;
-    }
 
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 

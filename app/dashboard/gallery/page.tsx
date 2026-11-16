@@ -345,11 +345,15 @@ export default function GalleryManagementPage() {
   }, [])
 
   useEffect(() => {
-    fetch("/api/razorpay/plans")
+    if (!clubId) return
+    const token = localStorage.getItem('token')
+    fetch(`/api/razorpay/plans?clubId=${encodeURIComponent(clubId)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
       .then((r) => r.json())
       .then((d) => { if (d.plans) setRazorpayPlans(d.plans) })
       .catch(() => {})
-  }, [])
+  }, [clubId])
 
   const loadData = async () => {
     try {
@@ -607,11 +611,11 @@ export default function GalleryManagementPage() {
       storageGb,
       autoRenew: addonAutoRenew,
       clubId: clubId || undefined,
-      razorpay_payment_id: paymentId,
-      razorpay_order_id: razorpayOrderId,
-      razorpay_subscription_id: razorpaySubscriptionId,
-      razorpay_signature: signature,
-    } as any)
+      razorpayPaymentId: paymentId,
+      razorpayOrderId,
+      razorpaySubscriptionId,
+      razorpaySignature: signature,
+    })
     if (!res.success) throw new Error(res.error || "Failed to activate storage")
     toast.success(`${storageGb} GB storage add-on activated (${BILLING_LABELS[plan]})`)
     await loadData()
@@ -643,7 +647,10 @@ export default function GalleryManagementPage() {
     try {
       const subRes = await fetch("/api/razorpay/create-subscription", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}),
+        },
         body: JSON.stringify({ planId: matchedPlan.id, billingCycle: plan, storageGb, clubId }),
       })
       const subData = await subRes.json()

@@ -6,7 +6,10 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3 } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3, XOctagon, RotateCcw, ChevronDown, Send, Lock, HandHeart, Ticket, Award } from "lucide-react"
+import Link from "next/link"
+import { listingEditHref, listingPublicHref, listingTypeLabel, listingTypeOf } from "@/lib/listings"
+import { money } from "@/components/listings/listing-preview"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
@@ -16,10 +19,10 @@ import { eventVariantUrl } from "@/lib/eventImageCache"
 import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useAdminModulePermission } from "@/hooks/useAdminModulePermission"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
@@ -27,11 +30,12 @@ import { formatEventPriceDisplay, isEventPaid, getEventVenueDisplay, hasVenueTie
 import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus } from "@/lib/event-registration"
 import { RefundPolicyToggle } from "@/components/admin/refund-policy-toggle"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
+import { EventCancelDialog, EventCancelIntent } from "@/components/admin/event-cancel-dialog"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
 import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
 
-export default function EventsPage() {
+function EventsPageContent() {
   const router = useRouter()
   const { isAdmin, user } = useAuth()
   const { canEdit: canEditEvents } = useAdminModulePermission('events')
@@ -43,6 +47,10 @@ export default function EventsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [timeFilter, setTimeFilter] = useState<string>("all")
+  const searchParams = useSearchParams()
+  // ponytail: tab UI removed; ?tab=listings still deep-links from the activity/donation wizards
+  const [tab] = useState<"events" | "listings">(searchParams.get("tab") === "listings" ? "listings" : "events")
+  const [clubSlug, setClubSlug] = useState<string | null>(null)
 
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -52,13 +60,21 @@ export default function EventsPage() {
   const [showPolicyImpactDialog, setShowPolicyImpactDialog] = useState(false)
   const [pendingPolicyChange, setPendingPolicyChange] = useState<{ eventId: string; newPolicy: boolean; reason: string } | null>(null)
   const [policyChangeLoading, setPolicyChangeLoading] = useState(false)
+  const [cancelTarget, setCancelTarget] = useState<{ event: Event; intent: EventCancelIntent } | null>(null)
+  const [cancelLoading, setCancelLoading] = useState(false)
 
   useEffect(() => {
     fetchEvents()
     if (user && !isAdmin) {
       fetchUserRegistrations()
     }
-  }, [searchTerm, categoryFilter, statusFilter, timeFilter, user, isAdmin, clubId])
+  }, [searchTerm, categoryFilter, statusFilter, timeFilter, user, isAdmin, clubId, tab])
+
+  useEffect(() => {
+    if (!clubId) return
+    // Public endpoint: the authed one 403s for admins whose club access isn't on `club`/`clubs`.
+    apiClient.getClubById(clubId, true).then((res) => setClubSlug(res.data?.slug ?? null))
+  }, [clubId])
 
   const fetchEvents = async () => {
     try {
@@ -68,16 +84,19 @@ export default function EventsPage() {
         setLoading(false)
         return
       }
-      const response = await apiClient.getEventsByClub(clubId)
+      // Time tab is filtered and sorted by the backend, same rules as the app.
+      const status = timeFilter === "live" ? "active" : timeFilter === "all" ? undefined : (timeFilter as "upcoming" | "past" | "cancelled")
+      const response = await apiClient.getEventsByClub(clubId, status)
 
       if (response.success && response.data) {
+        // All listing types (events, contests, donation drives, drafts) share this table.
         let filteredEvents = response.data
 
         if (searchTerm) {
           filteredEvents = filteredEvents.filter(event =>
             event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            getEventVenueDisplay(event).toLowerCase().includes(searchTerm.toLowerCase())
+            (event.venue ? getEventVenueDisplay(event) : "").toLowerCase().includes(searchTerm.toLowerCase())
           )
         }
 
@@ -86,19 +105,9 @@ export default function EventsPage() {
         }
 
         if (statusFilter !== "all") {
-          filteredEvents = filteredEvents.filter(event =>
-            statusFilter === "active" ? event.isActive : !event.isActive
-          )
-        }
-
-        if (timeFilter !== "all") {
-          const now = new Date()
           filteredEvents = filteredEvents.filter(event => {
-            const start = new Date(event.startTime)
-            const end = event.endTime ? new Date(event.endTime) : null
-            if (timeFilter === "upcoming") return start > now
-            if (timeFilter === "live") return start <= now && (!end || end > now)
-            return end ? end <= now : start < now
+            if (statusFilter === "draft" || statusFilter === "closed") return event.publishStatus === statusFilter
+            return statusFilter === "active" ? event.isActive : !event.isActive
           })
         }
 
@@ -129,7 +138,6 @@ export default function EventsPage() {
   }
 
   const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm("Are you sure you want to delete this event?")) return
     try {
       const response = await apiClient.deleteEvent(eventId)
       if (response.success) {
@@ -143,6 +151,61 @@ export default function EventsPage() {
     } catch {
       toast.error("Error deleting event")
     }
+  }
+
+  const handleCancelEvent = async (event: Event, mode: 'cancel' | 'cancel_refund', reason?: string, venueIds?: string[], refundBasis: 'policy' | 'full' = 'policy') => {
+    try {
+      const response = await apiClient.cancelEvent(event._id, mode, reason, venueIds, refundBasis)
+      if (response.success) {
+        const d = response.data?.data
+        const failed = d?.refunds?.failed ?? 0
+        const what = d?.venueIds ? 'Venue' : 'Event'
+        if (failed > 0) toast.warning(`${what} cancelled — ${failed} refund(s) failed at the gateway. See refund requests.`)
+        else toast.success(mode === 'cancel_refund' ? `${what} cancelled and refunds processed` : `${what} cancelled`)
+        fetchEvents()
+      } else {
+        toast.error(response.error || 'Failed to cancel event')
+      }
+    } catch {
+      toast.error('Error cancelling event')
+    }
+  }
+
+  const confirmCancelDialog = async ({ mode, reason, venueIds, refundBasis }: { mode?: 'cancel' | 'cancel_refund'; reason?: string; venueIds?: string[]; refundBasis?: 'policy' | 'full' }) => {
+    if (!cancelTarget) return
+    const { event, intent } = cancelTarget
+    setCancelLoading(true)
+    try {
+      if (intent.kind === 'delete') await handleDeleteEvent(event._id)
+      else if (intent.kind === 'refund_all') await handleRefundAll(event, refundBasis)
+      else await handleCancelEvent(event, mode ?? intent.mode, reason, venueIds, refundBasis)
+    } finally {
+      setCancelLoading(false)
+      setCancelTarget(null)
+    }
+  }
+
+  const handleRefundAll = async (event: Event, refundBasis: 'policy' | 'full' = 'policy') => {
+    try {
+      const response = await apiClient.refundAllEventTickets(event._id, refundBasis)
+      if (response.success) {
+        const d = response.data?.data
+        if (d?.failed) toast.warning(`${d.processed} refunded, ${d.failed} failed at the gateway. See refund requests.`)
+        else toast.success('All tickets refunded')
+        fetchEvents()
+      } else {
+        toast.error(response.error || 'Failed to process refunds')
+      }
+    } catch {
+      toast.error('Error processing refunds')
+    }
+  }
+
+  const handleLifecycle = async (event: Event, action: "publish" | "close") => {
+    const res = action === "publish" ? await apiClient.publishEvent(event._id) : await apiClient.closeEvent(event._id)
+    if (!res.success) return void toast.error(res.message || res.error || `Failed to ${action}`)
+    toast.success(action === "publish" ? `"${event.title}" is live` : `"${event.title}" closed — existing entries are kept`)
+    fetchEvents()
   }
 
   const handleToggleStatus = async (eventId: string, currentStatus: boolean) => {
@@ -217,10 +280,33 @@ export default function EventsPage() {
                 Scanner
               </Button>
               {canEditEvents && (
-              <Button onClick={() => router.push("/dashboard/events/create")} className="flex-1 sm:flex-none">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Event
-              </Button>
+              <div className="flex flex-1 sm:flex-none">
+                <Button onClick={() => router.push("/dashboard/events/create")} className="flex-1 rounded-r-none">
+                  Create
+                </Button>
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="rounded-l-none border-l border-primary-foreground/20 px-2" aria-label="Choose what to create">
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80 p-2">
+                    {[
+                      { href: "/dashboard/events/create", Icon: Calendar, title: "Create Event", desc: "Ticketed or free events for your club" },
+                      { href: "/dashboard/events/activity", Icon: Ticket, title: "Create Activity", desc: "Contests, workshops and meetups" },
+                      { href: "/dashboard/events/donation", Icon: Award, title: "Create Donation Drive", desc: "Collect contributions for a cause" },
+                    ].map(({ href, Icon, title, desc }) => (
+                      <DropdownMenuItem key={href} onClick={() => router.push(href)} className="items-start gap-3 p-3">
+                        <Icon className="w-4 h-4 mt-1 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">{title}</div>
+                          <div className="text-sm text-muted-foreground">{desc}</div>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               )}
             </div>
           </div>
@@ -241,6 +327,16 @@ export default function EventsPage() {
               }}
             />
           )}
+
+          <EventCancelDialog
+            open={Boolean(cancelTarget)}
+            onOpenChange={(o) => { if (!o) setCancelTarget(null) }}
+            eventTitle={cancelTarget?.event.title ?? ''}
+            venues={cancelTarget?.event.venues}
+            intent={cancelTarget?.intent ?? null}
+            loading={cancelLoading}
+            onConfirm={confirmCancelDialog}
+          />
 
           <EventRefundPolicyImpactDialog
             open={showPolicyImpactDialog}
@@ -301,7 +397,7 @@ export default function EventsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Events</CardTitle>
-              <CardDescription>Search and filter your events</CardDescription>
+              <CardDescription>Search and filter your events, contests and drives</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-4 mb-4">
@@ -336,6 +432,10 @@ export default function EventsPage() {
                     <SelectItem value="general-meeting">👥 General Meeting</SelectItem>
                     <SelectItem value="matchday">⚽ Matchday</SelectItem>
                     <SelectItem value="others">📅 Others</SelectItem>
+                    <SelectItem value="contests">🏅 Contests</SelectItem>
+                    <SelectItem value="offsite-trips">🧭 Offsite/Trips</SelectItem>
+                    <SelectItem value="donations">💝 Donation Drives</SelectItem>
+                    <SelectItem value="csr-events">📦 CSR Drives</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -347,6 +447,8 @@ export default function EventsPage() {
                     <SelectItem value="all">All Events</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={timeFilter} onValueChange={setTimeFilter}>
@@ -359,6 +461,7 @@ export default function EventsPage() {
                     <SelectItem value="upcoming">Upcoming</SelectItem>
                     <SelectItem value="live">🔴 Live Now</SelectItem>
                     <SelectItem value="past">Past</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -392,19 +495,44 @@ export default function EventsPage() {
                     ) : (
                       events.map((event) => {
                         const capacity = getEventCapacity(event)
+                        const isDonation = listingTypeOf(event) === "donation"
+                        const isDraft = event.publishStatus === "draft"
+                        const isClosed = event.publishStatus === "closed"
+                        const thumbnail = (
+                          <EventImage
+                            eventId={event._id}
+                            imageVersion={event.imageVersion}
+                            size="list"
+                            directUrl={eventVariantUrl(event, "list")}
+                            alt={event.title}
+                            aspectClassName="aspect-video"
+                            className="w-24 shrink-0 rounded-md border"
+                          />
+                        )
                         return (
                         <TableRow key={event._id}>
                           <TableCell>
                             <div className="flex items-start gap-3">
-                              <EventImage
-                                eventId={event._id}
-                                imageVersion={event.imageVersion}
-                                size="list"
-                                directUrl={eventVariantUrl(event, "list")}
-                                alt={event.title}
-                                aspectClassName="aspect-video"
-                                className="w-24 shrink-0 rounded-md border"
-                              />
+                              {clubSlug && !isDraft ? (
+                                <Link
+                                  href={listingPublicHref(clubSlug, event)}
+                                  target="_blank"
+                                  title="Open the event page"
+                                  aria-label={`Open ${event.title} event page`}
+                                  className="shrink-0 rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                  {thumbnail}
+                                </Link>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="shrink-0 cursor-help"
+                                  title={isDraft ? "Publish this draft to open its event page" : "Loading club link…"}
+                                  onClick={() => toast.info(isDraft ? "Publish this draft to open its event page" : "Loading club link…")}
+                                >
+                                  {thumbnail}
+                                </button>
+                              )}
                               <div className="min-w-[200px]">
                                 <div className="font-medium break-words">{event.title}</div>
                                 <div className="text-sm text-muted-foreground line-clamp-2 break-words">
@@ -429,14 +557,19 @@ export default function EventsPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">
-                              {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
-                            </Badge>
+                            <div className="flex flex-col items-start gap-1">
+                              <Badge variant="secondary" className={`${PILL} w-28`}>
+                                {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
+                              </Badge>
+                              {listingTypeOf(event) !== "event" && (
+                                <span className="text-xs text-muted-foreground">{listingTypeLabel(event)}</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              <span className="text-sm">{formatDisplayDate(event.startTime)}</span>
+                              <span className="text-sm">{event.startTime ? formatDisplayDate(event.startTime) : "Ongoing"}</span>
                             </div>
                             {event.endTime && (
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -455,10 +588,20 @@ export default function EventsPage() {
                           <TableCell>
                             <div className="flex items-start gap-1 min-w-[150px]">
                               <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm break-words">{getEventVenueDisplay(event)}</span>
+                              <span className="text-sm break-words">{isDonation ? "—" : getEventVenueDisplay(event)}</span>
                             </div>
                           </TableCell>
                           <TableCell>
+                            {isDonation ? (
+                              <div className="text-sm">
+                                {event.category !== "csr-events" && (
+                                  <p className="font-medium">{money(event.donation?.raisedAmount ?? 0, event.currency)} raised</p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  {event.donation?.donationCount ?? 0} {event.category === "csr-events" ? "pledges" : "donations"}
+                                </p>
+                              </div>
+                            ) : (
                             <div className="flex items-center gap-1">
                               <Users className="w-3 h-3" />
                               <span className="text-sm">
@@ -469,13 +612,20 @@ export default function EventsPage() {
                                 )}
                               </span>
                             </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
-                              {!event.isActive && (
-                                <Badge variant="secondary">Inactive</Badge>
+                              {event.cancellation ? (
+                                <Badge variant="destructive" className={`${PILL} w-28`}>{event.cancellation.status === 'refunded' ? 'Cancelled · Refunded' : 'Cancelled'}</Badge>
+                              ) : isDraft ? (
+                                <Badge variant="outline" className={`${PILL} w-28`}>Draft</Badge>
+                              ) : isClosed ? (
+                                <Badge variant="secondary" className={`${PILL} w-28`}>Closed</Badge>
+                              ) : !event.isActive && (
+                                <Badge variant="secondary" className={`${PILL} w-28`}>Inactive</Badge>
                               )}
-                              {(() => {
+                              {!isDraft && !isClosed && event.startTime && (() => {
                                 const now = new Date()
                                 const start = new Date(event.startTime)
                                 const end = event.endTime ? new Date(event.endTime) : null
@@ -486,7 +636,7 @@ export default function EventsPage() {
                                   </span>
                                 ) : null
                               })()}
-                              {(() => {
+                              {!isDonation && (() => {
                                 const refundable = event.isRefundAllowed !== false && event.is_refund_allowed !== false
                                 return (
                                   <span className={`inline-flex items-center gap-1 text-xs font-medium ${refundable ? 'text-blue-600' : 'text-muted-foreground'}`}>
@@ -511,29 +661,66 @@ export default function EventsPage() {
                               )}
 
                               {isAdmin && (
-                                <DropdownMenu>
+                                <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" className="h-8 w-8 p-0">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    {canEditEvents && isDraft && (
+                                    <DropdownMenuItem onClick={() => handleLifecycle(event, "publish")}>
+                                      <Send className="w-4 h-4 mr-2" />
+                                      Publish
+                                    </DropdownMenuItem>
+                                    )}
                                     {canEditEvents && (
-                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/events/create?edit=${event._id}`)}>
+                                    <DropdownMenuItem onClick={() => router.push(listingEditHref(event))}>
                                       <Edit className="w-4 h-4 mr-2" />
                                       Edit
                                     </DropdownMenuItem>
                                     )}
-                                    {canEditEvents && (
+                                    {isDonation && (
+                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/orders?tab=donations&eventId=${event._id}`)}>
+                                      <HandHeart className="w-4 h-4 mr-2" />
+                                      View {event.category === "csr-events" ? "pledges" : "donations"}
+                                    </DropdownMenuItem>
+                                    )}
+                                    {canEditEvents && !isDraft && !isClosed && !event.cancellation && (
+                                    <DropdownMenuItem onClick={() => handleLifecycle(event, "close")}>
+                                      <Lock className="w-4 h-4 mr-2" />
+                                      Close
+                                    </DropdownMenuItem>
+                                    )}
+                                    {canEditEvents && listingTypeOf(event) === "event" && (
                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/events/create?duplicate=${event._id}`)}>
                                       <Copy className="w-4 h-4 mr-2" />
                                       Duplicate
                                     </DropdownMenuItem>
                                     )}
+                                    {!isDonation && (
+                                    <>
                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/events/scanner?eventId=${event._id}`)}>
                                       <ScanLine className="w-4 h-4 mr-2" />
                                       Scan QR
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      disabled={Boolean(event.cancellation)}
+                                      onClick={() => setCancelTarget({ event, intent: { kind: 'cancel', mode: 'cancel' } })}
+                                    >
+                                      <XOctagon className="w-4 h-4 mr-2" />
+                                      Cancel Venue/Event
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      disabled={event.cancellation?.status === 'refunded'}
+                                      onClick={() => setCancelTarget({ event, intent: event.cancellation ? { kind: 'refund_all' } : { kind: 'cancel', mode: 'cancel_refund' } })}
+                                    >
+                                      <RotateCcw className="w-4 h-4 mr-2" />
+                                      {event.cancellation ? 'Process Refund for All Tickets' : 'Cancel and Refund All Tickets'}
+                                    </DropdownMenuItem>
+                                    </>
+                                    )}
+                                    {!event.cancellation && !isDraft && !isClosed && (
                                     <DropdownMenuItem onClick={() => handleToggleStatus(event._id, event.isActive)}>
                                       {event.isActive ? (
                                         <>
@@ -547,6 +734,9 @@ export default function EventsPage() {
                                         </>
                                       )}
                                     </DropdownMenuItem>
+                                    )}
+                                    {!isDonation && (
+                                    <>
                                     <DropdownMenuItem onClick={() => { setRefundPolicyEvent(event); setRefundPolicyModalOpen(true) }}>
                                       {event.isRefundAllowed !== false && event.is_refund_allowed !== false ? (
                                         <>
@@ -570,7 +760,9 @@ export default function EventsPage() {
                                       <BarChart3 className="w-4 h-4 mr-2" />
                                       Refund Report
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleDeleteEvent(event._id)}>
+                                    </>
+                                    )}
+                                    <DropdownMenuItem onClick={() => setCancelTarget({ event, intent: { kind: 'delete' } })}>
                                       <Trash2 className="w-4 h-4 mr-2" />
                                       Delete
                                     </DropdownMenuItem>
@@ -591,5 +783,16 @@ export default function EventsPage() {
         </div>
       </DashboardLayout>
     </ProtectedRoute>
+  )
+}
+
+// Fixed-width pills: centered text, long labels wrap instead of stretching the pill.
+const PILL = "justify-center text-center whitespace-normal"
+
+export default function EventsPage() {
+  return (
+    <Suspense fallback={null}>
+      <EventsPageContent />
+    </Suspense>
   )
 }

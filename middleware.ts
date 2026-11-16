@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { AUTH_SESSION_COOKIE } from '@/lib/auth-session-cookie'
 import { isCanonicalHost } from '@/lib/canonical-host'
+import { checkDistributedRateLimit } from '@/lib/distributed-rate-limit'
+import { VERIFIED_COOKIE, verifyBrowserCookie } from '@/lib/verified-cookie'
 
 const BLOCKED_USER_AGENTS = [
   'wget',
@@ -36,12 +37,14 @@ const ALLOWED_BOTS = [
   'telegrambot',
 ]
 
-const requestCounts = new Map<string, { count: number; resetTime: number }>()
-
 const RATE_LIMITS = {
   default: {
     windowMs: 60 * 1000,
     maxRequests: 100,
+  },
+  api: {
+    windowMs: 60 * 1000,
+    maxRequests: 60,
   },
   dashboard: {
     windowMs: 60 * 1000,
@@ -59,37 +62,34 @@ function isBlockedUserAgent(userAgent: string): boolean {
   return BLOCKED_USER_AGENTS.some(blocked => ua.includes(blocked))
 }
 
-function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) {
-    return forwarded.split(',')[0]?.trim() || 'unknown'
+function getClientIp(request: NextRequest): string | null {
+  const headers = [
+    request.headers.get('x-vercel-forwarded-for'),
+    request.headers.get('cf-connecting-ip'),
+    request.headers.get('x-forwarded-for'),
+    request.headers.get('x-real-ip'),
+  ]
+
+  for (const value of headers) {
+    const ip = value?.split(',')[0]?.trim()
+    if (ip) return ip
   }
-  return request.headers.get('x-real-ip') || 'unknown'
+  return null
 }
 
-function checkRateLimit(
-  ip: string,
+async function checkRateLimit(
+  ip: string | null,
   bucket: keyof typeof RATE_LIMITS,
-): boolean {
+): Promise<{ allowed: boolean; retryAfterMs: number }> {
   const { windowMs, maxRequests } = RATE_LIMITS[bucket]
-  const key = `${bucket}:${ip}`
-  const now = Date.now()
-  const record = requestCounts.get(key)
-  
-  if (!record || now > record.resetTime) {
-    requestCounts.set(key, {
-      count: 1,
-      resetTime: now + windowMs,
-    })
-    return true
-  }
-  
-  if (record.count >= maxRequests) {
-    return false
-  }
-  
-  record.count++
-  return true
+  // Never merge unrelated visitors into a single "unknown" bucket. Hosting
+  // platforms normally provide one of the trusted forwarding headers above.
+  if (!ip) return { allowed: true, retryAfterMs: windowMs }
+
+  // Version the namespace so a deploy is not held hostage by stale counters
+  // created before the expiry-repair logic was added.
+  const result = await checkDistributedRateLimit(`web:v2:${bucket}:${ip}`, windowMs, maxRequests)
+  return { allowed: result.allowed, retryAfterMs: result.retryAfterMs }
 }
 
 function hasValidBrowserHeaders(request: NextRequest): boolean {
@@ -124,10 +124,6 @@ function isSuspiciousRequest(request: NextRequest): boolean {
   return false
 }
 
-function isAuthenticatedSession(request: NextRequest): boolean {
-  return request.cookies.get(AUTH_SESSION_COOKIE)?.value === '1'
-}
-
 function isNextJsNavigationRequest(request: NextRequest): boolean {
   return (
     request.headers.has('rsc') ||
@@ -146,6 +142,10 @@ function isProtectedPath(pathname: string): boolean {
 
 function isDashboardPath(pathname: string): boolean {
   return pathname.startsWith('/dashboard')
+}
+
+function isApiPath(pathname: string): boolean {
+  return pathname === '/api' || pathname.startsWith('/api/')
 }
 
 const PUBLIC_BYPASS_PATHS = new Set([
@@ -176,7 +176,6 @@ const STATIC_ASSET_RE =
 
 function isStaticOrInternalPath(pathname: string): boolean {
   return (
-    pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/static/') ||
     STATIC_ASSET_RE.test(pathname)
@@ -223,7 +222,7 @@ function legacyClubPathRedirect(request: NextRequest): NextResponse | null {
   return NextResponse.redirect(target, 308)
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const redirect = legacyClubPathRedirect(request)
   if (redirect) return redirect
 
@@ -245,40 +244,46 @@ export function middleware(request: NextRequest) {
   const finalize = (response: NextResponse) =>
     onCanonicalHost || clubSlug ? response : blockIndexing(response)
 
-  // Public pages + static assets skip bot checks and rate limiting entirely
+  const ip = getClientIp(request)
+  if (isApiPath(pathname)) {
+    const limit = await checkRateLimit(ip, 'api')
+    if (!limit.allowed) {
+      const retryAfterSec = Math.max(1, Math.ceil(limit.retryAfterMs / 1000))
+      return new NextResponse('Too Many Requests', {
+        status: 429,
+        headers: { 'Retry-After': String(retryAfterSec) },
+      })
+    }
+
+    // API clients are not browsers, so they must not be sent through the
+    // browser-header challenge or user-agent filtering below.
+    return finalize(applySecurityHeaders(pass(), pathname))
+  }
+
+  // Public pages + static assets skip bot checks and rate limiting entirely.
   if (PUBLIC_BYPASS_PATHS.has(pathname) || isStaticOrInternalPath(pathname)) {
     return finalize(pass())
   }
 
-  if (
-    request.cookies.get('verified')?.value === 'true' ||
-    isAuthenticatedSession(request) ||
-    request.nextUrl.searchParams.has('ssoTicket') ||
-    request.nextUrl.searchParams.has('token') ||
-    request.nextUrl.searchParams.has('authToken')
-  ) {
-    const res = applySecurityHeaders(pass(), pathname)
-    if (request.nextUrl.searchParams.has('ssoTicket') || request.nextUrl.searchParams.has('token')) {
-      res.cookies.set(AUTH_SESSION_COOKIE, '1', { path: '/' })
-    }
-    return finalize(res)
-  }
-  
+  const challengeSecret = process.env.CHALLENGE_COOKIE_SECRET?.trim()
+  const browserVerified = challengeSecret
+    ? await verifyBrowserCookie(request.cookies.get(VERIFIED_COOKIE)?.value, challengeSecret)
+    : false
   const userAgent = request.headers.get('user-agent') || ''
-  const ip = getClientIp(request)
   
-  if (isBlockedUserAgent(userAgent)) {
+  if (!browserVerified && isBlockedUserAgent(userAgent)) {
     return new NextResponse('Access Denied', { status: 403 })
   }
   
-  if (isProtectedPath(pathname) && isSuspiciousRequest(request)) {
+  if (!browserVerified && isProtectedPath(pathname) && isSuspiciousRequest(request)) {
     return finalize(NextResponse.redirect(new URL('/challenge', request.url)))
   }
 
   if (!isNextJsNavigationRequest(request)) {
     const bucket = isDashboardPath(pathname) ? 'dashboard' : 'default'
-    if (!checkRateLimit(ip, bucket)) {
-      const retryAfterSec = Math.ceil(RATE_LIMITS[bucket].windowMs / 1000)
+    const limit = await checkRateLimit(ip, bucket)
+    if (!limit.allowed) {
+      const retryAfterSec = Math.max(1, Math.ceil(limit.retryAfterMs / 1000))
       return new NextResponse('Too Many Requests', { 
         status: 429,
         headers: {
@@ -317,6 +322,6 @@ function applySecurityHeaders(response: NextResponse, pathname = '') {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }

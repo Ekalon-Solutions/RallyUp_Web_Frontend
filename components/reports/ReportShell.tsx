@@ -11,7 +11,7 @@
  * and vendor-reports/page.tsx but generalised to accept children.
  */
 
-import { type ReactNode } from "react"
+import { createContext, useContext, type ReactNode } from "react"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +28,15 @@ const CATEGORY_COLOURS: Record<string, string> = {
   billing:    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
   ads:        "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
 }
+
+// ─── Embedded Mode ────────────────────────────────────────────────────────────
+
+/**
+ * Set by the Reporting & Analytics hub when it renders a report page inline
+ * under a tab. The shell then drops its back link and cards and lays the
+ * report out as: filter bar → sub-report pills → table header → table.
+ */
+export const EmbeddedReportContext = createContext<{ pills: ReactNode; showSummary?: boolean } | null>(null)
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -62,6 +71,25 @@ export function ReportShell({
   actions,
   className,
 }: ReportShellProps) {
+  const embedded = useContext(EmbeddedReportContext)
+  if (embedded) {
+    return (
+      <div className={cn("space-y-5", className)}>
+        {filters && <div className="border-y border-[var(--ra-line)] py-4">{filters}</div>}
+        {embedded.pills}
+        {embedded.showSummary && summary}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold tracking-tight">{title}</h2>
+            {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+          </div>
+          {actions && <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>}
+        </div>
+        <div className="border-t border-[var(--ra-line)]">{children}</div>
+      </div>
+    )
+  }
+
   const badgeColour =
     category ? (CATEGORY_COLOURS[category.toLowerCase()] ?? CATEGORY_COLOURS.revenue) : undefined
 

@@ -10,24 +10,39 @@ export default function ChallengePage() {
   const router = useRouter()
   const [verifying, setVerifying] = useState(true)
   const [challenge, setChallenge] = useState<string>('')
+  const [challengeToken, setChallengeToken] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    const num1 = Math.floor(Math.random() * 10) + 1
-    const num2 = Math.floor(Math.random() * 10) + 1
-    setChallenge(`${num1} + ${num2}`)
-    
-    sessionStorage.setItem('challenge_answer', String(num1 + num2))
-    
-    setTimeout(() => {
-      setVerifying(false)
-    }, 2000)
+    fetch('/api/challenge', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Challenge is unavailable')
+        return response.json()
+      })
+      .then((data) => {
+        setChallenge(data.challenge)
+        setChallengeToken(data.token)
+      })
+      .catch(() => setError('Unable to load the security challenge. Please refresh.'))
+      .finally(() => setVerifying(false))
   }, [])
 
-  const handleVerify = () => {
-    sessionStorage.setItem('verified', 'true')
-    document.cookie = 'verified=true; path=/; max-age=3600; SameSite=Strict'
-    
-    router.push('/')
+  const handleVerify = async () => {
+    setVerifying(true)
+    setError('')
+    try {
+      const response = await fetch('/api/challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: challengeToken, answer: Number(answer) }),
+      })
+      if (!response.ok) throw new Error('Incorrect or expired answer')
+      router.push('/')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Verification failed')
+      setVerifying(false)
+    }
   }
 
   return (
@@ -57,10 +72,20 @@ export default function ChallengePage() {
                   Please solve this simple math problem:
                 </p>
                 <p className="text-3xl font-bold text-blue-900">{challenge} = ?</p>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  aria-label="Challenge answer"
+                  value={answer}
+                  onChange={(event) => setAnswer(event.target.value)}
+                  className="mt-4 h-11 w-full rounded-md border border-blue-300 bg-white px-3 text-center text-lg"
+                />
               </div>
+              {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
               
               <Button 
                 onClick={handleVerify}
+                disabled={!challengeToken || answer === ''}
                 className="w-full"
                 size="lg"
               >

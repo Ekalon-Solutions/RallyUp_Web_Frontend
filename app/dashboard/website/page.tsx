@@ -168,9 +168,14 @@ export default function WebsitePage() {
       const offsetY = (targetHeight - drawHeight) / 2
 
       ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight)
-      const resizedBase64 = canvas.toDataURL("image/jpeg", 0.9)
-      setDesignSettings((prev) => ({ ...prev, heroImage: resizedBase64 }))
       URL.revokeObjectURL(imageUrl)
+      // Audit L7: upload the resized JPEG and store only its URL.
+      canvas.toBlob(async (blob) => {
+        if (!blob) return toast.error("Failed to process image")
+        const uploaded = await apiClient.uploadClubDesignImage(blob, "hero-image")
+        if (!uploaded.success || !uploaded.data?.url) return toast.error(uploaded.message || "Hero image upload failed")
+        setDesignSettings((prev) => ({ ...prev, heroImage: uploaded.data!.url }))
+      }, "image/jpeg", 0.9)
     }
     image.onerror = () => {
       URL.revokeObjectURL(imageUrl)

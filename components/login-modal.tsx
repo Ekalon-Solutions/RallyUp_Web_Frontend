@@ -18,11 +18,18 @@ import { COUNTRY_DIAL_CODES } from "@/lib/countryCodes"
 // Extend window object for global variables
 type Tab = "user" | "admin"
 
-function getSafeRedirectPath(): string | null {
+export function getSafeRedirectPath(): string | null {
   if (typeof window === "undefined") return null
   const raw = new URLSearchParams(window.location.search).get("redirect")
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) return null
-  return raw
+  if (!raw?.startsWith("/")) return null
+  // Let the URL parser decide: it normalises backslashes, tabs and newlines exactly as the
+  // browser will, so tricks like a backslash or tab after the leading slash resolve off-origin.
+  try {
+    const url = new URL(raw, window.location.origin)
+    return url.origin === window.location.origin ? url.pathname + url.search + url.hash : null
+  } catch {
+    return null
+  }
 }
 
 const validateEmail = (email: string) => {
@@ -74,6 +81,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [countryCode, setCountryCode] = useState("+91")
+  const [otpSessionInfo, setOtpSessionInfo] = useState<string | undefined>()
   const [otp, setOtp] = useState("")
   const [otpSent, setOtpSent] = useState(false)
   const [sending, setSending] = useState(false)
@@ -167,7 +175,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
           setOtpSent(true)
           startResendCountdown()
           // Store session info for verification
-          window.otpSessionInfo = res.data?.sessionInfo
+          setOtpSessionInfo(res.data?.sessionInfo)
         } else {
           toast.error(res.message || "Failed to send OTP. Please try again.")
         }
@@ -202,7 +210,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
           phoneNumber: phone,
           countryCode: countryCode,
           otp: otp,
-          sessionInfo: window.otpSessionInfo
+          sessionInfo: otpSessionInfo
         })
         if (res.success) {
           otpVerified = true;
@@ -256,7 +264,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
           const channelText = ch === 'whatsapp' ? 'WhatsApp' : 'SMS'
           toast.success(`OTP resent via ${channelText} to ${phoneNumber}`)
           startResendCountdown()
-          window.otpSessionInfo = res.data?.sessionInfo
+          setOtpSessionInfo(res.data?.sessionInfo)
         } else {
           toast.error("Failed to resend OTP. Please try again.")
         }

@@ -22,6 +22,7 @@ import { VolunteerProfile } from "@/lib/api"
 import { apiClient } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 import { extractClubTeamId, isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
+import { CurrencyPreferenceCard } from "@/components/currency-preference"
 
 const isSystemAdmin = (role: string | undefined) =>
   role === "admin" || role === "super_admin" || role === "system_owner"
@@ -278,7 +279,7 @@ export default function UserProfilePage() {
         role: "user",
       })
       if (verifyRes.success) {
-        const result = await apiClient.verifyPhoneNumber({})
+        const result = await apiClient.verifyPhoneNumber({ otpProof: verifyRes.data?.otpProof })
         if (result.success) {
           toast.success("Phone number verified successfully")
           setShowOtpInput(false)
@@ -1204,6 +1205,8 @@ export default function UserProfilePage() {
               </CardContent>
             </Card>
             )}
+
+            <CurrencyPreferenceCard />
 
             <Card className="overflow-hidden rounded-xl border shadow-sm">
               <CardHeader>

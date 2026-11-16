@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,8 +15,13 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function isPaidCallback(paymentId: string, signature: string): boolean {
-  return paymentId.startsWith('pay_') && signature.length >= 32
+// Same check Razorpay documents: HMAC_SHA256(order_id|payment_id, key_secret).
+function isPaidCallback(orderId: string, paymentId: string, signature: string): boolean {
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+  if (!keySecret || !orderId || !paymentId) return false
+  const expected = Buffer.from(crypto.createHmac('sha256', keySecret).update(`${orderId}|${paymentId}`).digest('hex'))
+  const provided = Buffer.from(signature)
+  return expected.length === provided.length && crypto.timingSafeEqual(expected, provided)
 }
 
 function incompletePaymentHtml(): NextResponse {
@@ -115,7 +121,7 @@ function paidCallbackResponse(params: {
 }
 
 function fromParams(paymentId: string, orderId: string, signature: string): NextResponse {
-  if (!isPaidCallback(paymentId, signature)) return incompletePaymentHtml()
+  if (!isPaidCallback(orderId, paymentId, signature)) return incompletePaymentHtml()
   return paidCallbackResponse({
     razorpay_payment_id: paymentId,
     razorpay_order_id: orderId,

@@ -1,4 +1,5 @@
 "use client";
+import { slugify } from "@/lib/utils"
 
 import { Suspense, useEffect, useState } from "react";
 import {
@@ -38,6 +39,7 @@ import {
   Filter,
   Infinity as InfinityIcon,
   User,
+  CalendarX,
 } from "lucide-react";
 import EventDetailsModal from "@/components/modals/event-details-modal";
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
@@ -79,6 +81,45 @@ const eventCategories = [
   "matchday",
   "others",
 ];
+
+type EventTab = "upcoming" | "past" | "canceled";
+
+type CanceledEventListItem = {
+  id: string;
+  title: string;
+  startTime: string;
+  venue: string;
+  category: string;
+  event?: Event;
+};
+
+const tabLabels: Record<EventTab, string> = {
+  upcoming: "Upcoming events",
+  past: "Past events",
+  canceled: "Canceled events",
+};
+
+function EmptyEventsState({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
+  return (
+    <Card className="shadow-none">
+      <CardContent className="flex min-h-64 items-center justify-center p-6">
+        <div className="text-center">
+          <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground" strokeWidth={1.75} />
+          <h3 className="text-lg font-semibold">{title}</h3>
+          {description ? (
+            <p className="mt-1 text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function AttendanceMarker({
   event,
@@ -165,6 +206,7 @@ function UserEventsPageInner() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<EventTab>("upcoming");
   const [selectedEventForDetails, setSelectedEventForDetails] =
     useState<Event | null>(null);
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
@@ -201,8 +243,6 @@ function UserEventsPageInner() {
   const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false);
   const [venueTierEvent, setVenueTierEvent] = useState<Event | null>(null);
   const [userRegistrations, setUserRegistrations] = useState<Map<string, any>>(new Map());
-
-
   useEffect(() => {
     fetchEvents();
     if (user) {
@@ -318,7 +358,9 @@ function UserEventsPageInner() {
         return;
       }
 
-      const response = await apiClient.getPublicEvents(clubId);
+      const response = await apiClient.getPublicEvents(clubId, {
+        includeHistory: true,
+      });
 
       if (response.success && response.data) {
         const data: any = response.data;
@@ -440,22 +482,20 @@ function UserEventsPageInner() {
     return max !== null ? count >= max : false;
   };
 
-  const isEventUpcoming = (event: Event) => {
-    return new Date(event.startTime) > new Date();
-  };
-
   const isEventMembersOnly = (event: Event) => {
     return (event.memberOnly ? user?.memberships?.map(a => a?.club_id?._id).includes(event.clubId || "null") || false : true)
   }
 
-  const isEventPast = (event: Event) => {
-    return event.endTime ? new Date(event.endTime) < new Date() : false;
+  const isEventPast = (event: Event, now = Date.now()) => {
+    const eventEnd = event.endTime || event.startTime;
+    return new Date(eventEnd).getTime() <= now;
   };
 
   const isEventOngoing = (event: Event) => {
     const now = new Date();
     const start = new Date(event.startTime);
-    const end = event.endTime ? new Date(event.endTime) : new Date().setDate((new Date().getDate()) + 1);
+    if (!event.endTime) return false;
+    const end = new Date(event.endTime);
     return start <= now && now < end;
   };
 
@@ -637,7 +677,7 @@ function UserEventsPageInner() {
     const searchMatch =
       !searchTerm ||
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (event.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       getEventVenueDisplay(event).toLowerCase().includes(searchTerm.toLowerCase());
 
     const categoryMatch =
@@ -646,41 +686,85 @@ function UserEventsPageInner() {
     return searchMatch && categoryMatch;
   });
 
-  const upcomingEvents = filteredEvents.filter((event) =>
-    isEventUpcoming(event) && isEventMembersOnly(event)
+  const isEventCanceled = (event: Event) =>
+    Boolean(event.cancellation) || event.isActive === false;
+
+  // Classify in one pass with one timestamp so an event can never appear in
+  // more than one tab. Cancellation wins over dates, and an ongoing event stays
+  // current/upcoming until its end time.
+  const eventListNow = Date.now();
+  const categorizedEvents = filteredEvents.reduce<{
+    upcoming: Event[];
+    past: Event[];
+    canceled: Event[];
+  }>((groups, event) => {
+    if (!isEventMembersOnly(event)) return groups;
+
+    if (isEventCanceled(event)) {
+      groups.canceled.push(event);
+    } else if (isEventPast(event, eventListNow)) {
+      groups.past.push(event);
+    } else {
+      groups.upcoming.push(event);
+    }
+    return groups;
+  }, { upcoming: [], past: [], canceled: [] });
+
+  const upcomingEvents = categorizedEvents.upcoming;
+  const pastEvents = categorizedEvents.past;
+
+  const canceledEventItems: CanceledEventListItem[] = categorizedEvents.canceled
+    .map((event) => ({
+      id: String(event._id),
+      title: event.title,
+      startTime: event.startTime,
+      venue: getEventVenueDisplay(event),
+      category: event.category,
+      event,
+    }));
+
+  const canceledEvents = Array.from(
+    new Map(canceledEventItems.map((item) => [item.id, item])).values()
+  ).sort(
+    (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
   );
-  const pastEvents = filteredEvents.filter((event) => isEventPast(event));
+
+  const activeTabCount = activeTab === "upcoming"
+    ? upcomingEvents.length
+    : activeTab === "past"
+      ? pastEvents.length
+      : canceledEvents.length;
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Events</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Events</h1>
+            <p className="mt-1 text-sm text-muted-foreground sm:text-base">
               Discover and register for upcoming events
             </p>
           </div>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row gap-4">
+          <Card className="shadow-none">
+            <CardContent className="p-5 sm:p-7">
+              <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Search events..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
+                      className="h-12 pl-12 text-base"
                     />
                   </div>
                 </div>
                 <Select
                   value={categoryFilter}
                   onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <Filter className="w-4 h-4 mr-2" />
+                  <SelectTrigger className="h-12 w-full px-4 text-base sm:w-60">
+                    <Filter className="mr-3 h-4 w-4" />
                     <SelectValue placeholder="Filter by category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -759,18 +843,21 @@ function UserEventsPageInner() {
           )}
 
           <div className="space-y-4">
-            <div className="mt-4">
-              <h4 className="text-md font-semibold">Ongoing events</h4>
-              <p className="text-sm text-muted-foreground mb-3">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight">Ongoing events</h2>
+              <p className="mb-3 text-base text-muted-foreground">
                 Ongoing events that you've registered for
               </p>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {eventsUserIsRegisteredForOngoing().length === 0 ? (
-                  <Card>
-                    <CardContent className="text-center py-6">
-                      <p className="text-sm text-muted-foreground">
-                        No ongoing events that you're registered for right now.
-                      </p>
+                  <Card className="shadow-none md:col-span-2 lg:col-span-3">
+                    <CardContent className="flex min-h-40 items-center justify-center p-6">
+                      <div className="max-w-sm text-center text-muted-foreground">
+                        <CalendarX className="mx-auto mb-4 h-9 w-9" strokeWidth={1.75} />
+                        <p className="text-base leading-snug">
+                          No ongoing events that you're registered for right now.
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 ) : (
@@ -846,34 +933,62 @@ function UserEventsPageInner() {
                 }
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold">Upcoming Events</h2>
-              <Badge variant="outline">{upcomingEvents.length} events</Badge>
+            <div
+              className="flex flex-wrap gap-2"
+              role="tablist"
+              aria-label="Event status">
+              {(Object.keys(tabLabels) as EventTab[]).map((tab) => {
+                const isActive = activeTab === tab;
+                return (
+                  <Button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    variant="outline"
+                    onClick={() => setActiveTab(tab)}
+                    className={`h-10 rounded-full px-5 font-medium shadow-none ${
+                      isActive && tab === "upcoming"
+                        ? "border-[#42dc79] bg-[#42dc79] text-white hover:bg-[#35c96c] hover:text-white"
+                        : isActive && tab === "past"
+                          ? "border-[#b8cbb7] bg-[#b8cbb7] text-white hover:bg-[#aabda9] hover:text-white"
+                          : isActive && tab === "canceled"
+                            ? "border-[#f04c28] bg-[#f04c28] text-white hover:bg-[#dc4020] hover:text-white"
+                            : "bg-background text-foreground hover:bg-muted"
+                    }`}>
+                    {tabLabels[tab]}
+                  </Button>
+                );
+              })}
             </div>
 
-            {loading ? (
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                {activeTab === "upcoming"
+                  ? "Upcoming Events"
+                  : activeTab === "past"
+                    ? "Past Events"
+                    : "Canceled Events"}
+              </h2>
+              <Badge variant="outline" className="rounded-full px-3 font-medium">
+                {activeTabCount} events
+              </Badge>
+            </div>
+
+            {activeTab === "upcoming" && (loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+                  <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-muted border-b-primary"></div>
                   <p className="mt-4 text-muted-foreground">
                     Loading events...
                   </p>
                 </div>
               </div>
             ) : upcomingEvents.length === 0 ? (
-              <Card>
-                <CardContent className="flex items-center justify-center h-64">
-                  <div className="text-center">
-                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold">
-                      No upcoming events
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Check back later for new events
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <EmptyEventsState
+                title="No upcoming events"
+                description="Check back later for new events"
+              />
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {upcomingEvents
@@ -1083,10 +1198,10 @@ function UserEventsPageInner() {
                               return (
                                 <Button
                                   onClick={() =>
-                                    handleEventRegistration(event._id)
+                                    (event.listingType === 'donation' ? window.location.assign(donationHref(event)) : handleEventRegistration(event._id))
                                   }
                                   className="w-full">
-                                  {event.category === 'csr-events' ? 'Donate for Event' : 'Register for Event'}
+                                  {event.listingType === 'donation' ? (event.category === 'csr-events' ? 'Donate items' : 'Donate') : 'Register for Event'}
                                 </Button>
                               );
                             }
@@ -1096,15 +1211,12 @@ function UserEventsPageInner() {
                     </Card>
                   ))}
               </div>
-            )}
-          </div>
+            ))}
 
-          {pastEvents.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold">Past Events</h2>
-                <Badge variant="outline">{pastEvents.length} events</Badge>
-              </div>
+          {activeTab === "past" && (
+            pastEvents.length === 0 ? (
+              <EmptyEventsState title="No past events" />
+            ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {pastEvents
                   .sort(
@@ -1206,8 +1318,58 @@ function UserEventsPageInner() {
                     </Card>
                   ))}
               </div>
-            </div>
+            )
           )}
+
+          {activeTab === "canceled" && (
+            canceledEvents.length === 0 ? (
+              <EmptyEventsState title="No canceled events" />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {canceledEvents.map((item) => (
+                  <Card
+                    key={item.id}
+                    className="flex h-full flex-col overflow-hidden shadow-none transition-shadow hover:shadow-md">
+                    {item.event ? (
+                      <EventImage
+                        eventId={item.event._id}
+                        imageVersion={item.event.imageVersion}
+                        size="list"
+                        directUrl={eventVariantUrl(item.event, "list")}
+                        alt={item.title}
+                      />
+                    ) : null}
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <CardTitle className="line-clamp-2 text-lg">
+                          {item.title}
+                        </CardTitle>
+                        <Badge variant="destructive" className="shrink-0">
+                          Canceled
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex flex-1 flex-col gap-3">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{formatDate(item.startTime)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span className="truncate">{item.venue}</span>
+                        </div>
+                      </div>
+                      <Button variant="outline" className="mt-auto w-full" disabled>
+                        Event Canceled
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )
+          )}
+          </div>
         </div>
       </DashboardLayout>
       <EventDetailsModal
@@ -1303,6 +1465,12 @@ function UserEventsPageInner() {
       />
     </ProtectedRoute>
   );
+}
+
+/** Donation drives are given to on their public page (the route accepts a club id as the slug). */
+function donationHref(event: { clubId?: string | { _id?: string }; title: string }) {
+  const clubId = typeof event.clubId === "object" ? event.clubId?._id : event.clubId
+  return `/clubs/${clubId}/events/${slugify(event.title)}`
 }
 
 export default function UserEventsPage() {

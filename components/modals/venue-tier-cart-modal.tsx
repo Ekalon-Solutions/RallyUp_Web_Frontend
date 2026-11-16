@@ -33,6 +33,14 @@ import { getBookingWindowClosedLabel, hasVenueTierMatrix, isBookingWindowOpen, i
 import { formatPhoneForDisplay } from "@/components/modals/purchase-flow-modal"
 import { slugify } from "@/lib/utils"
 import { resolveRazorpayDismiss, type RecoveredRazorpayPayment } from "@/lib/razorpay-dismiss"
+import { formatMoney, getDisplayCurrencySession } from "@/lib/display-currency"
+import { useCheckoutCurrencyLock } from "@/contexts/currency-context"
+import {
+  createRazorpayPresentmentOrder,
+  presentmentFailureMessage,
+  razorpayCheckoutMethods,
+  razorpayPrefill,
+} from "@/lib/razorpay-presentment"
 
 declare global {
   interface Window { Razorpay: any }
@@ -80,17 +88,13 @@ const SIMPLE_VENUE_ID = "simple"
 const SIMPLE_TIER_ID = "simple"
 const SIMPLE_TIER_NAME = "General Admission"
 
-const currencySymbols: Record<string, string> = {
-  INR: "₹", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "CA$",
-  JPY: "¥", BRL: "R$", MXN: "$", ZAR: "R",
-}
-
 function fmt(amount: number, currency = "INR") {
-  const sym = currencySymbols[currency] ?? currency + " "
-  return `${sym}${Number(amount).toLocaleString()}`
+  return formatMoney(amount, currency)
 }
 
 const digitsOnly = (s: string) => (s || '').replace(/[^0-9]/g, '')
+// One rule for every attendee path so member and guest checkout accept the same numbers.
+const isValidPhoneDigits = (digits: string) => digits.length >= 6 && digits.length <= 15
 const phoneCodeRegex = /^\+?\d{1,4}$/
 const normalizeCountryCode = (code: string) => {
   const trimmed = (code || '').trim() || '+91'
@@ -101,6 +105,7 @@ type GuestStep = 'identify' | 'member-found' | 'guest-or-signup' | 'otp' | 'atte
 
 export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onCancellation, onSignup, waitlistToken }: VenueTierCartModalProps) {
   const { user, checkAuth, login, isAdmin } = useAuth()
+  useCheckoutCurrencyLock(isOpen)
   const router = useRouter()
 
   const hasAuthToken = typeof window !== "undefined" && !!localStorage.getItem("token")
@@ -112,6 +117,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   // Tier-matrix cart state
   const [cart, setCart] = useState<CartState>({})
+  const [addOnRows, setAddOnRows] = useState<Array<{ name: string; qty: number }>>([])
   const [attendeeSlots, setAttendeeSlots] = useState<AttendeeSlot[]>([])
 
   // Simple-event ticket state
@@ -174,7 +180,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     }
   ) => {
     if (razorpaySettledRef.current) return
-    const result = await resolveRazorpayDismiss(razorpayOrderId)
+    const result = await resolveRazorpayDismiss(razorpayOrderId, {
+      eventId: event?._id ? String(event._id) : undefined,
+      registrationId: options?.registrationId,
+    })
     if (razorpaySettledRef.current) return
     if (result.outcome === "paid") {
       await options?.onPaid?.(result.payment)
@@ -495,7 +504,13 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const afterCoupon = Math.max(subtotal - couponDiscount, 0)
   const payableBeforePoints = afterCoupon
   const showPointsRedemption = canShowPointsRedemption(availablePoints, payableBeforePoints)
-  const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0)
+  // Add-ons are charged at face value on top of the discounted ticket total; the server re-prices them by name.
+  const eventAddOns = event?.listingType === 'activity' ? event.activity?.addOns ?? [] : []
+  const addOnQty: Record<string, number> = {}
+  for (const r of addOnRows) addOnQty[r.name] = (addOnQty[r.name] ?? 0) + r.qty
+  const addOnsPayload = Object.entries(addOnQty).map(([name, quantity]) => ({ name, quantity }))
+  const addOnsTotal = eventAddOns.reduce((sum, a) => sum + a.price * (addOnQty[a.name] ?? 0), 0)
+  const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0) + addOnsTotal
   // When the club absorbs fees, the buyer pays the base net and fees are not appended.
   const clubFeePercent = (event as any)?.platformFeePercent ?? 5
   const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netAmount, event?.feeHandlingType, clubFeePercent)
@@ -506,7 +521,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const triggerAutoCouponApply = useCallback(async (currentSubtotal: number, phoneNumber?: string, emailAddress?: string) => {
     if (autoCouponRemoved) return
 
-    const searchPhone = phoneNumber || primaryPhone || user?.phoneNumber || localStorage.getItem("rallyup_verified_guest_phone") || ""
+    const searchPhone = phoneNumber || primaryPhone || user?.phoneNumber || ""
     const searchEmail = emailAddress || guestEmail || user?.email || ""
     const clubId = event?.clubId || (event as any)?.club?._id
 
@@ -551,8 +566,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   useEffect(() => {
     if (isOpen) {
-      const storedPhone = localStorage.getItem("rallyup_verified_guest_phone") || ""
-      triggerAutoCouponApply(subtotalForAuto, storedPhone)
+      triggerAutoCouponApply(subtotalForAuto)
     }
   }, [isOpen, triggerAutoCouponApply])
 
@@ -873,8 +887,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       })
       if (res.success && res.data?.verified) {
         setOtpVerified(true)
-        localStorage.setItem("rallyup_verified_guest_phone", digits)
-        localStorage.setItem("rallyup_verified_guest_country_code", countryCode)
         toast.success('Phone number verified')
         void triggerAutoCouponApply(subtotal, digits)
 
@@ -975,7 +987,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
       const p = digitsOnly(a.phone)
-      if (p.length < 6 || p.length > 15) {
+      if (!isValidPhoneDigits(p)) {
         toast.error(`Phone number for attendee ${i + 1} must be 6-15 digits`)
         return
       }
@@ -1005,6 +1017,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           await apiClient.confirmReservation(reservationToken).catch(() => {})
         }
         const res = await apiClient.bookVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
           items: apiItems,
           attendees: bookingAttendees,
           reservationToken: reservationToken ?? undefined,
@@ -1031,20 +1044,15 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
-      const orderRes = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountToCharge,
-          currency: event.currency ?? "INR",
-          orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-          orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-        }),
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: amountToCharge,
+        currency: event.currency ?? "INR",
+        orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
+        orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
       })
-      if (!orderRes.ok) throw new Error("Failed to create payment order")
-      const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
       await apiClient.createPendingVenueTierBooking(event._id, {
+          addOns: addOnsPayload,
         items: apiItems,
         attendees: bookingAttendees,
         razorpayOrderId,
@@ -1061,9 +1069,11 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       let checkoutSettled = false
       razorpaySettledRef.current = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
+        method: razorpayCheckoutMethods(orderCurrency),
+        prefill: razorpayPrefill(user),
         name: "RallyUp",
         description: `${ticketCount} ticket(s) for ${event.title}`,
         order_id: razorpayOrderId,
@@ -1097,6 +1107,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             }
 
             const res = await apiClient.bookVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
               items: apiItems,
               attendees: bookingAttendees,
               razorpayOrderId: orderId,
@@ -1153,7 +1164,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setRazorpayOpen(true)
       rzp.open()
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to initiate payment")
+      const fail = presentmentFailureMessage(err)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setLoading(false)
     }
   }
@@ -1189,7 +1201,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
       const p = digitsOnly(a.phone)
-      if (p.length < 6 || p.length > 15) {
+      if (!isValidPhoneDigits(p)) {
         toast.error(`Phone number for attendee ${i + 1} must be 6-15 digits`)
         return
       }
@@ -1248,20 +1260,15 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
-      const orderRes = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountToCharge,
-          currency: event.currency ?? "INR",
-          orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-          orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
-        }),
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: amountToCharge,
+        currency: event.currency ?? "INR",
+        orderId: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
+        orderNumber: `EVT-${event?._id ? `${String(event._id)}-` : ""}${Date.now()}`,
       })
-      if (!orderRes.ok) throw new Error("Failed to create payment order")
-      const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
       const pendingRes = await apiClient.createPendingPublicRegistration(event._id, {
+          addOns: addOnsPayload,
         registrantName: bookingAttendees[0]?.name || 'Guest',
         registrantEmail: guestEmail.trim(),
         registrantPhone: bookingAttendees[0]?.phone || '',
@@ -1289,9 +1296,11 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       let checkoutSettled = false
       razorpaySettledRef.current = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
+        method: razorpayCheckoutMethods(orderCurrency),
+        prefill: razorpayPrefill(user),
         name: "RallyUp",
         description: `Payment for ${event.title} - ${ticketCount} ticket(s)`,
         order_id: razorpayOrderId,
@@ -1412,7 +1421,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         toast.error(`Enter phone for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
         return
       }
-      if (phoneDigits.length < 6 || phoneDigits.length > 15) {
+      if (!isValidPhoneDigits(phoneDigits)) {
         toast.error(`Enter a valid phone for Ticket ${i + 1}`)
         return
       }
@@ -1425,7 +1434,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
     const bookingAttendees = attendeeSlots.map((s) => ({
       name: s.name.trim(),
-      phone: s.phone.replace(/\D/g, ""),
+      phone: digitsOnly(s.phone),
     }))
 
     setLoading(true)
@@ -1468,6 +1477,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           await apiClient.confirmReservation(reservationToken).catch(() => {})
         }
         const res = await apiClient.bookPublicVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
           guestEmail: guestEmail.trim(),
           items: apiItems,
           attendees: bookingAttendees,
@@ -1494,20 +1504,15 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
-      const orderRes = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountToCharge,
-          currency: event.currency ?? "INR",
-          orderId: `EVT-MTX-${Date.now()}`,
-          orderNumber: `EVT-MTX-${Date.now()}`,
-        }),
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: amountToCharge,
+        currency: event.currency ?? "INR",
+        orderId: `EVT-MTX-${Date.now()}`,
+        orderNumber: `EVT-MTX-${Date.now()}`,
       })
-      if (!orderRes.ok) throw new Error("Failed to create payment order")
-      const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
       const pendingRes = await apiClient.createPendingPublicVenueTierBooking(event._id, {
+          addOns: addOnsPayload,
         guestEmail: guestEmail.trim(),
         guestName: bookingAttendees[0]?.name || 'Guest',
         items: apiItems,
@@ -1531,9 +1536,11 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       let checkoutSettled = false
       razorpaySettledRef.current = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
+        method: razorpayCheckoutMethods(orderCurrency),
+        prefill: razorpayPrefill(user),
         name: "RallyUp",
         description: `${cartItems.length} ticket type(s) for ${event.title}`,
         order_id: razorpayOrderId,
@@ -1567,6 +1574,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             }
 
             const res = await apiClient.bookPublicVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
               guestEmail: guestEmail.trim(),
               items: apiItems,
               attendees: bookingAttendees,
@@ -1625,7 +1633,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setRazorpayOpen(true)
       rzp.open()
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to initiate payment")
+      const fail = presentmentFailureMessage(err)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setLoading(false)
     }
   }
@@ -1645,15 +1654,15 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         toast.error(`Enter phone for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
         return
       }
-      if (phoneDigits.length !== 10) {
-        toast.error(`Enter a valid 10-digit phone for Ticket ${i + 1}`)
+      if (!isValidPhoneDigits(phoneDigits)) {
+        toast.error(`Enter a valid phone for Ticket ${i + 1}`)
         return
       }
     }
 
     const bookingAttendees = attendeeSlots.map((s) => ({
       name: s.name.trim(),
-      phone: s.phone.replace(/\D/g, "").slice(-10),
+      phone: digitsOnly(s.phone),
     }))
 
     setLoading(true)
@@ -1698,6 +1707,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           await apiClient.confirmReservation(reservationToken).catch(() => {})
         }
         const res = await apiClient.bookVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
           items: apiItems,
           attendees: bookingAttendees,
           reservationToken: reservationToken ?? undefined,
@@ -1727,23 +1737,15 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       const authHeaders: Record<string, string> = { "Content-Type": "application/json" }
       if (token) authHeaders["Authorization"] = `Bearer ${token}`
 
-      const orderRes = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          amount: amountToCharge,
-          currency: event.currency ?? "INR",
-          orderId: `EVT-MTX-${Date.now()}`,
-          orderNumber: `EVT-MTX-${Date.now()}`,
-        }),
-      })
-      if (!orderRes.ok) {
-        const errBody = await orderRes.json().catch(() => null)
-        throw new Error(errBody?.error || errBody?.details || "Failed to create payment order")
-      }
-      const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
+      const { razorpayOrderId, keyId: razorpayKeyId, amount, currency: orderCurrency } = await createRazorpayPresentmentOrder({
+        amount: amountToCharge,
+        currency: event.currency ?? "INR",
+        orderId: `EVT-MTX-${Date.now()}`,
+        orderNumber: `EVT-MTX-${Date.now()}`,
+      }, authHeaders)
 
       await apiClient.createPendingVenueTierBooking(event._id, {
+          addOns: addOnsPayload,
         items: apiItems,
         attendees: bookingAttendees,
         razorpayOrderId,
@@ -1760,9 +1762,11 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       let checkoutSettled = false
       razorpaySettledRef.current = false
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount,
         currency: orderCurrency,
+        method: razorpayCheckoutMethods(orderCurrency),
+        prefill: razorpayPrefill(user),
         name: "RallyUp",
         description: `${cartItems.length} ticket type(s) for ${event.title}`,
         order_id: razorpayOrderId,
@@ -1796,6 +1800,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             }
 
             const res = await apiClient.bookVenueTierMatrix(event._id, {
+          addOns: addOnsPayload,
               items: apiItems,
               attendees: bookingAttendees,
               razorpayOrderId: orderId,
@@ -1849,7 +1854,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setRazorpayOpen(true)
       rzp.open()
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to initiate payment")
+      const fail = presentmentFailureMessage(err)
+      toast.error(fail.message, fail.retryable ? { description: "Tap pay again to retry with an updated amount." } : undefined)
       setLoading(false)
     }
   }
@@ -2511,6 +2517,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                         total={amountToCharge}
                         feeHandlingType={event?.feeHandlingType}
                         formatCurrency={(a) => fmt(a, currency)}
+                        chargeCurrency={getDisplayCurrencySession().chargeCurrency}
                       />
                     )}
                     {feesAbsorbed && netAmount > 0 && (
@@ -2660,6 +2667,48 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   {guestEmailError && (
                     <p className="text-xs text-destructive">{guestEmailError}</p>
                   )}
+                </div>
+              )}
+
+              {eventAddOns.length > 0 && (
+                <div className="rounded-xl border p-4 flex flex-col gap-2">
+                  <p className="text-sm font-semibold">Select add ons</p>
+                  {addOnRows.length > 0 && (
+                    <div className="grid grid-cols-[1fr_5.5rem_4.5rem_2rem] gap-2 text-xs text-muted-foreground">
+                      <span>Add-on</span><span>Price</span><span>Max items</span><span />
+                    </div>
+                  )}
+                  {addOnRows.map((row, idx) => {
+                    const def = eventAddOns.find((a) => a.name === row.name)
+                    const update = (patch: Partial<{ name: string; qty: number }>) =>
+                      setAddOnRows((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)))
+                    const selectCls = "h-9 rounded-md border border-input bg-muted/40 px-2 text-sm"
+                    return (
+                      <div key={idx} className="grid grid-cols-[1fr_5.5rem_4.5rem_2rem] gap-2 items-center">
+                        <select className={selectCls} value={row.name} onChange={(e) => update({ name: e.target.value })} aria-label="Add-on">
+                          {eventAddOns.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+                        </select>
+                        <span className="h-9 rounded-md border bg-muted/40 px-2 text-sm flex items-center text-muted-foreground">{fmt(def?.price ?? 0, currency)}</span>
+                        <select className={selectCls} value={row.qty} onChange={(e) => update({ qty: Number(e.target.value) })} aria-label="Quantity">
+                          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                        <Button type="button" variant="outline" size="icon" className="h-9 w-8" aria-label="Remove add-on" onClick={() => setAddOnRows((rows) => rows.filter((_, i) => i !== idx))}>×</Button>
+                      </div>
+                    )
+                  })}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="self-start"
+                    disabled={addOnRows.length >= eventAddOns.length}
+                    onClick={() => {
+                      const next = eventAddOns.find((a) => !addOnRows.some((r) => r.name === a.name))
+                      if (next) setAddOnRows((rows) => [...rows, { name: next.name, qty: 1 }])
+                    }}
+                  >
+                    + Add more
+                  </Button>
                 </div>
               )}
 

@@ -417,6 +417,8 @@ export default function PublicClubPage() {
           // Keep listed until event end (API also filters); hide only once ended
           const filteredEvents = (eventsData || []).filter((e: any) => {
             if (e?.memberOnly) return false
+            // Open-ended donation / CSR drives have no end date and stay listed until closed.
+            if (e?.listingType === "donation" && !e?.endTime) return true
             const end = e?.endTime ? new Date(e.endTime) : e?.startTime ? new Date(e.startTime) : null
             if (!end || isNaN(end.getTime())) return false
             return end >= now
@@ -997,7 +999,9 @@ export default function PublicClubPage() {
                                       const isEventFull = max != null && count >= max
                                       const bookingOpen = isBookingWindowOpen(event)
                                       const blocked = isEventFull || !bookingOpen
-                                      const label = isEventFull
+                                      const label = event.listingType === "donation"
+                                        ? (event.category === "csr-events" ? "Donate items" : "Donate")
+                                        : isEventFull
                                         ? "Event Full"
                                         : !bookingOpen
                                         ? getBookingWindowClosedLabel(event)

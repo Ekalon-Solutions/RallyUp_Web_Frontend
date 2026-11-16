@@ -41,7 +41,7 @@ const TIER_COLORS: Record<string, string> = {
 }
 
 const FEATURE_KEYS = [
-  "events", "merchandise", "news", "gallery", "polls", "chants",
+  "events", "merchandise", "news", "gallery", "polls", "chants", "forum",
   "external_ticketing", "volunteer", "leaderboard", "coupons", "refunds",
   "membership", "website", "reporting", "wa_marketing", "ads", "predictions",
 ] as const
@@ -53,6 +53,7 @@ const FEATURE_LABELS: Record<string, string> = {
   gallery:            "Gallery",
   polls:              "Polls",
   chants:             "Club Chants",
+  forum:              "Community Forum",
   external_ticketing: "External Ticketing",
   volunteer:          "Volunteer",
   leaderboard:        "Leaderboard",
@@ -78,6 +79,7 @@ const SERVICE_IDS: Record<string, string> = {
   gallery:            "SVC-GALLERY-001",
   polls:              "SVC-POLLS-001",
   chants:             "SVC-CHANTS-001",
+  forum:              "SVC-FORUM-001",
   external_ticketing: "SVC-EXTICK-001",
   volunteer:          "SVC-VOLUN-001",
   leaderboard:        "SVC-LBOARD-001",

@@ -157,8 +157,10 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                                     ? 'Refunded'
                                     : isCancelled
                                       ? 'Cancelled'
-                                      : att.refundStatus === 'requested'
-                                        ? 'Refund requested'
+                                      : att.refundStatus === 'failed'
+                                        ? 'Refund failed'
+                                        : att.refundStatus === 'requested'
+                                        ? 'Refund pending'
                                         : att.attended
                                           ? "Attended"
                                           : "Not Attended"}
@@ -168,7 +170,13 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                             <AccordionContent>
                               {isCancelled || isRefunded ? (
                                 <p className="text-sm text-muted-foreground py-4 text-center">
-                                  {isRefunded ? 'This ticket has been refunded.' : 'This ticket has been cancelled.'}
+                                  {isRefunded
+                                    ? 'This ticket has been refunded.'
+                                    : att.refundStatus === 'failed'
+                                      ? 'This ticket was cancelled but the refund could not be processed. The club has been notified and will follow up.'
+                                      : att.refundStatus === 'requested'
+                                        ? 'This ticket has been cancelled. Your refund is pending.'
+                                        : 'This ticket has been cancelled.'}
                                 </p>
                               ) : (
                               <div className="flex items-center justify-center">

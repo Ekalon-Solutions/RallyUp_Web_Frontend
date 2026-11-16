@@ -38,6 +38,8 @@ import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
+import { formatMoney } from "@/lib/display-currency"
+import { useCheckoutCurrencyLock } from "@/contexts/currency-context"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
 import { toast } from "sonner"
 import { analytics } from "@/lib/analytics"
@@ -122,6 +124,7 @@ function formatEstimatedDays(estimatedDays: { min: number; max: number }, titleC
 }
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
+  useCheckoutCurrencyLock(isOpen)
   const { user, isAdmin } = useAuth()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
   const items = directCheckoutItems || cartItems
@@ -188,30 +191,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
 
-  const formatCurrency = (amount: number, currencyCode: string = currency) => {
-    const localeMap: Record<string, string> = {
-      'USD': 'en-US',
-      'INR': 'en-IN',
-      'EUR': 'en-EU',
-      'GBP': 'en-GB',
-      'CAD': 'en-CA',
-      'AUD': 'en-AU',
-      'JPY': 'ja-JP',
-      'BRL': 'pt-BR',
-      'MXN': 'es-MX',
-      'ZAR': 'en-ZA'
-    }
-    const locale = localeMap[currencyCode] || 'en-US'
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currencyCode
-    }).format(amount)
-  }
+  const formatCurrency = (amount: number, currencyCode: string = currency) => formatMoney(amount, currencyCode)
 
   const triggerAutoCouponApply = useCallback(async (phoneNumber?: string, emailAddress?: string) => {
     if (autoCouponRemoved) return
 
-    const searchPhone = phoneNumber || orderForm.phone || user?.phoneNumber || localStorage.getItem("rallyup_verified_guest_phone") || ""
+    const searchPhone = phoneNumber || orderForm.phone || user?.phoneNumber || ""
     const searchEmail = emailAddress || orderForm.email || user?.email || ""
     const clubId = items.length > 0 ? (typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id) : null
 
@@ -251,8 +236,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   useEffect(() => {
     if (isOpen) {
-      const storedPhone = localStorage.getItem("rallyup_verified_guest_phone") || ""
-      const storedCountry = localStorage.getItem("rallyup_verified_guest_country_code") || "+91"
+      const storedPhone = sessionStorage.getItem("rallyup_guest_verified_phone") || ""
+      const storedCountry = sessionStorage.getItem("rallyup_guest_verified_country_code") || "+91"
       if (storedPhone && !orderForm.phone) {
         setOrderForm(prev => ({
           ...prev,

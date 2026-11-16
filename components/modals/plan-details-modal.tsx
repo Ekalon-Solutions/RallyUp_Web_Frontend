@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { CalendarDays } from "lucide-react"
 import { PlanBenefits, PlanBrochure } from "@/components/membership-plan/plan-benefits"
 import type { PublicPlanConfig } from "@/lib/membershipPlanConfig"
+import { formatMoney } from "@/lib/display-currency"
 
 export type DetailedPlan = PublicPlanConfig & {
   _id: string
@@ -19,11 +20,7 @@ export type DetailedPlan = PublicPlanConfig & {
 }
 
 function formatPrice(price: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-IN", { style: "currency", currency: currency || "INR" }).format(price)
-  } catch {
-    return `${currency} ${price}`
-  }
+  return formatMoney(price, currency)
 }
 
 /** "Sep, 2026" — matches the admin plan preview card. */

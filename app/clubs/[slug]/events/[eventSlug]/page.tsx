@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { apiClient, Event } from "@/lib/api"
 import { EventImage } from "@/components/events/event-image"
 import { eventVariantUrl } from "@/lib/eventImageCache"
@@ -25,8 +26,12 @@ import {
   Home,
   CalendarClock,
   Award,
+  CreditCard,
+  Package,
 } from "lucide-react"
 import Link from "next/link"
+import { DonateForm } from "@/components/donations/donate-form"
+import { PledgeForm, toRoman } from "@/components/donations/pledge-form"
 import {
   formatEventPriceDisplay,
   formatTierPrice,
@@ -106,6 +111,108 @@ function isActivelyRegistered(data: {
   return regStatus === 'confirmed' || Boolean(data.isRegistered)
 }
 
+function ActivityExtras({ activity, currency }: { activity: NonNullable<Event["activity"]>; currency?: string }) {
+  return (
+    <>
+      {activity.mode === "online" && activity.onlineUrl && (
+        <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 space-y-2">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Online</h2>
+          <a href={activity.onlineUrl} target="_blank" rel="noopener noreferrer" className="break-all font-medium underline underline-offset-4">
+            {activity.onlineUrl}
+          </a>
+        </section>
+      )}
+      {!!activity.inclusions?.length && (
+        <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">What's included</h2>
+          <ul className="list-disc space-y-1 pl-5">
+            {activity.inclusions.map((i) => <li key={i}>{i}</li>)}
+          </ul>
+        </section>
+      )}
+      {!!activity.addOns?.length && (
+        <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Add-ons</h2>
+          <ul className="space-y-2">
+            {activity.addOns.map((a) => (
+              <li key={a.name} className="flex justify-between gap-3 rounded-lg border border-border/60 bg-background/80 px-4 py-3">
+                <span className="font-medium">{a.name}</span>
+                <span className="font-semibold">{formatTierPrice(a.price, currency)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  )
+}
+
+/** Open / closed / not-yet state for a drive's Donate button; the form itself lives in the dialog. */
+function DonateCta({ event, primaryColor, onDonate }: { event: Event; primaryColor: string; onDonate: () => void }) {
+  const d = event.donation ?? {}
+  const now = Date.now()
+  const notStarted = event.startTime && new Date(event.startTime).getTime() > now
+  const ended = event.publishStatus === "closed" || (event.endTime && new Date(event.endTime).getTime() <= now)
+  return (
+    <div className="space-y-3">
+      {event.category !== "csr-events" && (d.raisedAmount ?? 0) > 0 && (
+        <p className="text-sm text-muted-foreground">
+          <span className="text-xl font-bold text-foreground">{formatTierPrice(d.raisedAmount ?? 0, event.currency)}</span> raised from {d.donationCount} donations
+        </p>
+      )}
+      {ended ? (
+        <p className="rounded-lg bg-muted px-4 py-3 text-center text-sm font-medium">This drive has closed. Thank you to everyone who gave!</p>
+      ) : notStarted ? (
+        <p className="rounded-lg bg-muted px-4 py-3 text-center text-sm font-medium">Opens on {formatDisplayDate(event.startTime)}</p>
+      ) : (
+        <Button className="h-12 w-full rounded-xl text-base font-bold" style={{ backgroundColor: primaryColor, color: "white" }} onClick={onDonate}>
+          Donate
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function DonationDialog({ event, clubId, primaryColor, open, onOpenChange }: { event: Event; clubId: string; primaryColor: string; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const d = event.donation ?? {}
+  // While Razorpay Checkout is up the dialog must not trap focus or close on outside clicks.
+  const [locked, setLocked] = useState(false)
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!locked) onOpenChange(o) }} modal={!locked}>
+      <DialogContent
+        className="flex max-w-xl flex-col gap-0 overflow-hidden p-0 sm:p-0"
+        onInteractOutside={(e) => { if (locked) e.preventDefault() }}
+        onEscapeKeyDown={(e) => { if (locked) e.preventDefault() }}
+      >
+        <DialogHeader className="space-y-1 px-4 pb-4 pt-5 pr-12 text-left sm:px-6 sm:pt-6">
+          <DialogTitle className="flex items-center gap-2.5 text-xl font-bold">
+            <CreditCard className="h-5 w-5" aria-hidden />
+            Make a Donation
+          </DialogTitle>
+          <DialogDescription>{event.title}</DialogDescription>
+        </DialogHeader>
+        {event.category === "csr-events" ? (
+          <PledgeForm clubId={clubId} eventId={event._id} donation={d} primaryColor={primaryColor} />
+        ) : (
+          <DonateForm
+            clubId={clubId}
+            eventId={event._id}
+            title={event.title}
+            presetAmounts={d.presetAmounts ?? []}
+            minAmount={d.minAmount ?? 1}
+            currency={event.currency}
+            allowCustom={d.amountMode === "custom"}
+            primaryColor={primaryColor}
+            feeHandlingType={event.feeHandlingType}
+            platformFeePercent={((event as any).platformFeePercent ?? 5) * (1 - (d.waiverPercent ?? 0) / 100)}
+            onBusyChange={setLocked}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function EventDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -119,6 +226,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null)
 
   const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false)
+  const [donateOpen, setDonateOpen] = useState(false)
 
   const { socket } = useSocket()
 
@@ -187,21 +295,24 @@ export default function EventDetailPage() {
       }
 
       if (clubRes.success && clubRes.data) {
-        const eventsRes = await apiClient.getPublicEvents(clubRes.data._id)
-        if (eventsRes.success && eventsRes.data) {
-          const raw = eventsRes.data as Event[] | { events?: Event[] }
-          const eventsList = Array.isArray(raw) ? raw : raw.events ?? []
-          const found = eventsList.find((e) => slugify(e.title) === eventSlug)
-          if (found?._id) {
-            const fullRes = await apiClient.getPublicEventById(found._id)
-            // The list response includes club-derived checkout fields such as
-            // platformFeePercent. Preserve them when hydrating with event detail
-            // data so public checkout always uses the club's configured fee.
-            const loaded = fullRes.success && fullRes.data
-              ? { ...found, ...fullRes.data, platformFeePercent: found.platformFeePercent ?? (fullRes.data as Event).platformFeePercent }
-              : found
-            setEvent(normalizeEventVenues(loaded))
-          }
+        const findIn = async (includeHistory: boolean) => {
+          const res = await apiClient.getPublicEvents(clubRes.data!._id, { includeHistory })
+          const raw = (res.success && res.data ? res.data : []) as Event[] | { events?: Event[] }
+          const list = Array.isArray(raw) ? raw : raw.events ?? []
+          return list.find((e) => slugify(e.title) === eventSlug)
+        }
+        // The default list is upcoming + bookable only; past/inactive/closed listings (e.g. an
+        // admin opening one from the dashboard) need the history list, which requires sign-in.
+        const found = (await findIn(false)) ?? (await findIn(true))
+        if (found?._id) {
+          const fullRes = await apiClient.getPublicEventById(found._id)
+          // The list response includes club-derived checkout fields such as
+          // platformFeePercent. Preserve them when hydrating with event detail
+          // data so public checkout always uses the club's configured fee.
+          const loaded = fullRes.success && fullRes.data
+            ? { ...found, ...fullRes.data, platformFeePercent: found.platformFeePercent ?? (fullRes.data as Event).platformFeePercent }
+            : found
+          setEvent(normalizeEventVenues(loaded))
         }
       }
     } catch {
@@ -258,7 +369,9 @@ export default function EventDetailPage() {
 
   const { count: capacityCount, max: capacityMax } = getEventCapacity(event)
   const isEventFull = capacityMax != null && capacityCount >= capacityMax
-  const bookingOpen = isBookingWindowOpen(event)
+  const hasEnded = new Date(event.endTime || event.startTime).getTime() <= Date.now()
+  const bookingOpen =
+    isBookingWindowOpen(event) && event.isActive !== false && event.publishStatus !== "closed" && !hasEnded
   const isPaid = isEventPaid(event)
   const multiVenue = hasVenueTierMatrix(event)
   const venueDisplay = getEventVenueDisplay(event)
@@ -271,6 +384,7 @@ export default function EventDetailPage() {
   const rewardPointsNum = Number(event.attendancePoints)
   const rewardPoints = Number.isFinite(rewardPointsNum) && rewardPointsNum > 0 ? rewardPointsNum : null
   const returnPath = `/clubs/${slug}/events/${eventSlug}`
+  const isDonationDrive = event.listingType === "donation"
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -340,7 +454,17 @@ export default function EventDetailPage() {
             <Separator className="my-2 sm:my-0" />
 
             {/* Description */}
-            {event.description ? (
+            {isDonationDrive ? (
+              <section className="rounded-2xl border-2 bg-background px-5 py-6 sm:px-8 sm:py-7 space-y-3">
+                <h2 className="text-lg font-semibold">About this event</h2>
+                {event.description && (
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">{event.description}</p>
+                )}
+                <div className="pt-2 lg:hidden">
+                  <DonateCta event={event} primaryColor={primaryColor} onDonate={() => setDonateOpen(true)} />
+                </div>
+              </section>
+            ) : event.description ? (
               <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 sm:py-8 space-y-4">
                 <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
                   About this event
@@ -351,7 +475,9 @@ export default function EventDetailPage() {
               </section>
             ) : null}
 
-            {ticketRows.length > 0 && (multiVenue || isPaid) && (
+            {event.activity && <ActivityExtras activity={event.activity} currency={event.currency} />}
+
+            {ticketRows.length > 0 && !isDonationDrive && (multiVenue || isPaid) && (
               <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 sm:py-8 space-y-4">
                 <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <Ticket className="h-4 w-4" />
@@ -385,7 +511,36 @@ export default function EventDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <aside className="order-1 lg:order-2 lg:sticky lg:top-[4.5rem]">
+          <aside className={`${isDonationDrive ? "order-2" : "order-1"} lg:order-2 lg:sticky lg:top-[4.5rem]`}>
+            {isDonationDrive ? (
+            <Card className="overflow-hidden rounded-2xl bg-muted/50 shadow-none">
+              <CardContent className="p-5 sm:p-6 lg:p-7 space-y-6">
+                <div className="space-y-5 sm:space-y-6">
+                  {event.endTime && (
+                    <InfoRow icon={Calendar} label="End date" primaryColor={primaryColor}>
+                      {formatDisplayDate(event.endTime)}
+                    </InfoRow>
+                  )}
+                  {rewardPoints != null && (
+                    <InfoRow icon={Award} label="Reward points" primaryColor={primaryColor}>
+                      {rewardPoints}
+                    </InfoRow>
+                  )}
+                  {event.category === "csr-events" && !!event.donation?.items?.length && (
+                    <InfoRow icon={Package} label="Items accepted for donation" primaryColor={primaryColor}>
+                      {event.donation.items.map((item, i) => (
+                        <span key={item.name} className="block">{toRoman(i + 1)}. {item.name}</span>
+                      ))}
+                    </InfoRow>
+                  )}
+                </div>
+                <div className="hidden space-y-6 lg:block">
+                  <Separator />
+                  <DonateCta event={event} primaryColor={primaryColor} onDonate={() => setDonateOpen(true)} />
+                </div>
+              </CardContent>
+            </Card>
+            ) : (
             <Card className="border-2 shadow-md overflow-hidden">
               <CardContent className="p-5 sm:p-6 lg:p-7 space-y-6">
                 <div className="space-y-5 sm:space-y-6">
@@ -482,9 +637,14 @@ export default function EventDetailPage() {
                 </Button>
               </CardContent>
             </Card>
+            )}
           </aside>
         </div>
       </main>
+
+      {isDonationDrive && (
+        <DonationDialog event={event} clubId={club._id} primaryColor={primaryColor} open={donateOpen} onOpenChange={setDonateOpen} />
+      )}
 
       {/* Modals — mount only when open to avoid render crashes from partial event payloads */}
       {showVenueTierCartModal && (

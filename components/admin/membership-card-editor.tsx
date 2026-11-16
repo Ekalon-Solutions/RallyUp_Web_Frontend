@@ -124,7 +124,7 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
       let { backgroundImage, customLogo } = custom
 
       if (backgroundFile) {
-        const uploaded = await apiClient.uploadMembershipCardImage(backgroundFile)
+        const uploaded = await apiClient.uploadMembershipCardBackground(backgroundFile)
         if (!uploaded.success || !uploaded.data?.url) {
           throw new Error(uploaded.error || "Background image upload failed")
         }
@@ -337,6 +337,7 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
         <ul className="space-y-1 text-sm text-muted-foreground">
           <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" />Format: <span className="font-semibold text-foreground">JPG or PNG</span></li>
           <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" />Max file size: <span className="font-semibold text-foreground">{CARD_BG_MAX_MB}MB</span></li>
+          <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" />Transparent areas show as <span className="font-semibold text-foreground">black</span></li>
           <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0" />Card dimensions: <span className="font-semibold text-foreground">{CARD_BG_WIDTH} × {CARD_BG_HEIGHT}px (~1.586:1)</span></li>
         </ul>
         <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
@@ -417,6 +418,17 @@ export function MembershipCardEditor({ card, onCancel, onSave }: MembershipCardE
             Remove image
           </Button>
         )}
+        <div className="space-y-1 pt-2">
+          <Label htmlFor="backgroundAlt">Image description (alt text)</Label>
+          <Input
+            id="backgroundAlt"
+            maxLength={250}
+            placeholder="e.g. Club crest over the home stadium at night"
+            value={custom.backgroundAlt ?? ""}
+            onChange={(e) => patch({ backgroundAlt: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">Read aloud by screen readers. Leave empty if the image is purely decorative.</p>
+        </div>
       </div>
 
       <div className="rounded-xl border p-4 space-y-2">

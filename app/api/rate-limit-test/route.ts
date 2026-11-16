@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
              request.headers.get('x-real-ip') || 
              'unknown'
   
-  const { allowed, remaining, resetTime } = apiRateLimiter.check(ip)
+  const { allowed, remaining, resetTime } = await apiRateLimiter.check(ip)
   
   if (!allowed) {
     return NextResponse.json(

@@ -47,6 +47,9 @@ To avoid overloading your context, do **not** scan the source files for complex 
 2. **Security & Request Mitigation Middleware**
    - **Path**: `@RallyUp_Web_Frontend/docs/features/security-middleware.md`
    - **Reason to read**: Enforces browser header checks, rate-limiting, blocked user agent regex, and camera permission controls for ticket scanning.
+3. **Display currency**
+   - **Path**: `@RallyUp_Web_Frontend/docs/features/display-currency.md`
+   - **Reason to read**: Location-based price display, FX conversion, profile override, and checkout currency lock.
 
 ---
 

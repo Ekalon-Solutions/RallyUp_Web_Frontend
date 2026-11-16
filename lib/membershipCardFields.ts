@@ -12,6 +12,8 @@ export const CARD_BG_ASPECT_RATIO = CARD_BG_WIDTH / CARD_BG_HEIGHT
 export const CARD_BG_RATIO_TOLERANCE = 0.15 // Allows ~15% deviation (~1.35:1 to ~1.82:1)
 export const CARD_BG_MAX_MB = 10
 export const CARD_BG_MAX_BYTES = CARD_BG_MAX_MB * 1024 * 1024
+/** Dark overlay over image backgrounds so light text stays readable on any photo. */
+export const CARD_BG_SCRIM = 'rgba(0, 0, 0, 0.3)'
 export const CARD_BG_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
 
 export type BackgroundMode = 'gradient' | 'image'
@@ -352,5 +354,6 @@ export function normalizeCardCustomization(
     fieldPositions: value?.fieldPositions ?? {},
     ...(value?.customLogo ? { customLogo: value.customLogo } : {}),
     ...(value?.backgroundImage ? { backgroundImage: value.backgroundImage } : {}),
+    ...(value?.backgroundAlt ? { backgroundAlt: value.backgroundAlt } : {}),
   }
 }

@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { isAuthorizedClubAdmin } from '@/lib/server/requireAdminClub'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const clubId = request.nextUrl.searchParams.get('clubId')
+    if (!await isAuthorizedClubAdmin(request, clubId)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     const keyId = process.env.RAZORPAY_KEY_ID
     const keySecret = process.env.RAZORPAY_KEY_SECRET
 

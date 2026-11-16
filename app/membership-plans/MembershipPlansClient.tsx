@@ -14,6 +14,7 @@ import { ArrowUpRight, Building2, CreditCard } from "lucide-react"
 import { JoinMembershipModal, type JoinablePlan } from "@/components/modals/join-membership-modal"
 import { PlanDetailsModal } from "@/components/modals/plan-details-modal"
 import { planBenefits, type PublicPlanConfig } from "@/lib/membershipPlanConfig"
+import { formatMoney } from "@/lib/display-currency"
 
 type PublicMembershipPlan = JoinablePlan & PublicPlanConfig & {
   isActive: boolean
@@ -60,13 +61,7 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
     return list.sort((a, b) => (a.price || 0) - (b.price || 0))
   }, [club?.membershipPlans])
 
-  const formatPrice = (price: number, currency: string) => {
-    try {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(price)
-    } catch {
-      return `${currency} ${price}`
-    }
-  }
+  const formatPrice = (price: number, currency: string) => formatMoney(price, currency)
 
   const formatPlanPeriod = (plan: PublicMembershipPlan) => {
     if (plan.planStartDate && plan.planEndDate) {
