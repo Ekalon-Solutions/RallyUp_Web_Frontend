@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
@@ -10,6 +10,7 @@ import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { getEffectiveAdminRole } from "@/lib/adminPermissions"
 import { authorizeReportAccess } from "@/hooks/useReportAuthorization"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { apiClient } from "@/lib/api"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -38,6 +39,7 @@ import {
   Calendar,
   Grid3X3,
   Target,
+  MailCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -287,6 +289,17 @@ const ALL_REPORTS: ReportDefinition[] = [
   },
 ]
 
+// Shown only when the backend confirms the viewer may see AMSC address data AND the
+// active club is amscofficial (the backend returns that club's id).
+const AMSC_ADDRESS_REPORT: ReportDefinition = {
+  id: "amsc-address-campaign",
+  name: "AMSC 2026–27 Address Campaign",
+  description: "Address collection status, email/reminder tracking, and CSV export of member addresses for the Arsenal Mumbai chapter.",
+  category: "Membership",
+  href: "/dashboard/reports/amsc-address-campaign",
+  icon: MailCheck,
+}
+
 // ─── Category Metadata ──────────────────────────────────────────────────────────
 
 interface CategoryMeta {
@@ -358,16 +371,29 @@ export default function ReportsHubPage() {
   const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [amscClubId, setAmscClubId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    apiClient
+      .get<{ allowed: boolean; clubId: string | null }>("/amsc-address-campaign/access")
+      .then((res) => {
+        if (!cancelled) setAmscClubId(res.success && res.data?.allowed ? res.data.clubId : null)
+      })
+      .catch(() => { if (!cancelled) setAmscClubId(null) })
+    return () => { cancelled = true }
+  }, [])
 
   const effectiveRole = getEffectiveAdminRole(user, activeClubId)
   const canViewReportsHub = ["admin", "super_admin", "system_owner"].includes(effectiveRole)
 
   // Filter reports based on user permissions
   const accessibleReports = useMemo(() => {
-    return ALL_REPORTS.filter(
+    const base = ALL_REPORTS.filter(
       (report) => authorizeReportAccess(report.id, user, activeClubId, clubFeatureConfig).authorized
     )
-  }, [user, activeClubId, clubFeatureConfig])
+    return amscClubId && activeClubId === amscClubId ? [...base, AMSC_ADDRESS_REPORT] : base
+  }, [user, activeClubId, clubFeatureConfig, amscClubId])
 
   // Filter reports based on search query
   const filteredReports = useMemo(() => {

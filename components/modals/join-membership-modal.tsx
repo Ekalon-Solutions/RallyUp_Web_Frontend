@@ -520,7 +520,16 @@ export function JoinMembershipModal({
   useEffect(() => {
     if (!idProofTypes.length) return
     if (idProofTypes.some((t) => idProofLabelsMatch(t.label, registrationData.id_proof_type))) return
-    setRegistrationData((prev) => ({ ...prev, id_proof_type: idProofTypes[0].label }))
+    // Keep a saved number valid: prefer the first offered type whose format and length
+    // fit it, instead of blindly switching to the first type (usually Aadhaar).
+    setRegistrationData((prev) => {
+      const num = String(prev.id_proof_number ?? "").trim()
+      const fits = (t: (typeof idProofTypes)[number]) =>
+        num.length <= t.maxLength &&
+        (t.format === "numeric" ? /^\d+$/.test(num) : t.format === "alphanumeric" ? /^[A-Za-z0-9]+$/.test(num) : true)
+      const match = num ? idProofTypes.find(fits) : undefined
+      return { ...prev, id_proof_type: (match ?? idProofTypes[0]).label }
+    })
   }, [selectedPlan?._id, idProofTypes.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Switching plans clears answers to the previous plan's custom fields.

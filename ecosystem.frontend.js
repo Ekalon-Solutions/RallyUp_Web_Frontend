@@ -3,13 +3,13 @@ module.exports = {
     {
       name: 'rallyup-frontend',
       script: 'node_modules/.bin/next',
-      args: 'start -p 3010',
+      args: 'start -p 3110',
       cwd: '/root/RallyUp_Web_Frontend',
       instances: 1,
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: 3010,
+        PORT: 3110,
       },
       error_file: '/root/.pm2/logs/rallyup-frontend-error.log',
       out_file: '/root/.pm2/logs/rallyup-frontend-out.log',

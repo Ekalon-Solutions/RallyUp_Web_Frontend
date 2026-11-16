@@ -370,6 +370,10 @@ export function validateMembershipCheckout(input: {
     const label = BUILTIN_LABELS[field.key] ?? field.key
 
     if (field.key === "id_proof") {
+      // TEMPORARY BYPASS: ID proof is not validated at all (type, format or required).
+      continue
+    }
+    if (field.key === "id_proof_DISABLED") {
       const visible = attributeVisibleForCheckout(attrs, "id_proof", profile, existing)
       const number = (
         visible
@@ -382,9 +386,12 @@ export function validateMembershipCheckout(input: {
         input.values.id_proof_type || readProfileValue(profile, "id_proof_type")
       ).trim()
       const configured = attrs.idProofTypes.find((t) => idProofLabelsMatch(t.label, typeLabel))
-      if (typeLabel && !configured) return `${typeLabel} is not an accepted ID proof type for this plan.`
-      const idError = validateIdProofNumber(number, configured)
-      if (idError) return idError
+      // TEMPORARY BYPASS: ID proof type/format check disabled (legacy IDs blocking renewals).
+      // Restore the two lines below to re-enable.
+      // if (typeLabel && !configured) return `${typeLabel} is not an accepted ID proof type for this plan.`
+      // const idError = validateIdProofNumber(number, configured)
+      // if (idError) return idError
+      void configured
       continue
     }
 

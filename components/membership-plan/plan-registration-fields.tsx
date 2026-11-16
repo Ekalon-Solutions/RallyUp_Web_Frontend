@@ -159,12 +159,13 @@ export function PlanRegistrationFields({
       return textField("date_of_birth", label, { required: req, type: "date" })
     }
 
+    // TEMPORARY BYPASS: ID proof is optional and unvalidated (no length/format limits).
     if (key === "id_proof") {
       return (
         <div key="id_proof" className="contents">
           <div className="space-y-2">
             <Label htmlFor="id_proof_type" className={labelCls}>
-              ID Proof Type{star(req)}
+              ID Proof Type{star(false)}
             </Label>
             <select
               id="id_proof_type"
@@ -174,7 +175,7 @@ export function PlanRegistrationFields({
                   : idProofTypes[0]?.label ?? ""
               }
               onChange={(e) => onChange({ id_proof_type: e.target.value })}
-              required={req}
+              required={false}
               className={cn(
                 "w-full h-12 px-3",
                 plain
@@ -194,19 +195,14 @@ export function PlanRegistrationFields({
           </div>
           <div className="space-y-2">
             <Label htmlFor="id_proof_number" className={labelCls}>
-              ID Proof Number{star(req)}
+              ID Proof Number{star(false)}
             </Label>
             <Input
               id="id_proof_number"
-              {...(selectedIdProof ? inputPropsForFieldType(selectedIdProof.format) : { type: "text" as const })}
-              maxLength={
-                selectedIdProof && !isDateFieldType(selectedIdProof.format)
-                  ? selectedIdProof.maxLength
-                  : undefined
-              }
-              value={values.id_proof_number}
+              type="text"
+                            value={values.id_proof_number}
               onChange={(e) => onChange({ id_proof_number: e.target.value })}
-              required={req}
+              required={false}
               className={inputCls}
             />
           </div>

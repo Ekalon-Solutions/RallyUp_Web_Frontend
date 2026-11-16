@@ -43,7 +43,7 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
           <h4 className="text-xs font-semibold text-[#0D0D0D] uppercase tracking-widest">Navigation</h4>
           <nav className="flex flex-col gap-3 text-sm text-[#0D0D0D]/80">
             <Link href="/" className="hover:text-[#0D0D0D] transition-colors">Home</Link>
-            <Link href="/features" className="hover:text-[#0D0D0D] transition-colors">Features</Link>
+            <Link href="/#features" className="hover:text-[#0D0D0D] transition-colors">Features</Link>
             <Link href="/affiliations" className="hover:text-[#0D0D0D] transition-colors">Affiliations</Link>
             <Link href="/about" className="hover:text-[#0D0D0D] transition-colors">About Us</Link>
             <Link href="/faqs" className="hover:text-[#0D0D0D] transition-colors">FAQs</Link>
@@ -67,7 +67,7 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
         <div className="flex flex-col gap-4">
           <h4 className="text-xs font-semibold text-[#0D0D0D] uppercase tracking-widest">Support</h4>
           <div className="flex flex-col gap-3 text-sm text-[#0D0D0D]/80">
-            <Link href="/help" className="hover:text-[#0D0D0D] transition-colors">Help Center</Link>
+            <Link href="/faqs" className="hover:text-[#0D0D0D] transition-colors">Help Center</Link>
             <Link href="/contact" className="hover:text-[#0D0D0D] transition-colors">Contact Us</Link>
             <a
               href="mailto:support@wingman-pro.com"
