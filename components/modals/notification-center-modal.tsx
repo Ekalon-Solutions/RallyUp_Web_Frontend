@@ -169,10 +169,11 @@ export function NotificationCenterModal() {
           )}
         </button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full max-w-[100vw] sm:w-[420px] sm:max-w-[420px] p-0">
+      <SheetContent side="right" className="w-full max-w-[100vw] sm:w-[420px] sm:max-w-[420px] p-0 flex flex-col gap-0">
         <div className="p-6 pb-4">
           <SheetHeader className="space-y-2">
-            <div className="flex items-start justify-between gap-3">
+            {/* pr-6 keeps the action buttons clear of the sheet's absolute close (X) button */}
+            <div className="flex flex-wrap items-start justify-between gap-3 pr-6">
               <div className="space-y-1">
                 <SheetTitle className="text-xl font-black tracking-tight">Notifications</SheetTitle>
                 <p className="text-sm text-muted-foreground">
@@ -186,7 +187,8 @@ export function NotificationCenterModal() {
 
         <Separator />
 
-        <ScrollArea className="h-[calc(100vh-120px)]">
+        {/* Radix wraps content in a display:table div that grows past the sheet width; force block so cards fit and text truncates */}
+        <ScrollArea className="flex-1 min-h-0 [&_[data-radix-scroll-area-viewport]>div]:!block">
           <div className="p-4 space-y-2">
             {loadingList ? (
               <div className="p-6 text-sm text-muted-foreground">Loading notifications…</div>
