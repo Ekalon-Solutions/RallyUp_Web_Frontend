@@ -116,6 +116,10 @@ export function ReportFilters({
   const handleDateChange = (field: "startDate" | "endDate", value: string) => {
     const nextValue = value || undefined
     const nextFilters = { ...filters, [field]: nextValue }
+    // To Date can't precede From Date: pull the other bound along (ISO yyyy-mm-dd compares lexically)
+    if (nextFilters.startDate && nextFilters.endDate && nextFilters.startDate > nextFilters.endDate) {
+      nextFilters[field === "startDate" ? "endDate" : "startDate"] = nextValue
+    }
     setFilters(nextFilters)
     onApplyFilters(nextFilters)
   }
@@ -152,6 +156,7 @@ export function ReportFilters({
             <Input
               type="date"
               value={filters.startDate || ""}
+              max={filters.endDate}
               onChange={(e) => handleDateChange("startDate", e.target.value)}
               className="w-full sm:w-38"
             />
@@ -161,6 +166,7 @@ export function ReportFilters({
             <Input
               type="date"
               value={filters.endDate || ""}
+              min={filters.startDate}
               onChange={(e) => handleDateChange("endDate", e.target.value)}
               className="w-full sm:w-38"
             />
