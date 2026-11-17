@@ -853,7 +853,7 @@ export default function UserOrdersPage() {
                         : "You haven't placed any orders yet."}
                     </p>
                     {!searchTerm && statusFilter === 'all' && (
-                      <Button className="mt-5" onClick={() => window.location.href = '/merchandise'}>
+                      <Button className="mt-5" onClick={() => window.location.href = '/dashboard/user/merchandise'}>
                         Browse Merchandise
                       </Button>
                     )}
