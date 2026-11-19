@@ -127,7 +127,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
       </head>
 
-      <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`} suppressHydrationWarning>
+      <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable} bg-background text-foreground min-h-screen`} suppressHydrationWarning>
         <Script
           strategy="afterInteractive"
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-SRLNL9FQ0G"}`}
@@ -143,11 +143,13 @@ export default function RootLayout({
         <AppUpdateWatcher />
         <Analytics />
         <AntiScrapingProtection />
-        <DashboardThemeProvider />
+        {/* <DashboardThemeProvider /> */}
         <ThemeProvider
+          defaultTheme="dark"
+          forcedTheme="dark"
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          // defaultTheme="system"
+          // enableSystem
           disableTransitionOnChange
         >
           <ThemeColorMeta />

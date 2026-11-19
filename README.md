@@ -1,5 +1,5 @@
 # RallyUp Website Frontend
-
+<!-- 9511671955 -->
 ## Required production security configuration
 
 - `CHALLENGE_COOKIE_SECRET`: long random HMAC key for the HttpOnly browser-verification cookie.

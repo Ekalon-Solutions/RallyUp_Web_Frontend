@@ -1,370 +1,792 @@
 import type React from "react"
 import Link from "next/link"
+import SvgIcon from "@/components/svg-icon"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
-import { ScrollToTop } from "@/components/scroll-to-top"
-import Image from "next/image"
+import Image from 'next/image';
 
 export const metadata = {
-    title: "Privacy Policy | Wingman Pro",
-    description: "Wingman Pro Privacy Policy",
+  title: "Privacy Policy | Wingman Pro",
+  description: "Wingman Pro Privacy Policy",
 }
 
+const tocItems = [
+  { id: "scope", label: "1. Scope" },
+  { id: "data-collected", label: "2. Data Collected" },
+  { id: "purpose-sharing", label: "3. Purpose & Sharing" },
+  { id: "security-rights", label: "4. Security & Rights" },
+  { id: "childrens-privacy", label: "5. Children's Privacy" },
+  {
+    id: "country-specifics",
+    label: "6. Country Specifics",
+    children: [
+      { id: "india", label: "India (DPDPA)" },
+      { id: "uk-eu", label: "UK/EU (GDPR)" },
+      { id: "singapore", label: "Singapore (PDPA)" },
+      { id: "usa", label: "USA (CCPA/CPRA)" },
+    ],
+  },
+  { id: "contact-dpo", label: "7. Contact DPO" },
+]
+
+const dataCards = [
+  {
+    title: "Identity & Auth",
+    text: "Name, email, phone (Meta OTP), encrypted passwords, and session logs for secure access.",
+    borderColor: "border-l-[#00D4FF]",
+  },
+  {
+    title: "Engagement & Technical",
+    text: "Leaderboards, poll responses, IP Address, Device type, and Google Analytics technical logs.",
+    borderColor: "border-l-[#9D05FF]",
+  },
+  {
+    title: "Financial Records",
+    text: "Masked payment details processed via RazorPay. We never store full credit card numbers.",
+    borderColor: "border-l-[#00FADC]",
+  },
+  {
+    title: "Location & Activity",
+    text: "Approximate club locations and precise venue check-ins. Crash logs via Firebase.",
+    borderColor: "border-l-wingman-cyan",
+  },
+]
+
+const sharingItems = [
+  {
+    title: "Authentication",
+    text: "Emails/Phones shared with Twilio SendGrid and META for secure 6-digit OTP codes.",
+  },
+  {
+    title: "Payments",
+    text: "Transaction details via Razorpay for tickets and dues.",
+  },
+  {
+    title: "Personal Information",
+    text: "Membership status related information for members that includes Name, Mobile Number, Email Address, Home Address (where asked by clubs), ID Proof (where asked by clubs) are shared with the specific sports club you join. This information is guarded at all times through data encryption and Club Admins remain the custodians of the data at all times.",
+  },
+]
+
+const indiaRights = ["Right to Nominate", "Right to Erasure", "Complaint to Data Board", "Withdrawal of Consent"]
+const gdprRights = ["Right to be Forgotten", "Data Portability", "Right to Object"]
+
+const otherRegions = [
+  { name: "Australia", text: "Privacy Act 1988 (APPs)", icon: "/new-wingman/icons/australia-flag.svg" },
+  { name: "Malaysia", text: "PDPA 2010 Compliance", icon: "/new-wingman/icons/malaysia-flag.svg" },
+  { name: "UAE", text: "Federal PDPL Standards", icon: "/new-wingman/icons/uae-flag.svg" },
+]
+
+/* ---------- Mobile-only content (from mobile Figma frame) ---------- */
+const mobileDataItems = [
+  {
+    icon: "/new-wingman/icons/i-card.svg",
+    title: "Identity & Contact",
+    text: "Name, email, and phone via Twilio SendGrid for OTP authentication.",
+  },
+  {
+    icon: "/new-wingman/icons/lock.svg",
+    title: "Authentication",
+    text: "Encrypted passwords, Session IDs, and Access logs.",
+  },
+  {
+    icon: "/new-wingman/icons/cash.svg",
+    title: "Financial Data",
+    text: "Processed by RazorPay. We do not store full payment card details.",
+  },
+  {
+    icon: "/new-wingman/icons/map-pin.svg",
+    title: "Location",
+    text: "Approximate for clubs, precise for venue check-ins only.",
+  },
+]
+
+const mobileRegionChips = [
+  { id: "m-india", label: "India (DPDPA)", icon: "/new-wingman/icons/india-flag.svg", alt: "India" },
+  { id: "m-uk-eu", label: "UK/EU (GDPR)", icon: "/new-wingman/icons/europe-flag.svg", alt: "UK/EU" },
+  { id: "m-usa", label: "USA (CCPA/CPRA)", icon: "/new-wingman/icons/usa-flag.svg", alt: "USA" },
+]
+
+const mobileRegions = [
+  {
+    id: "m-india",
+    title: "India (DPDPA 2023)",
+    text: 'As a "Data Principal," you have the Right to Nominate, Right to Erasure, and the right to file complaints with the Data Protection Board of India.',
+  },
+  {
+    id: "m-uk-eu",
+    title: "UK & Germany (GDPR)",
+    text: '"Data Subjects" hold core rights including Access, Rectification, Erasure ("Right to be Forgotten"), and Data Portability.',
+  },
+  {
+    id: "m-usa",
+    title: "USA (CCPA/CPRA)",
+    text: "California residents have the Right to Know, Delete, and Opt-Out of the sale or sharing of personal information.",
+  },
+]
+
 export default function PrivacyPage(): React.JSX.Element {
-    return (
-        <main className="min-h-screen bg-white text-background public-theme">
-            <SiteNavbar />
-            <div className="bg-secondary-purple/40 px-4 py-16 relative z-10">
-                <div className="max-w-3xl mx-auto">
-                    <div className="absolute inset-0 -z-10" />
-                    <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none z-[-5]">
-                        <Image src="/Vector.svg" alt="" fill className="object-contain" />
-                    </div>
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary/20 mb-6 animate-scale-in">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 animate-pulse" />
-                        <span className="text-[10px] font-medium leading-[14px] text-primary uppercase tracking-normal">Privacy Policies</span>
-                    </div>
-                    <h1 className="text-3xl md:text-4xl font-bold mb-4 z-10 relative">
-                        PRIVACY POLICY: RALLYUP SOLUTIONS PRIVATE LIMITED (For Wingman Pro)
-                    </h1>
-                    <p className="text-sm text-secondary mb-10">Effective Date: March 15, 2026</p>
+  return (
+    <main
+      className="min-h-screen overflow-x-clip bg-wingman-light-surface-text text-white"
+      style={{
+        backgroundImage: `
+                    radial-gradient(ellipse 30% 28.125rem at top left, #9D05FF1A 10%, transparent 100%),
+                    radial-gradient(ellipse 30% 28.125rem at top right, #A8E8FF1A 20%, transparent 100%)
+                `,
+        backgroundRepeat: "no-repeat"
+      }}
+    >
+      <SiteNavbar />
 
-                    <section className="space-y-6 text-secondary">
-                        <p>
-                            This Privacy Policy explains how RallyUp Solutions Private Limited (&quot;RallyUp Solutions,&quot; &quot;we,&quot;
-                            &quot;us,&quot; or &quot;our,&quot; the parent company) collects, uses, protects, and discloses personal data related to
-                            your use of our web application platform, Wingman Pro (the &quot;Service&quot; or &quot;Wingman Pro&quot;). We are
-                            committed to protecting your privacy and handling your data in a transparent manner, consistent with applicable
-                            global and local laws.
-                        </p>
+      {/* Hero */}
+      <section className="relative">
+        <div className="pointer-events-none absolute left-1/2 top-0 h-[21.25rem] w-[56.25rem] max-w-full -translate-x-1/2 rounded-full" />
 
-                        <h2 className="text-xl font-semibold text-background">1. SCOPE AND APPLICATION</h2>
-                        <p>
-                            This Policy applies to all members, administrators, and users (&quot;Users&quot;) of Wingman Pro. Given the
-                            international nature of supporter groups, we detail specific privacy rights based on location in Section 6.
-                        </p>
+        <div className="relative mx-auto flex max-w-3xl flex-col items-start gap-4 px-4 pb-6 pt-8 text-left mobile:items-center mobile:gap-6 mobile:px-8 mobile:pb-16 mobile:pt-16 mobile:text-center">
+          {/* Mobile heading */}
+          <h1 className="font-sf text-[1.5rem] font-[700] leading-[2.25rem] mobile:hidden">
+            Privacy Policy
+          </h1>
 
-                        <h2 className="text-xl font-semibold text-background">2. DATA COLLECTED</h2>
-                        <p>We collect information required for account authentication and service operation.</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Identity and Contact Data:</strong> Name, email address, and phone number (collected via Twilio SendGrid
-                                for OTP authentication).
-                            </li>
-                            <li>
-                                <strong>Authentication Data:</strong> OTP (transmitted via Email/SMS), Encrypted Password, User Session IDs,
-                                Access Logs.
-                            </li>
-                            <li>
-                                <strong>Engagement Data (Non-Sensitive):</strong> Leaderboard performance, Purchase Reports, Event Attendance
-                                records, Poll responses.
-                            </li>
-                            <li>
-                                <strong>Technical Data:</strong> IP Address, Device type, Operating System, Browser type, and usage data
-                                (collected via Google Analytics for non-identifiable, aggregated reporting to improve functionality).
-                            </li>
-                            <li>
-                                <strong>Financial Data:</strong> Transaction records for merchandise and tickets, Payment reference numbers,
-                                and non-sensitive masked payment details (e.g., last four digits of the card). (Note: We do not store full
-                                payment card details; these are handled by our Payment Partner – RazorPay – payment gateway and processed
-                                securely as per their Privacy and Compliance guidelines.)
-                            </li>
-                            <li>
-                                <strong>Location Data:</strong> Approximate location (to show nearby clubs) and precise location (only when you
-                                check-in to a matchday venue).
-                            </li>
-                            <li>
-                                <strong>App Activity:</strong> Crash logs and performance metrics (via Firebase/Google Analytics) to improve the
-                                Service.
-                            </li>
-                        </ul>
+          {/* Desktop heading */}
+          <h1 className="heading-main hidden mobile:block">
+            Privacy Policy
+          </h1>
 
-                        <h2 className="text-xl font-semibold text-background">3. PURPOSE AND LEGAL BASIS FOR PROCESSING</h2>
-                        <p>We process data only for defined, legitimate purposes.</p>
-                        <h3 className="text-lg font-semibold text-background mt-2">How We Share Your Data</h3>
-                        <p>We do not sell your data. We share it only with trusted service providers essential to our operations:</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Authentication:</strong> Phone numbers/emails are shared with Twilio SendGrid to deliver secure 6-digit
-                                OTP codes.
-                            </li>
-                            <li>
-                                <strong>Payments:</strong> Transaction details are shared with Razorpay to process tickets and membership dues.
-                            </li>
-                            <li>
-                                <strong>Club Admins:</strong> Your name and membership status are shared with the specific sports club you join
-                                on the platform.
-                            </li>
-                            <li>
-                                <strong>Cross-Border Transfers:</strong> Data may be transferred outside your country of residence (e.g., for
-                                cloud hosting). We ensure that any country receiving the data maintains a comparable standard of protection or
-                                that appropriate safeguards (e.g., standard contractual clauses) are in place, as required by applicable law.
-                                Our primary cloud service providers and servers are located in India and on cloud.
-                            </li>
-                        </ul>
+          {/* Mobile meta */}
+          <div className="flex flex-col items-start gap-3 mobile:hidden">
+            <span className="flex h-[1.625rem] w-[8.125rem] items-center justify-center rounded-full border border-[#A8E8FF4D] font-sf-compact text-[0.75rem] font-[457] uppercase leading-[1rem] text-wingman-cyan">
+              Legal Document
+            </span>
+            <span className="flex h-[2.375rem] w-[14.75rem] items-center justify-center gap-2 rounded-full border border-[#A8E8FF33] bg-[#A8E8FF1A] font-sf-compact text-[0.75rem] font-[457] leading-[1.5rem] text-wingman-cyan">
+              <SvgIcon
+                src="/new-wingman/icons/history.svg"
+                className="h-[0.75rem] w-[0.75rem] shrink-0 bg-wingman-cyan"
+              />
+              Last Updated: March 15, 2026
+            </span>
+          </div>
+        </div>
+      </section>
 
-                        <h2 className="text-xl font-semibold text-background">4. DATA SECURITY</h2>
-                        <h3 className="text-lg font-semibold text-background mt-2">4.1 Data Security &amp; Encryption</h3>
-                        <p>
-                            We implement industry-standard security measures to protect your data. All data transmitted between the Wingman
-                            Pro app and our servers is encrypted in transit using Secure Socket Layer (SSL/HTTPS) technology.
-                        </p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Security:</strong> We implement technical safeguards, including encryption, access controls, and
-                                vulnerability assessments, to protect against unauthorized access or loss.
-                            </li>
-                            <li>
-                                <strong>Retention:</strong> We retain personal data only for as long as is necessary to serve the purpose for
-                                which it was collected, or as required by law. Data is securely deleted or anonymized when no longer required.
-                            </li>
-                        </ul>
-                        <h3 className="text-lg font-semibold text-background mt-2">4.2 Your Rights &amp; Account Deletion</h3>
-                        <p>You have the right to access, correct, or delete your data at any time.</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>In-App Deletion:</strong> You can delete your account by navigating to Settings &gt; Account &gt; Delete
-                                Account.
-                            </li>
-                            <li>
-                                <strong>Web Request:</strong> If you cannot access the app, you may request account and data deletion via our{""}
-                                <Link className="underline" href="/delete-account">
-                                    Data Deletion Request Form
-                                </Link>{""}
-                                or by emailing{""}
-                                <a className="underline" href="mailto:support@wingman-pro.com">
-                                    support@wingman-pro.com
-                                </a>
-                            </li>
-                            <li>
-                                <strong>Retention:</strong> Upon deletion, all personal identifiers are purged from our active databases within
-                                30 days, except where retention is required for legal or financial auditing (e.g., past payment records).
-                            </li>
-                        </ul>
+      {/* ================= MOBILE ONLY BODY ================= */}
+      <div className="flex flex-col gap-8 px-4 pb-12 mobile:hidden">
 
-                        <h2 className="text-xl font-semibold text-background">5. CHILDREN&apos;S PRIVACY</h2>
-                        <p>
-                            Wingman Pro is not intended for individuals under the age of 13. We do not knowingly collect personal data from
-                            children. If we become aware of such collection, we will take immediate steps to delete the data.
-                        </p>
+        {/* Overview */}
+        <section>
+          <h2 className="font-['SF_Pro',sans-serif] text-[1rem] font-[590] leading-[1.5rem] text-wingman-cyan">
+            Overview
+          </h2>
+          <p className="mt-3 font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.625rem] text-wingman-secondary-text">
+            This Privacy Policy explains how RallyUp Solutions Private Limited collects, uses,
+            protects, and discloses personal data related to your use of <strong className="font-[656]">Wingman Pro</strong>.
+            We are committed to transparency and the highest standards of data protection.
+          </p>
+        </section>
 
-                        <h2 className="text-xl font-semibold text-background">6. COUNTRY-SPECIFIC PRIVACY RIGHTS</h2>
-                        <p>
-                            This section outlines additional rights and legal requirements applicable to Users residing in the following
-                            jurisdictions, overriding any conflicting terms in Sections 1–5.
-                        </p>
+        {/* Accordions */}
+        <div className="flex flex-col gap-3">
 
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.1. 🇮🇳 India (Digital Personal Data Protection Act, 2023 - DPDPA)
-                        </h3>
-                        <p>You are a &quot;Data Principal&quot; under the DPDPA.</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Consent and Notice:</strong> Consent must be free, specific, informed, unconditional, and unambiguous
-                                with a clear affirmative action. When collecting data, you will be informed of the purpose, how to exercise your
-                                rights, and the complaint mechanism.
-                            </li>
-                            <li>
-                                <strong>Right to Nominate:</strong> You have the right to nominate another individual to exercise your rights in
-                                the event of your death or incapacity.
-                            </li>
-                            <li>
-                                <strong>Right to Erasure:</strong> You may request the deletion of your data when the purpose for which it was
-                                collected is no longer being served, and you may withdraw consent at any time.
-                            </li>
-                            <li>
-                                <strong>Complaint:</strong> You may file a complaint with the Data Protection Board of India.
-                            </li>
-                        </ul>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.2. 🇬🇧 United Kingdom (UK GDPR) &amp; 🇩🇪 Germany (GDPR)
-                        </h3>
-                        <p>As residents of the UK and an EU member state (Germany), you are &quot;Data Subjects.&quot;</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Legal Basis:</strong> We must identify one of six lawful bases for processing your data (e.g., Consent,
-                                Contractual Necessity, Legitimate Interests).
-                            </li>
-                            <li>
-                                <strong>Core Rights:</strong> You have the Right of Access (to confirm if data is processed and obtain a copy),
-                                the Right to Rectification, the Right to Erasure (&quot;Right to be Forgotten&quot;), the Right to Restriction of
-                                Processing, and the Right to Data Portability.
-                            </li>
-                            <li>
-                                <strong>Right to Object:</strong> You have the right to object to processing based on legitimate interests or for
-                                direct marketing purposes.
-                            </li>
-                            <li>
-                                <strong>Complaint:</strong> You have the right to lodge a complaint with a supervisory authority (e.g., the
-                                Information Commissioner&apos;s Office (ICO) in the UK or the relevant State supervisory authority in Germany).
-                            </li>
-                        </ul>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.3. 🇸🇬 Singapore (Personal Data Protection Act 2012 - PDPA)
-                        </h3>
-                        <p>Your rights are governed by the PDPA.</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Consent Obligation:</strong> We must obtain your consent before collecting, using, or disclosing your
-                                personal data, unless legally exempted or where consent is deemed. Consent can be withdrawn at any time.
-                            </li>
-                            <li>
-                                <strong>Access and Correction:</strong> You have the right to request access to your personal data and information
-                                on its use/disclosure in the prior year. You also have the right to request correction of errors or omissions.
-                            </li>
-                            <li>
-                                <strong>Protection and Retention:</strong> We must make reasonable efforts to ensure data accuracy and protect
-                                data with reasonable security arrangements. Data must be retained only as long as necessary for business or legal
-                                purposes.
-                            </li>
-                            <li>
-                                <strong>Transfer Limitation:</strong> We must ensure a comparable standard of protection is maintained for any
-                                data transferred outside Singapore.
-                            </li>
-                        </ul>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.4. 🇺🇸 USA (California Consumer Privacy Act/CPRA)
-                        </h3>
-                        <p>
-                            If you are a California resident, the CCPA/CPRA grants you specific rights (assuming RallyUp Solutions meets the
-                            required revenue/data thresholds).
-                        </p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Right to Know/Access:</strong> You have the right to know what personal information is being collected
-                                about you, for what purpose, and whether it is sold or shared.
-                            </li>
-                            <li>
-                                <strong>Right to Delete:</strong> You can request the deletion of your personal information, subject to
-                                exceptions.
-                            </li>
-                            <li>
-                                <strong>Right to Opt-Out:</strong> You have the right to opt out of the sale or sharing of your personal
-                                information.
-                            </li>
-                            <li>
-                                <strong>Sensitive Personal Information:</strong> You have the right to limit the use and disclosure of sensitive
-                                personal information.
-                            </li>
-                        </ul>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.5. 🇲🇾 Malaysia (Personal Data Protection Act 2010 - PDPA) &amp; 🇮🇩 Indonesia (PDP Law 2022)
-                        </h3>
-                        <p>Both countries rely heavily on consent and have laws mirroring GDPR principles.</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Indonesia PDP Law:</strong> Grants rights to access, rectify, terminate processing (including deletion),
-                                and data portability.
-                            </li>
-                            <li>
-                                <strong>Malaysia PDPA:</strong> Requires consent for processing (especially sensitive data) and has recently
-                                introduced mandatory breach reporting and rules regarding Data Protection Officers (DPOs). You have rights to
-                                access and correction.
-                            </li>
-                        </ul>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.6. 🇹🇭 Thailand (PDPA) &amp; 🇻🇳 Vietnam (PDPL - pending)
-                        </h3>
-                        <p>These jurisdictions rely on consent and have detailed obligations.</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Thailand PDPA:</strong> Your consent is required for processing. You have the Right to be Informed,
-                                Right to Access, Right to Correction, and Right to Data Portability.
-                            </li>
-                            <li>
-                                <strong>Vietnam (pending):</strong> Consent remains the primary basis for processing. The framework is currently
-                                transitioning towards incorporating clearer legal bases for processing other than consent.
-                            </li>
-                        </ul>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.7. 🇦🇺 Australia (Privacy Act 1988 - APPs)
-                        </h3>
-                        <p>
-                            Your data is governed by the Australian Privacy Principles (APPs). We must give you Notice regarding collection,
-                            use, and disclosure. You have rights to Access and Correction.
-                        </p>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.8. 🇱🇰 Sri Lanka (PDPA) &amp; 🇵🇰 Pakistan (PDPB - Draft)
-                        </h3>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>Sri Lanka PDPA:</strong> You have rights to Access, Rectification, and the right to respond to your
-                                request within 3 months. The law applies to both controllers and processors.
-                            </li>
-                            <li>
-                                <strong>Pakistan (Draft PDPB):</strong> Grants rights including Access, Correction, Data Portability, and the Right
-                                to Erasure. Data can only be transferred outside Pakistan with equivalent protection or explicit consent.
-                            </li>
-                        </ul>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.9. 🇳🇵 Nepal (Individual Privacy Act &amp; Data Act)
-                        </h3>
-                        <p>
-                            Nepal&apos;s framework is based on the constitutional right to privacy. We must obtain consent before collecting your
-                            personal information.
-                        </p>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">
-                            6.10. 🇦🇪 UAE (Federal PDPL) &amp; 🇲🇽 Mexico (LFPD)
-                        </h3>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>
-                                <strong>UAE Federal PDPL:</strong> Your rights include Access, Rectification, Erasure (Right to be Forgotten), and
-                                Data Portability. Consent is the default legal basis and must be clear, specific, and unambiguous.
-                            </li>
-                            <li>
-                                <strong>Mexico (LFPD):</strong> Grants ARCO rights (Access, Rectification, Cancellation, and Opposition) to the
-                                processing of personal data.
-                            </li>
-                        </ul>
-
-                        <h3 className="text-lg font-semibold text-background mt-4">6.11. 🇧🇩 Bangladesh</h3>
-                        <p>
-                            Bangladesh has a draft Data Protection Act, but the framework is still emerging. We operate based on the general
-                            principles of Notice and Consent.
-                        </p>
-
-                        <h2 className="text-xl font-semibold text-background">7. CONTACT US</h2>
-                        <p>
-                            For questions or concerns regarding this Privacy Policy or to exercise your privacy rights, please contact our Data
-                            Protection Officer/Grievance Officer:
-                        </p>
-                        <p className="mt-2">
-                            <strong>Grievance Officer/Data Protection Officer (DPO):</strong>
-                        </p>
-                        <p className="mt-2">
-                            Dr. Sunil Acharya
-                            <br />
-                            RallyUp Solutions Private Limited
-                            <br />
-                            Email:{""}
-                            <a className="underline" href="mailto:support@wingman-pro.com">
-                                support@wingman-pro.com
-                            </a>
-                            <br />
-                            Phone: +91 9819 889 882
-                            <br />
-                            Address: DLH Orchid, Apna, Ghar Unit No. 13 CHS L, Andheri, Mumbai, Maharashtra, India, 400053
-                        </p>
-                    </section>
-
-                    <div className="mt-10">
-                        <Link href="/terms" className="text-primary hover:text-primary">
-                            View our Terms of Service
-                        </Link>
-                    </div>
-                </div>
+          {/* 1. Scope */}
+          <details className="group rounded-[0.75rem] border border-[#FFFFFF1F] bg-[#12121299] backdrop-blur-[1.25rem]">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-[1.0625rem] py-[1rem] [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center gap-3">
+                <SvgIcon
+                  src="/new-wingman/icons/photo-graph.svg"
+                  className="h-[1.125rem] w-[1.125rem] shrink-0 bg-wingman-cyan"
+                />
+                <span className="font-['SF_Pro',sans-serif] text-[1.125rem] font-[590] leading-[1.6875rem] text-wingman-primary-text">
+1. Scope and Application
+                </span>
+              </span>
+              <SvgIcon
+                src="/new-wingman/icons/arrow-down.svg"
+                className="h-[0.4625rem] w-[0.75rem] shrink-0 bg-wingman-secondary-text transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <div className="border-t border-[#FFFFFF1F] px-[1.0625rem] py-[1rem]">
+              <p className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.25rem] text-wingman-secondary-text">
+                This Policy applies to all members, administrators, and users of Wingman Pro. Given the
+                international nature of supporter groups, we detail specific privacy rights based on location.
+                RallyUp Solutions Private Limited is committed to protecting your privacy in a transparent manner.
+              </p>
             </div>
-            <SiteFooter />
-            <ScrollToTop />
-        </main>
-    )
+          </details>
+
+          {/* 2. Data Collected */}
+          <details open className="group rounded-[0.75rem] border border-[#FFFFFF1F] bg-[#12121299] backdrop-blur-[1.25rem]">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-[1.0625rem] py-[1rem] [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center gap-3">
+                <SvgIcon
+                  src="/new-wingman/icons/database.svg"
+                  className="h-[1.125rem] w-[1.125rem] shrink-0 bg-wingman-cyan"
+                />
+                <span className="font-['SF_Pro',sans-serif] text-[1.125rem] font-[590] leading-[1.6875rem] text-wingman-primary-text">
+2. Data Collected
+                </span>
+              </span>
+              <SvgIcon
+                src="/new-wingman/icons/arrow-down.svg"
+                className="h-[0.4625rem] w-[0.75rem] shrink-0 bg-wingman-secondary-text transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <div className="flex flex-col gap-[1.25rem] border-t border-[#FFFFFF1F] px-[1.0625rem] py-[1.25rem]">
+              {mobileDataItems.map(({ icon, title, text }, index) => (
+                <div key={title} className="flex items-start gap-[0.75rem]">
+                  <SvgIcon
+                    src={icon}
+                    className={
+                      index === 3
+                        ? "h-[1.25rem] w-[1rem] shrink-0 bg-wingman-cyan"
+                        : "h-[1.25rem] w-[1.25rem] shrink-0 bg-wingman-cyan"
+                    }
+                  />
+                  <div>
+                    <p className="font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.5rem] text-wingman-primary-text">
+                      {title}
+                    </p>
+                    <p className="mt-[0.25rem] font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.25rem] text-wingman-secondary-text">
+                      {text}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+
+          {/* 3. Purpose & Data Sharing */}
+          <details className="group rounded-[0.75rem] border border-[#FFFFFF1F] bg-[#12121299] backdrop-blur-[1.25rem]">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-[1.0625rem] py-[1rem] [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center gap-3">
+                <SvgIcon
+                  src="/new-wingman/icons/share.svg"
+                  className="h-[1.125rem] w-[1.125rem] shrink-0 bg-wingman-cyan"
+                />
+                <span className="font-['SF_Pro',sans-serif] text-[1.125rem] font-[590] leading-[1.6875rem] text-wingman-primary-text">
+3. Purpose &amp; Data Sharing
+                </span>
+              </span>
+              <SvgIcon
+                src="/new-wingman/icons/arrow-down.svg"
+                className="h-[0.4625rem] w-[0.75rem] shrink-0 bg-wingman-secondary-text transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <div className="flex flex-col gap-[1.25rem] border-t border-[#FFFFFF1F] px-[1.0625rem] py-[1.25rem]">
+              <p className="font-['SF_Compact',sans-serif] text-[1rem] font-[457] italic leading-[1.5rem] text-wingman-secondary-text">
+                &ldquo;We do not sell your data. We share it only with trusted service providers essential to our
+                operations.&rdquo;
+              </p>
+              {sharingItems.map(({ title, text }) => (
+                <div key={title} className="flex items-start gap-[0.75rem]">
+                  <SvgIcon
+                    src="/new-wingman/icons/circle-check.svg"
+                    className="mt-0.5 h-[1.25rem] w-[1.25rem] shrink-0 bg-wingman-cyan"
+                  />
+                  <div>
+                    <p className="font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.5rem] text-wingman-primary-text">
+                      {title}
+                    </p>
+                    <p className="mt-[0.25rem] font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.25rem] text-wingman-secondary-text">
+                      {text}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+
+          {/* 4. Security & Deletion */}
+          <details className="group rounded-[0.75rem] border border-[#FFFFFF1F] bg-[#12121299] backdrop-blur-[1.25rem]">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-[1.0625rem] py-[1rem] [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center gap-3">
+                <SvgIcon
+                  src="/new-wingman/icons/shield-lock.svg"
+                  className="h-[1.125rem] w-[1.125rem] shrink-0 bg-wingman-cyan"
+                />
+                <span className="font-['SF_Pro',sans-serif] text-[1.125rem] font-[590] leading-[1.6875rem] text-wingman-primary-text">
+4. Security &amp; Deletion
+                </span>
+              </span>
+              <SvgIcon
+                src="/new-wingman/icons/arrow-down.svg"
+                className="h-[0.4625rem] w-[0.75rem] shrink-0 bg-wingman-secondary-text transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <div className="flex flex-col gap-[1.25rem] border-t border-[#FFFFFF1F] px-[1.0625rem] py-[1.25rem]">
+              <div>
+                <p className="font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.5rem] text-wingman-primary-text">
+                  Encryption
+                </p>
+                <p className="mt-[0.25rem] font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.25rem] text-wingman-secondary-text">
+                  We implement technical safeguards including SSL/HTTPS encryption for all data in transit and
+                  rigorous access controls for our India-based cloud servers.
+                </p>
+              </div>
+              <div>
+                <p className="font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.5rem] text-wingman-primary-text">
+                  Account Deletion
+                </p>
+                <p className="mt-[0.25rem] font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.25rem] text-wingman-secondary-text">
+                  Users can delete accounts via Settings &gt; Account &gt; Delete Account. Data is purged within 30
+                  days except where legally required for auditing.
+                </p>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        {/* Global Rights */}
+        <section>
+          <div className="border-b border-[#FFFFFF1F] pb-[1rem]">
+            <h2 className="font-['SF_Pro',sans-serif] text-[1rem] font-[590] leading-[1.5rem] text-[#00FADC]">
+              Global Rights
+            </h2>
+            <p className="mt-[0.25rem] font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.25rem] text-wingman-secondary-text">
+              Country-specific privacy rights and jurisdictional compliance.
+            </p>
+          </div>
+          <div className="-mx-4 mt-[1rem] flex flex-nowrap gap-[0.5rem] overflow-x-auto px-4 pb-1">
+            {mobileRegionChips.map(({ id, label, icon, alt }) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="flex h-[2.375rem] shrink-0 items-center justify-center gap-[0.5rem] rounded-full border border-[#FFFFFF1F] bg-[#1C1B1B] px-[1.25rem] whitespace-nowrap"
+              >
+                <Image
+                  src={icon}
+                  alt={alt}
+                  width={20}
+                  height={15}
+                  className="h-[1rem] w-auto shrink-0 object-contain"
+                />
+                <span className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.25rem] text-wingman-primary-text">
+                  {label}
+                </span>
+              </a>
+            ))}
+          </div>
+
+          <div className="mt-[1rem] flex flex-col gap-[1rem]">
+            {mobileRegions.map(({ id, title, text }) => (
+              <div
+                key={id}
+                id={id}
+                className="scroll-mt-24 rounded-[0.75rem] border border-[#FFFFFF1F] bg-[#12121299] p-[1.25rem] backdrop-blur-[1.25rem]"
+              >
+                <h3 className="font-['SF_Pro',sans-serif] text-[1.125rem] font-[590] leading-[1.6875rem] text-wingman-primary-text">
+                  {title}
+                </h3>
+                <p className="mt-[0.75rem] font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.421875rem] text-wingman-secondary-text">
+                  {text}
+                </p>
+              </div>
+            ))}
+
+            <div className=" bg-[#12121299] rounded-[0.75rem] border border-dashed border-[#FFFFFF33] p-[1.25rem] text-center">
+              <p className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] italic leading-[1.375rem] text-wingman-secondary-text">
+                Additional sections for SE Asia, Australia, and Middle East available in our full documentation.
+              </p>
+              <a
+                href="#"
+                className="mt-[0.75rem] inline-block font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] text-wingman-cyan underline underline-offset-4"
+              >
+                Download full PDF
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact DPO */}
+        <section>
+          <h2 className="font-['SF_Pro',sans-serif] text-[1rem] font-[590] leading-[1.5rem] text-wingman-cyan">
+            Contact DPO
+          </h2>
+          <div className="mt-[0.75rem] rounded-[0.75rem] border border-[#FFFFFF1F] bg-[#12121299] p-[1.25rem] backdrop-blur-[1.25rem]">
+            <p className="font-['SF_Pro',sans-serif] text-[1.125rem] font-[590] leading-[1.6875rem] text-wingman-primary-text">
+              Dr. Sunil Acharya
+            </p>
+            <a
+              href="mailto:compliance@wingman-pro.com"
+              className="mt-[0.75rem] flex items-center gap-[0.75rem] break-words font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.25rem] text-wingman-secondary-text"
+            >
+              <SvgIcon
+                src="/new-wingman/icons/mail.svg"
+                className="h-[1.25rem] w-[1rem] shrink-0 bg-wingman-cyan"
+              />
+              compliance@wingman-pro.com
+            </a>
+            <div className="mt-[0.75rem] flex items-start gap-[0.75rem]">
+              <SvgIcon
+                src="/new-wingman/icons/map-pin.svg"
+                className="mt-[0.125rem] h-[1.25rem] w-[1rem] shrink-0 bg-wingman-cyan"
+              />
+              <address className="not-italic font-['SF_Compact',sans-serif] text-[0.875rem] font-[457] leading-[1.25rem] text-wingman-secondary-text">
+                Apna Ghar Unit No. 13 CHS L, Andheri, Mumbai - 400053, MH, INDIA
+              </address>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Body (desktop) */}
+      <div className="mx-auto hidden max-w-8xl gap-10 px-4 pb-24 mobile:px-8 mobile:block aside-hide:grid aside-hide:grid-cols-[12.5rem_minmax(0,1fr)] aside-hide:gap-14">
+        {/* Sticky nav */}
+        <aside className="hidden aside-hide:block aside-hide:sticky aside-hide:top-28 aside-hide:self-start">
+          <nav className="flex flex-col gap-[1rem]">
+            {tocItems.map((item) => (
+              <div key={item.id}>
+                <a
+                  href={`#${item.id}`}
+                  className="flex h-[1.25rem] w-[16.5rem] items-center border-l-[0.125rem] border-[#00D4FF] pl-[0.75rem] align-middle font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] tracking-[0rem] text-wingman-secondary-text transition-colors hover:text-wingman-emphasis-text"
+                >
+                  {item.label}
+                </a>
+
+                {item.children && (
+                  <div className="mt-[0.5rem] flex h-[5.5rem] w-[16.5rem] flex-col gap-[0.5rem] border-l border-[#FFFFFF0D] pl-[1rem]">
+                    {item.children.map((child) => (
+                      <a
+                        key={child.id}
+                        href={`#${child.id}`}
+                        className="flex h-[1rem] w-[15.4375rem] items-center border-l-[0.125rem] border-[#00D4FF] pl-[0.75rem] align-middle font-['SF_Compact',sans-serif] text-[0.75rem] font-[556] leading-[1rem] tracking-[0rem] text-[#859398] transition-colors hover:text-wingman-secondary-text"
+                      >
+                        {child.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Content */}
+        <div className="mx-auto w-full max-w-8xl space-y-16 aside-hide:max-w-none min-w-0">
+          {/* 1 Scope */}
+          {/* 1 Scope */}
+          <section id="scope" className="scroll-mt-28 space-y-6">
+            <h2 className="flex items-center gap-4 align-middle font-['SF_Pro',sans-serif] text-[2rem] font-[700] leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+              <SvgIcon
+                src="/new-wingman/icons/shield-search.svg"
+                className="h-[1.25rem] w-[1rem] shrink-0 bg-wingman-cyan"
+              />
+1. Scope and Application
+            </h2>
+
+            <div className="glass-panel">
+              <p className="align-middle font-['SF_Compact',sans-serif] text-[1.125rem] font-[457] leading-[1.828125rem] tracking-[0rem] text-wingman-secondary-text">
+                This Policy applies to all members, administrators, and users (&ldquo;Users&rdquo;) of Wingman Pro. Given
+                the international nature of supporter groups, we detail specific privacy rights based on location
+                in Section 6. RallyUp Solutions Private Limited is committed to protecting your privacy in a
+                transparent manner.
+              </p>
+            </div>
+          </section>
+
+          {/* 2 Data Collected */}
+          <section id="data-collected" className="scroll-mt-28 space-y-6">
+            <h2 className="flex items-center gap-4 align-middle font-['SF_Pro',sans-serif] text-[2rem] font-[700] leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+              <SvgIcon
+                src="/new-wingman/icons/database.svg"
+                className="h-[1.25rem] w-[1rem] shrink-0 bg-wingman-cyan"
+              />
+2. Data Collected
+            </h2>
+
+            <div className="grid gap-[1rem] sm:grid-cols-2">
+              {dataCards.map(({ title, text, borderColor }) => (
+                <div
+                  key={title}
+                  className={`glass-panel flex w-full flex-col gap-[0.25rem] rounded-[0.5rem] border border-[rgba(255,255,255,0.12)] border-l-[0.25rem] p-[1.5rem] backdrop-blur-[1.25rem] ${borderColor}`}
+                >
+                  <p className="align-middle font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] tracking-[0rem] text-wingman-cyan">
+                    {title}
+                  </p>
+                  <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                    {text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 3 Purpose & Sharing */}
+          <section id="purpose-sharing" className="scroll-mt-28 space-y-6">
+            <h2 className="flex items-center gap-4 align-middle font-['SF_Pro',sans-serif] text-[2rem] font-[700] leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+              <SvgIcon
+                src="/new-wingman/icons/share.svg"
+                className="h-[1.25rem] w-[1rem] shrink-0 bg-wingman-cyan"
+              />
+3. Purpose & Data Sharing
+            </h2>
+
+            <div className="border-l-[0.125rem] border-l-[#A8E8FF66] pl-[1.5rem]">
+              <p className="align-middle font-['SF_Compact',sans-serif] text-[1.125rem] font-[457] italic leading-[1.75rem] tracking-[0rem] text-wingman-secondary-text">
+                &ldquo;We do not sell your data. We share it only with trusted service providers essential to our
+                operations.&rdquo;
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-[1.5rem] rounded-[1rem] border border-[#FFFFFF1F] bg-[#1C1B1B] p-[2rem]">
+              {sharingItems.map(({ title, text }) => (
+                <div key={title} className="flex gap-[0.75rem]">
+                  <SvgIcon
+                    src="/new-wingman/icons/info.svg"
+                    className="mt-[0.125rem] h-[1.25rem] w-[1.25rem] shrink-0 bg-wingman-cyan"
+                  />
+                  <div className="flex flex-col">
+                    <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.5rem] tracking-[0rem] text-wingman-primary-text">
+                      {title}
+                    </p>
+                    <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                      {text}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 4 Security & Rights */}
+          <section id="security-rights" className="scroll-mt-28 space-y-6">
+            <h2 className="flex items-center gap-4 align-middle font-['SF_Pro',sans-serif] text-[2rem] font-[700] leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+              <SvgIcon
+                src="/new-wingman/icons/shield-check-fill.svg"
+                className="h-[1.25rem] w-[1rem] shrink-0 bg-wingman-cyan"
+              />
+4. Data Security & Your Rights
+            </h2>
+
+            <div className="grid gap-[2rem] sm:grid-cols-2">
+              <div className="flex flex-col gap-[0.5rem]">
+                <h3 className="align-middle font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                  Encryption
+                </h3>
+                <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                  We implement technical safeguards including SSL/HTTPS encryption for all data in transit and
+                  rigorous access controls for our India-based cloud servers.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-[0.5rem]">
+                <h3 className="align-middle font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                  Account Deletion
+                </h3>
+                <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                  Users can delete accounts via Settings &gt; Account &gt; Delete Account. Data is purged within
+                  30 days except where legally required for auditing.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* 6 Country-Specific */}
+
+          <section id="country-specifics" className="scroll-mt-28 space-y-6">
+            <h2 className="align-middle font-['SF_Pro',sans-serif] text-[2rem] font-[700] leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+6. Country-Specific Privacy Rights
+            </h2>
+            <p className="align-middle font-['SF_Compact',sans-serif] text-[1.125rem] font-[457] leading-[1.828125rem] tracking-[0rem] text-wingman-secondary-text">
+              Specific rights applicable to your jurisdiction override general terms.
+            </p>
+
+            {/* India (DPDPA 2023) */}
+            <div
+              id="india"
+              className="flex flex-col gap-[1rem] p-[2rem] scroll-mt-28"
+              style={{
+                borderRadius: "1rem",
+                borderWidth: "1px",
+                borderStyle: "solid",
+                borderImageSource: "linear-gradient(90deg, #00D4FF 0%, #9D05FF 100%)",
+                borderImageSlice: 1,
+                boxShadow: "0 0 1.875rem 0 #00D4FF1A",
+                backgroundColor: "#121212"
+              }}
+            >
+              <div className="flex items-center gap-[0.5rem]">
+                <img
+                  src="/new-wingman/icons/india-flag.svg"
+                  alt="India Flag"
+                  className="h-[1.5rem] w-[1.5rem] shrink-0 object-contain"
+                />
+                <h3 className="align-middle font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                  India (DPDPA 2023)
+                </h3>
+              </div>
+              <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                As a &ldquo;Data Principal&rdquo;, your consent must be specific, informed, and unambiguous.
+              </p>
+              <ul className="mt-2 grid gap-[0.5rem] sm:grid-cols-2">
+                {indiaRights.map((right) => (
+                  <li key={right} className="flex items-center gap-[0.5rem]">
+                    <span className="h-[0.375rem] w-[0.375rem] rounded-full bg-[#00D4FF]" />
+                    <span className="align-middle font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] tracking-[0rem] text-wingman-primary-text">
+                      {right}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* UK & EU (GDPR) */}
+            <div id="uk-eu" className="glass-panel flex flex-col gap-[1rem] p-[2rem] scroll-mt-28">
+              <div className="flex items-center gap-[0.5rem]">
+                <img
+                  src="/new-wingman/icons/europe-flag.svg"
+                  alt="Europe Flag"
+                  className="h-[3rem] w-[3rem] shrink-0 object-contain"
+                />
+                <h3 className="align-middle font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                  UK & EU (GDPR)
+                </h3>
+              </div>
+              <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                You are &ldquo;Data Subjects&rdquo; with powerful rights to restriction and portability.
+              </p>
+              <div className="flex flex-wrap gap-[0.5rem]">
+                {gdprRights.map((right) => (
+                  <div
+                    key={right}
+                    className="flex h-[2.125rem] items-center justify-center rounded-[0.5rem] border border-[#FFFFFF1F] bg-[#2A2A2A] px-[1rem] py-[0.5rem]"
+                  >
+                    <span className="align-middle font-['SF_Compact',sans-serif] text-[0.75rem] font-[556] leading-[1rem] tracking-[0rem] text-wingman-primary-text">
+                      {right}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Singapore & USA */}
+            <div className="grid gap-[1rem] sm:grid-cols-2">
+              <div id="singapore" className="glass-panel flex flex-col gap-[0.5rem] p-[1.5rem] scroll-mt-28">
+                <div className="flex items-center gap-[0.5rem]">
+                  <img
+                    src="/new-wingman/icons/singapore-flag.svg"
+                    alt="Singapore Flag"
+                    className="h-[1.25rem] w-[1.25rem] shrink-0 object-contain"
+                  />
+                  <h3 className="align-middle font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] tracking-[0rem] text-wingman-primary-text">
+                    Singapore (PDPA)
+                  </h3>
+                </div>
+                <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                  Consent obligation and access to usage info from the prior year.
+                </p>
+              </div>
+              <div id="usa" className="glass-panel flex flex-col gap-[0.5rem] p-[1.5rem] scroll-mt-28">
+                <div className="flex items-center gap-[0.5rem]">
+                  <img
+                    src="/new-wingman/icons/usa-flag.svg"
+                    alt="USA Flag"
+                    className="h-[1.25rem] w-[1.25rem] shrink-0 object-contain"
+                  />
+                  <h3 className="align-middle font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] tracking-[0rem] text-wingman-primary-text">
+                    USA (CCPA/CPRA)
+                  </h3>
+                </div>
+                <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                  California residents&apos; right to know, delete, and opt-out of sharing.
+                </p>
+              </div>
+            </div>
+
+            {/* Other regions */}
+            <div className="grid gap-[1rem] sm:grid-cols-3">
+              {otherRegions.map(({ name, text, icon }) => (
+                <div
+                  key={name}
+                  className="flex h-[4.875rem] flex-col justify-center gap-[0.25rem] rounded-[0.5rem] border border-[#FFFFFF1F] bg-[#0E0E0E] p-[1rem]"
+                >
+                  <h4 className="flex items-center gap-[0.5rem] align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-primary-text">
+                    <img
+                      src={icon}
+                      alt={`${name} flag`}
+                      className="h-[1rem] w-[1rem] shrink-0 object-contain"
+                    />
+                    {name}
+                  </h4>
+                  <p className="align-middle font-['SF_Compact',sans-serif] text-[0.75rem] font-[556] leading-[1rem] tracking-[0rem] text-wingman-secondary-text">
+                    {text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 7 Contact DPO */}
+          <section id="contact-dpo" className="glass-panel scroll-mt-28 p-[2rem]">
+            <h2 className="align-middle font-['SF_Pro',sans-serif] text-[2rem] font-[700] leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+7. Contact Our DPO
+            </h2>
+            <div className="mt-[1.5rem] grid gap-[2rem] sm:grid-cols-2">
+              <div className="flex flex-col gap-[1rem]">
+                <div>
+                  <p className="align-middle font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] tracking-[0rem] text-wingman-cyan">
+                    Grievance Officer
+                  </p>
+                  <p className="mt-[0.25rem] align-middle font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                    Dr. Sunil Acharya
+                  </p>
+                  <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                    RallyUp Solutions Private Limited
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-[0.75rem]">
+                  <a
+                    href="mailto:support@wingmanpro.tech"
+                    className="flex items-center gap-[0.5rem] align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text transition-colors hover:text-wingman-cyan"
+                  >
+                    <SvgIcon
+                      src="/new-wingman/icons/mail.svg"
+                      className="h-[0.8125rem] w-[1rem] shrink-0 bg-wingman-cyan"
+                    />
+                    support@wingmanpro.tech
+                  </a>
+                  <a
+                    href="tel:+919819889882"
+                    className="flex items-center gap-[0.5rem] align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text transition-colors hover:text-wingman-cyan"
+                  >
+                    <SvgIcon
+                      src="/new-wingman/icons/phone.svg"
+                      className="h-[0.8125rem] w-[1rem] shrink-0 bg-wingman-cyan"
+                    />
+                    +91 9819 889 882
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-between">
+                <div className="flex flex-col gap-[0.5rem]">
+                  <p className="align-middle font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] tracking-[0rem] text-wingman-cyan">
+                    Location
+                  </p>
+                  <address className="not-italic align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.625rem] tracking-[0rem] text-wingman-secondary-text">
+                    DLH Orchid, Apna Ghar Unit No. 13 CHS L,
+                    <br />
+                    Andheri, Mumbai, Maharashtra,
+                    <br />
+                    India, 400053
+                  </address>
+                </div>
+
+                <div className="mt-[1.5rem] border-t border-[#FFFFFF1F] pt-[1rem]">
+                  <Link
+                    href="/terms"
+                    className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-cyan transition-opacity hover:opacity-80"
+                  >
+                    View Terms of Service
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <SiteFooter />
+    </main>
+  )
 }

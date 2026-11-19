@@ -1,104 +1,145 @@
-"use client"
-
 import React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { EkalonAttribution } from "@/components/ekalon-attribution"
+import { Instagram, Youtube, X, Globe } from "lucide-react"
 
-type SiteFooterProps = {
-  brandName?: string
-}
+const linkColumns = [
+  {
+    title: "Navigation",
+    links: [
+      { label: "Discovery", href: "/discovery" },
+      { label: "About Wingman", href: "/about" },
+      { label: "Affiliations", href: "/affiliations" },
+      { label: "Who are we?", href: "/who-are-we" },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { label: "FAQs", href: "/faqs" },
+      { label: "Contact Us", href: "/contact" },
+      { label: "Data Deletion Form", href: "/data-deletion" },
+      { label: "Partner Agreement", href: "/partner-agreement" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Refund Policy", href: "/refund" },
+      { label: "Child Safety & CSAE", href: "/child-safety" },
+      { label: "Terms of Service", href: "/terms" },
+    ],
+  },
+]
 
-export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
+const socials = [
+  { label: "Instagram", href: "#", iconSrc: "/new-wingman/icons/instagram.svg" },
+  { label: "YouTube", href: "#", iconSrc: "/new-wingman/icons/youtube.svg" },
+  { label: "X", href: "#", iconSrc: "/new-wingman/icons/x.svg" },
+]
+
+export function SiteFooter() {
   return (
-    <footer className="border-t border-[#6668A1A1] bg-[#BED6F8] py-12 md:py-16 public-theme">
-      <div className="mx-auto max-w-7xl px-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10 text-[#0D0D0D]">
-        {/* Brand */}
-        <div className="flex flex-col gap-4 col-span-2 md:col-span-1 lg:col-span-1">
-          <div className="flex items-center gap-2.5">
-            <div className="relative w-10 h-10">
+    <footer className="w-full bg-[#0A0A0F] md:bg-[#050505] border-t border-[#FFFFFF1F] md:border-t-0 pt-[2.5rem] pb-[3rem] md:pt-[5rem] md:pb-[5rem] mt-auto">
+
+      {/* Container: 96rem (8xl) desktop width */}
+      <div className="mx-auto w-full max-w-[71.875rem] md:max-w-[96rem] px-5 sm:px-8 flex flex-col">
+
+        {/* Top: brand + link columns */}
+        <div className="flex flex-col lg:flex-row justify-between gap-[1.75rem] md:gap-[3rem] mb-[1.75rem] md:mb-[4rem]">
+
+          {/* Brand column */}
+          <div className="flex flex-col w-full lg:w-[20.625rem] shrink-0">
+            <div className="flex items-center gap-[0.625rem] md:gap-[0.75rem] mb-[1rem] md:mb-[1.5rem]">
               <Image
-                src="/Logo.svg"
+                src="/new-wingman/icons/logo.svg"
                 alt="Wingman Pro logo"
-                fill
-                sizes="40px"
-                className="object-contain"
+                width={48}
+                height={48}
+
+                className="w-[2.25rem] h-[2.25rem] md:w-[3rem] md:h-[3rem]"
               />
+              {/* Mobile: 18px (1.125rem) -> Desktop: 24px (1.5rem) */}
+              <span className="font-['Anton',_sans-serif] font-normal text-[1.125rem] md:text-[1.5rem] leading-[1.15] tracking-[0.01em] text-[#F4F4EE] uppercase">
+                Wingman Pro
+              </span>
             </div>
-            <div className="flex flex-col leading-tight">
-              <div className="flex flex-row text-sm font-bold uppercase tracking-wide">
-                <span className="text-[#1761CA]">Wingman</span>
-                <span className="text-primary ml-1">Pro</span>
+
+            <p className="font-['Inter',_sans-serif] font-normal text-[0.875rem] leading-[1.5] text-[#BCCBB9] mb-[1rem] md:mb-[1.5rem]">
+              The world&apos;s first AI-enhanced platform built for Supporter
+              Groups and Sports Clubs. Powered by RallyUp Solutions.
+            </p>
+
+            <p className="font-['Inter',_sans-serif] font-normal text-[0.875rem] leading-[1.5] text-[#BCCBB9] mb-[1rem] md:mb-[1.5rem]">
+              Wingman Pro©. Precision and Performance.
+            </p>
+
+            {/* Socials: Mobile and Desktop share the same 44px box and 24px icons now */}
+            <div className="flex items-center gap-[0.5rem]">
+              {socials.map(({ label, href, iconSrc }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  className="flex items-center justify-center w-[2.75rem] h-[2.75rem] border-[2px] border-[#F4F4EE3D] text-[#F4F4EE] hover:bg-white/10 transition-colors"
+                >
+                  <Image
+                    src={iconSrc}
+                    alt={`${label} icon`}
+                    width={24}
+                    height={24}
+                    className="w-[1.5rem] h-[1.5rem] object-contain"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Link columns */}
+          <div className="grid grid-cols-3 gap-x-[1.25rem] md:gap-x-[1.5rem] gap-y-[2.5rem] w-full lg:w-[50.625rem]">
+            {linkColumns.map((col) => (
+              <div key={col.title} className="flex flex-col">
+                <h4 className="font-['Inter',_sans-serif] font-semibold text-[0.75rem] leading-[1.3] tracking-[0.06em] text-[#BCCBB9] uppercase mb-[1rem] md:mb-[1.5rem]">
+                  {col.title}
+                </h4>
+                <nav className="flex flex-col gap-[0.75rem] md:gap-[1.5rem]">
+                  {col.links.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="relative w-fit font-['Inter',_sans-serif] font-normal text-[0.75rem] md:text-[0.875rem] leading-[1.0625rem] md:leading-[1.5] text-[#BCCBB9] hover:text-[#F4F4EE] transition-colors after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-full after:bg-[#6CABDD] after:opacity-0 after:transition-opacity after:duration-300 after:ease-[cubic-bezier(0.7,-0.4,0.4,1.4)] hover:after:opacity-100"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </nav>
               </div>
-            </div>
+            ))}
           </div>
-          <span className="text-[10px] font-medium text-[#0D0D0D]/70 tracking-wider">Powered by RallyUp Solutions</span>
-          <p className="text-sm leading-relaxed text-[#0D0D0D]/80">
-            The world's first AI-enhanced platform built for Supporter Groups and Sports Clubs.
+        </div>
+
+        {/* Bottom: copyright (left) + language selector (right) */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-[1.25rem] md:gap-[1.5rem] pt-[1.25rem] md:pt-0 border-t border-[#FFFFFF1F] md:border-t-0">
+          <p className="font-['Inter',_sans-serif] font-normal text-[0.875rem] leading-[1.5] text-[#BCCBB9]">
+            © 2026 RallyUp Solutions Private Limited. All rights reserved.
           </p>
+
+          <button
+            type="button"
+            className="flex items-center gap-[0.625rem] h-[2.75rem] px-[1rem] border-[2px] border-[#F4F4EE3D] bg-transparent font-['Inter',_sans-serif] font-normal text-[0.875rem] leading-[1.5] text-[#F4F4EE] hover:bg-white/10 transition-colors"
+          >
+            <Image
+              src="/new-wingman/icons/footer-globe.svg"
+              alt="Globe"
+              width={24}
+              height={24}
+              className="w-[1.5rem] h-[1.5rem] object-contain"
+            />
+            English (India)
+          </button>
         </div>
 
-        {/* Navigation */}
-        <div className="flex flex-col gap-4">
-          <h4 className="text-xs font-semibold text-[#0D0D0D] uppercase tracking-widest">Navigation</h4>
-          <nav className="flex flex-col gap-3 text-sm text-[#0D0D0D]/80">
-            <Link href="/" className="hover:text-[#0D0D0D] transition-colors">Home</Link>
-            <Link href="/features" className="hover:text-[#0D0D0D] transition-colors">Features</Link>
-            <Link href="/affiliations" className="hover:text-[#0D0D0D] transition-colors">Affiliations</Link>
-            <Link href="/about" className="hover:text-[#0D0D0D] transition-colors">About Us</Link>
-            <Link href="/faqs" className="hover:text-[#0D0D0D] transition-colors">FAQs</Link>
-          </nav>
-        </div>
-
-        {/* Legal */}
-        <div className="flex flex-col gap-4">
-          <h4 className="text-xs font-semibold text-[#0D0D0D] uppercase tracking-widest">Legal</h4>
-          <nav className="flex flex-col gap-3 text-sm text-[#0D0D0D]/80">
-            <Link href="/privacy" className="hover:text-[#0D0D0D] transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-[#0D0D0D] transition-colors">Terms of Service</Link>
-            <Link href="/refund" className="hover:text-[#0D0D0D] transition-colors">Refund Policy</Link>
-            <Link href="/ppsa" className="hover:text-[#0D0D0D] transition-colors">Partner Agreement</Link>
-            <Link href="/child-safety" className="hover:text-[#0D0D0D] transition-colors">Child Safety &amp; CSAE</Link>
-            <Link href="/delete-account" className="hover:text-[#0D0D0D] transition-colors">Data Deletion Request</Link>
-          </nav>
-        </div>
-
-        {/* Support */}
-        <div className="flex flex-col gap-4">
-          <h4 className="text-xs font-semibold text-[#0D0D0D] uppercase tracking-widest">Support</h4>
-          <div className="flex flex-col gap-3 text-sm text-[#0D0D0D]/80">
-            <Link href="/help" className="hover:text-[#0D0D0D] transition-colors">Help Center</Link>
-            <Link href="/contact" className="hover:text-[#0D0D0D] transition-colors">Contact Us</Link>
-            <a
-              href="mailto:support@wingman-pro.com"
-              className="underline underline-offset-2 hover:text-[#0D0D0D] transition-colors"
-            >
-              support@wingman-pro.com
-            </a>
-          </div>
-        </div>
-
-        {/* Follow */}
-        <div className="flex flex-col gap-4">
-          <h4 className="text-xs font-semibold text-[#0D0D0D] uppercase tracking-widest">Follow</h4>
-          <div className="flex flex-col gap-3 text-sm text-[#0D0D0D]/80">
-            <a href="https://x.com/wingmanpro" target="_blank" rel="noopener noreferrer" className="hover:text-[#0D0D0D] transition-colors">Twitter / X</a>
-            <a href="https://linkedin.com/company/wingmanpro" target="_blank" rel="noopener noreferrer" className="hover:text-[#0D0D0D] transition-colors">LinkedIn</a>
-            <a href="https://instagram.com/wingmanpro" target="_blank" rel="noopener noreferrer" className="hover:text-[#0D0D0D] transition-colors">Instagram</a>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl mt-4 px-2 pt-4 border-t border-[#6668A1] flex flex-col items-center gap-4">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 w-full">
-          <p className="text-sm text-[#0D0D0D] text-center md:text-left">
-            © 2025 RallyUp Solutions Private Limited. All rights reserved.
-          </p>
-          {/* <p className="text-xs text-[#0D0D0D] uppercase tracking-widest">
-            Proprietary Service of RallyUp Solutions Pvt. Ltd.
-          </p> */}
-        </div>
-        {/* <EkalonAttribution className="text-center" /> */}
       </div>
     </footer>
   )

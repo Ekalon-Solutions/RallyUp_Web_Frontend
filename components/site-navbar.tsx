@@ -3,23 +3,50 @@
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Sun, Moon, Menu, X } from "lucide-react"
+import Button from "@/components/ui/button"
 import { useTheme } from "next-themes"
-import { LoginModal, getSafeRedirectPath } from "@/components/login-modal"
+import { getSafeRedirectPath } from "@/components/login-modal"
 import { useAuth } from "@/contexts/auth-context"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
+import {
+  Search,
+  Menu,
+  X,
+  Compass,
+  Info,
+  Handshake,
+  HelpCircle,
+  Mail,
+  Play,
+  Smartphone,
+} from "lucide-react"
+import SvgIcon from "./svg-icon"
+import LoginModal from "./modals/login-modal"
 
 type SiteNavbarProps = {
   brandName?: string
 }
 
+// First three = desktop nav links (hrefs unchanged). All five = mobile drawer.
+const navLinks = [
+  { label: "Discovery", href: "/discovery", iconSrc: "/new-wingman/icons/compass.svg", underline: true },
+  { label: "About Wingman", href: "/discovery", iconSrc: "/new-wingman/icons/info.svg", underline: true },
+  { label: "Affiliations", href: "/discovery", iconSrc: "/new-wingman/icons/handshake.svg", underline: true },
+  { label: "FAQs", href: "/faqs", iconSrc: "/new-wingman/icons/help-circle.svg" },
+  { label: "Contact Us", href: "/contact", iconSrc: "/new-wingman/icons/mail.svg" },
+]
+const desktopLinks = navLinks.slice(0, 3)
+
 export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
   const { theme, setTheme } = useTheme()
   const { isAuthenticated, user, isLoading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+
+
+  const activeIndex = navLinks.findIndex((l) => l.href === pathname)
 
   useEffect(() => {
     if (isLoading) return
@@ -33,8 +60,33 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
     setLoginOpen(true)
   }, [isAuthenticated, isLoading, router])
 
+  // Close drawer on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
+  // While drawer is open: lock page scroll, close on Escape, close when the
+  // screen grows to desktop size (drawer is hidden from 768px upwards).
+  useEffect(() => {
+    if (!mobileOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false)
+    }
+    const onResize = () => {
+      if (window.innerWidth >= 768) setMobileOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    window.addEventListener("resize", onResize)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener("keydown", onKey)
+      window.removeEventListener("resize", onResize)
+    }
+  }, [mobileOpen])
+
   const handleLoginClick = () => {
-    // If user is already authenticated, redirect to appropriate page
     if (isAuthenticated && user) {
       const userAny = user as any
       const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
@@ -57,7 +109,6 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
       return
     }
 
-    // If not authenticated or still loading, show login modal
     if (!isLoading) {
       setLoginOpen(true)
     }
@@ -65,154 +116,226 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
 
   return (
     <>
-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
-      <header className="sticky top-0 z-50 bg-background border-b border-slate-200/60 dark:border-white/10 shadow-sm">
-        <div className="mx-auto max-w-8xl px-4 sm:px-8 lg:px-12 xl:px-16 py-3 sm:py-4 flex items-center justify-between h-14 lg:h-20 gap-2">
-          <Link href="/" className="flex items-center gap-2 sm:gap-3.5 group min-w-0">
-            <div className="relative w-10 h-10 sm:w-12 sm:h-12 shrink-0">
-              <Image
-                src="/Logo.svg"
-                alt="Wingman Pro logo"
-                fill
-                className="object-contain"
-                priority
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+
+      <header className="sticky top-0 z-50 bg-[#050505] md:bg-[hsl(var(--header-bg))] border-b border-white/10 shadow-sm">
+
+        {/* ===================== MOBILE BAR (< 768px) ===================== */}
+        {/* Updated grid to 3.75rem columns so the center brand stays perfectly aligned with the 60px right logo */}
+        <div className="md:hidden grid grid-cols-[3.75rem_1fr_3.75rem] items-center h-16 px-4 sm:px-6">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="flex items-center justify-start h-full w-full hover:opacity-80 transition-opacity"
+            aria-label="Open menu"
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-drawer"
+          >
+            {/* Exact 18x12 hamburger menu size */}
+            <SvgIcon
+              src="/new-wingman/icons/hamburger.svg"
+              className="w-[1.125rem] h-[0.75rem] bg-white inline-block"
+            />
+          </button>
+
+          <Link href="/" className="justify-self-center min-w-0">
+            {/* Mobile Specs: SF Pro, Heavy (860), 28px, -1.4px spacing, #A8E8FF */}
+            <span className="block whitespace-nowrap font-['SF_Pro',_sans-serif] font-[860] text-[1.75rem] leading-[2.25rem] tracking-[-0.0875rem] text-[#A8E8FF] pt-1 pb-2">
+              {brandName}
+            </span>
+          </Link>
+
+          {/* Mobile Specs: 60x60 logo size */}
+          <Link href="/" className="relative justify-self-end w-[3.75rem] h-[3.75rem]" aria-label="Home">
+            <Image
+              src="/new-wingman/icons/logo.svg"
+              alt="Wingman Pro logo"
+              fill
+              className="object-contain"
+              priority
+            />
+          </Link>
+        </div>
+
+        {/* ============ DESKTOP BAR (>= 768px) (UNCHANGED) ============ */}
+        <div className="hidden md:flex mx-auto px-5 items-center justify-between h-20 gap-4 border-b border-white backdrop-blur-[1.5rem]">
+          <div
+            className="flex flex-1 items-center justify-start min-w-0"
+            style={{ "--brand": "clamp(1.625rem, 3vw, 2rem)" } as React.CSSProperties}
+          >
+            <Link href="/" className="flex items-center  group min-w-0">
+              <div className="relative shrink-0 w-[calc(var(--brand)*1.85)] h-[calc(var(--brand)*2.0)] top-[calc(var(--brand)*0.01)]">
+                <Image
+                  src="/new-wingman/icons/logo.svg"
+                  alt="Wingman Pro logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="flex flex-row items-center gap-1 whitespace-nowrap font-sf text-[length:var(--brand)] leading-[1.25] tracking-[-0.05em] font-normal pr-1">
+                <span className="text-wingman-primary-text">Wingman</span>
+                <span className="text-wingman-primary-text">Pro</span>
+              </div>
+            </Link>
+          </div>
+
+          <nav className="flex shrink-0 items-center justify-center gap-8 whitespace-nowrap font-['SF_Compact',_sans-serif] font-[457] text-[max(0.875rem,14px)] leading-[1.25rem] tracking-[0rem]">
+            {desktopLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="text-wingman-secondary-text transition-all hover:text-white hover:-translate-y-0.5 hover:underline decoration-2 decoration-white hover:underline-offset-8"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex flex-1 items-center justify-end gap-4">
+            <div className="group relative hidden lg:block w-[15rem] xl:w-[20.8125rem] h-[3rem] xl:h-[3.375rem]">
+              <Search className="absolute left-[1.25rem] top-1/2 -translate-y-1/2 text-[#859398] w-[0.9375rem] h-[0.9375rem]" />
+              <input
+                type="text"
+                placeholder="Search events..."
+                className="w-full h-full bg-white/5 border border-white/10 rounded-[9999px] pl-[2.875rem] pr-5 font-['SF_Compact',_sans-serif] font-[457] text-[max(0.875rem,14px)] leading-[100%] tracking-[0rem] text-white placeholder:text-[#859398] focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-[9999px] p-[2.1px] opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100 bg-[linear-gradient(90deg,rgba(168,232,255,0.12)_42.31%,rgba(157,5,255,0.12)_100%)] [mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)] [mask-composite:exclude] [-webkit-mask-composite:xor]"
               />
             </div>
 
-            <div className="flex flex-row text-sm sm:text-md lg:text-xl gap-1 font-bold uppercase truncate">
-              <span className="text-white">Wingman</span>
-              <span className="text-primary">Pro</span>
-            </div>
-          </Link>
-
-          <nav className="hidden lg:flex items-center gap-8 text-slate-700 dark:text-slate-200 text-sm uppercase tracking-wider">
-            <Link href="/affiliations" className="text-white transition-all hover:-translate-y-0.5 decoration-primary decoration-2 hover:underline hover:underline-offset-8">Affiliations</Link>
-            <Link href="/faqs" className="text-white transition-all hover:-translate-y-0.5 decoration-primary decoration-2 hover:underline hover:underline-offset-8">FAQs</Link>
-            <Link href="/about" className="text-white transition-all hover:-translate-y-0.5 decoration-primary decoration-2 hover:underline hover:underline-offset-8">About Us</Link>
-          </nav>
-
-          <div className="flex items-center gap-5">
-            <div className="hidden lg:flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                onClick={handleLoginClick} 
-                disabled={isLoading}
-                className="h-8 px-4 border border-[#727274] text-sm uppercase tracking-wide active:scale-95 text-white hover:bg-[#434344]"
-              >
-                {isAuthenticated ? "Dashboard" : "Log In"}
-              </Button>
-{/* 
-              <Button
-                variant="outline"
-                asChild
-                className="h-8 px-4 border border-[#727274] bg-black text-sm uppercase tracking-wide active:scale-95 text-white hover:bg-accent hover:text-accent-foreground"
-              >
-                <Link href="/clubs">Browse Clubs</Link>
-              </Button> */}
-
-              <Button
-                variant="default"
-                asChild
-                className="h-8 px-4 text-sm uppercase tracking-wide active:scale-95 text-white bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] transition-all"
-              >
-                <Link href="/contact">Contact Us</Link>
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Toggle theme"
-                className="hidden text-slate-700 dark:text-slate-200 h-11 w-11 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                <Sun className="h-6 w-6 dark:hidden" />
-                <Moon className="h-6 w-6 hidden dark:block" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Menu"
-                className="lg:hidden text-white h-11 w-11 rounded-xl hover:bg-white/10"
-                onClick={() => setMobileOpen(!mobileOpen)}
-              >
-                {mobileOpen ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
-              </Button>
-            </div>
+            <Button
+              variant="primary"
+              onClick={handleLoginClick}
+              className="
+    h-[2.25rem] min-w-[9.0625rem] shrink-0 whitespace-nowrap px-[1.5rem] py-[0.5rem]
+    !font-sf-compact !text-[max(0.875rem,14px)] !font-[656] !leading-[1.25rem] !text-white
+  "
+            >
+              Login/Sign Up
+            </Button>
           </div>
         </div>
-
-        {mobileOpen && (
-          <div className="fixed inset-0 z-[100] flex justify-end lg:hidden transition-opacity">
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-
-            {/* Sidebar */}
-            <div className="relative w-[340px] max-w-[85vw] h-full flex flex-col justify-center px-10 animate-slide-up pointer-events-auto overflow-hidden">
-
-              {/* Background Shape */}
-              <div className="absolute inset-0 pointer-events-none">
-                {/* Main block */}
-                <div className="absolute top-[80px] left-0 right-0 bottom-0 bg-background rounded-tl-[32px]" />
-                {/* Top-right block */}
-                <div className="absolute top-0 right-0 w-[90px] h-[80px] bg-background rounded-t-[48px]" />
-                {/* Perfect SVG Fillet Connection */}
-                <svg className="absolute top-[40px] right-[90px] w-[40px] h-[40px]" viewBox="0 0 40 40">
-                  <path d="M 0 40 C 22.09 40 40 22.09 40 0 L 40 40 Z" className="fill-background" />
-                </svg>
-              </div>
-
-              {/* Close / Menu Button area */}
-              <div className="absolute top-[16px] right-[20px] z-10">
-                <Button
-                  variant="ghost"
-                  className="w-12 h-12 p-0 text-white hover:bg-white/10 rounded-full bg-white/5 flex items-center justify-center transition-colors"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <Menu className="w-6 h-6" strokeWidth={2.5} />
-                </Button>
-              </div>
-
-              {/* Nav Links & Buttons */}
-              <div className="relative z-10 flex flex-col text-center text-white pb-8 h-full justify-between">
-
-                <div className="flex flex-col gap-10 font-extrabold tracking-widest text-[15px] mt-32">
-                  {/* <Link href="/#features" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">FEATURES</Link> */}
-                  <Link href="/affiliations" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">AFFILIATIONS</Link>
-                  {/* <Link href="/pricing" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">PRICING</Link> */}
-                  <Link href="/about" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">ABOUT</Link>
-                  <Link href="/faqs" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">FAQS</Link>
-                </div>
-
-                <div className="flex flex-col gap-4 mt-auto pt-10">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setMobileOpen(false)
-                      handleLoginClick()
-                    }} 
-                    disabled={isLoading}
-                    className="font-bold text-sm uppercase tracking-wide hover:bg-[#434344]"
-                  >
-                    {isAuthenticated ? "Dashboard" : "Log In"}
-                  </Button>
-                  {/* <Button variant="outline" asChild className="h-11 px-6 border-2 font-bold text-sm uppercase tracking-wide active:scale-95">
-                    <Link href="/clubs">Browse Clubs</Link>
-                  </Button> */}
-                  <Button variant="default" asChild className="h-11 px-8 font-bold text-sm uppercase tracking-wide active:scale-95 bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] transition-all text-white">
-                    <Link href="/contact">Contact Us</Link>
-                  </Button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
       </header>
+
+      {/* ==================== SLIDE-IN DRAWER (< 768px) ==================== */}
+      <div
+        id="mobile-drawer"
+        className={`fixed inset-0 z-[60] md:hidden ${mobileOpen ? "" : "pointer-events-none"}`}
+        aria-hidden={!mobileOpen}
+      >
+        {/* Overlay */}
+        <div
+          onClick={() => setMobileOpen(false)}
+          className={`absolute inset-0 bg-black/70 transition-opacity duration-300 ${mobileOpen ? "opacity-100" : "opacity-0"}`}
+        />
+
+        {/* Drawer Panel: Specific backgrounds, blur, and border colors */}
+        <aside
+          role="dialog"
+          aria-modal="true"
+          aria-label="Main menu"
+          className={`absolute left-0 top-0 h-full w-[85%] max-w-[20rem] bg-[#121212]/80 backdrop-blur-[24px] border-r border-[#FFFFFF1F] shadow-[0_0_1.25rem_0_#00D4FF26] flex flex-col overflow-y-auto overscroll-contain transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        >
+          {/* Brand row */}
+          <div className="flex items-center justify-between h-[4.5rem] px-[1.25rem] shrink-0 border-b border-white/10">
+            <Link href="/" className="flex items-center gap-[0.75rem]" onClick={() => setMobileOpen(false)}>
+              {/* Icon container with flex centering */}
+              <div className="relative flex items-center justify-center w-[2rem] h-[2rem]">
+                <SvgIcon
+                  src="/new-wingman/icons/hamburger.svg"
+                  className="w-[1.25rem] h-[1.25rem] bg-[#A8E8FF] inline-block"
+                />
+              </div>
+              {/* Drawer Title */}
+              <span className="font-['SF_Pro',_sans-serif] font-[700] text-[1rem] leading-[1.5rem] tracking-[-0.05rem] text-[#A8E8FF] uppercase">
+                {brandName}
+              </span>
+            </Link>
+
+            {/* Cross button container */}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-center h-[2rem] w-[2rem] rounded-[9999px] bg-[#201F1F] hover:bg-[#2A2929] transition-colors"
+              aria-label="Close menu"
+            >
+              {/* Cross Icon (14px) */}
+              <SvgIcon
+                src="/new-wingman/icons/close.svg"
+                className="w-[0.875rem] h-[0.875rem] bg-[#A8E8FF] inline-block"
+              />
+            </button>
+          </div>
+
+          {/* Links */}
+          <nav className="flex flex-col mt-[1.5rem] shrink-0">
+            {navLinks.map(({ label, href, iconSrc, underline }, i) => {
+              const active = i === activeIndex
+              return (
+                <Link
+                  key={label}
+                  href={href}
+                  onClick={() => setMobileOpen(false)}
+                  aria-current={active ? "page" : undefined}
+                  className={`relative flex items-center gap-[0.75rem] h-[3.5rem] px-[1.5rem] font-['SF_Pro',_sans-serif] text-[1rem] leading-[1.5rem] transition-colors border-l-[4px] ${active
+                    ? "border-[#A8E8FF] bg-[#00D4FF]/10 text-[#A8E8FF] font-[700]"
+                    : "border-transparent text-[#BBC9CF] font-[400] hover:bg-white/5"
+                    } ${underline
+                      ? "md:after:absolute md:after:bottom-0 md:after:left-0 md:after:h-[2px] md:after:w-full md:after:bg-[#6CABDD] md:after:opacity-0 md:after:transition-opacity md:after:duration-300 md:after:ease-in-out md:hover:after:opacity-100"
+                      : ""
+                    }`}
+                >
+                  <SvgIcon
+                    src={iconSrc}
+                    className={`w-[1.25rem] h-[1.25rem] shrink-0 inline-block ${active ? "bg-[#A8E8FF]" : "bg-[#BBC9CF]"
+                      }`}
+                  />
+                  {label}
+                </Link>
+              )
+            })}
+          </nav>
+
+          {/* Bottom: app downloads + login */}
+          <div className="mt-auto px-[1.5rem] pb-[3rem] pt-[1.5rem] shrink-0 flex flex-col">
+            <p className="font-['SF_Compact',_sans-serif] font-[556] text-[0.75rem] leading-[1rem] tracking-[0.0375rem] text-[#BBC9CF] uppercase mb-[0.75rem]">
+              Download our app
+            </p>
+
+            <div className="flex flex-col gap-[0.75rem]">
+              <a
+                href="#"
+                className="flex items-center justify-center gap-[0.625rem] h-[2.875rem] rounded-[0.5rem] border border-[#FFFFFF1F] bg-[#050505] font-['SF_Compact',_sans-serif] font-[656] text-[0.875rem] leading-[1.25rem] text-[#E5E2E1] hover:bg-white/5 transition-colors"
+              >
+                <Play className="w-[1.25rem] h-[1.25rem] text-[#E5E2E1] fill-[#E5E2E1]" />
+                Google Play Store
+              </a>
+              <a
+                href="#"
+                className="flex items-center justify-center gap-[0.625rem] h-[2.875rem] rounded-[0.5rem] border border-[#FFFFFF1F] bg-[#050505] font-['SF_Compact',_sans-serif] font-[656] text-[0.875rem] leading-[1.25rem] text-[#E5E2E1] hover:bg-white/5 transition-colors"
+              >
+                <Smartphone className="w-[1.25rem] h-[1.25rem] text-[#E5E2E1]" strokeWidth={1.75} />
+                Apple App Store
+              </a>
+            </div>
+
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => {
+                setMobileOpen(false)
+                handleLoginClick()
+              }}
+              className="mx-auto mt-[2rem] h-[3.25rem] w-[13.125rem] uppercase !tracking-[0.04375rem]"
+            >
+              Log in / Sign up
+            </Button>
+          </div>
+        </aside>
+      </div>
     </>
   )
 }
-
-
