@@ -30,7 +30,7 @@ type SiteNavbarProps = {
 
 // First three = desktop nav links (hrefs unchanged). All five = mobile drawer.
 const navLinks = [
-  { label: "Discovery", href: "/clubs", iconSrc: "/new-wingman/icons/compass.svg", underline: true },
+  { label: "Discovery", href: "/discovery", iconSrc: "/new-wingman/icons/compass.svg", underline: true },
   { label: "About Wingman", href: "/about", iconSrc: "/new-wingman/icons/info.svg", underline: true },
   { label: "Affiliations", href: "/affiliations", iconSrc: "/new-wingman/icons/handshake.svg", underline: true },
   { label: "FAQs", href: "/faqs", iconSrc: "/new-wingman/icons/help-circle.svg" },
@@ -202,10 +202,10 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
                 placeholder="Search events..."
                 onChange={(e) => {
                   // Live-filter the landing page's events while on it.
-                  if (pathname === "/") window.dispatchEvent(new CustomEvent(LANDING_SEARCH_EVENT, { detail: e.target.value }))
+                  if (pathname === "/" || pathname === "/discovery") window.dispatchEvent(new CustomEvent(LANDING_SEARCH_EVENT, { detail: e.target.value }))
                 }}
                 onKeyDown={(e) => {
-                  if (e.key !== "Enter" || pathname === "/") return
+                  if (e.key !== "Enter" || pathname === "/" || pathname === "/discovery") return
                   const q = e.currentTarget.value.trim()
                   router.push(q ? `/?q=${encodeURIComponent(q)}` : "/")
                 }}

@@ -7,7 +7,7 @@ const linkColumns = [
   {
     title: "Navigation",
     links: [
-      { label: "Discovery", href: "/clubs" },
+      { label: "Discovery", href: "/discovery" },
       { label: "About Wingman", href: "/about" },
       { label: "Affiliations", href: "/affiliations" },
       { label: "Who are we?", href: "/about" },
