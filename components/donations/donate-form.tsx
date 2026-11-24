@@ -28,6 +28,10 @@ export function roundDonationAmount(n: number, currency: string): number {
   return rounded / factor
 }
 
+/** "User's choice" drives its quick-pick chips from the minimum (1x/5x/10x); fixed-amount drives use their saved presets. */
+export const quickAmounts = (presets: number[], custom: boolean, min: number) =>
+  custom ? [1, 5, 10].map((m) => Math.round(min * m * 100) / 100) : presets
+
 /** Rounds to the currency's precision and validates — mirrors the backend normalizeDonationAmount. */
 export function parseDonationAmount(raw: string, minAmount: number, currency = "INR"): { amount: number | null; error: string | null } {
   if (!raw.trim()) return { amount: null, error: null }
@@ -90,7 +94,7 @@ async function waitForServerConfirmation(donationId: string, tries = 10): Promis
   return false
 }
 
-export function DonateForm({ clubId, eventId, presetAmounts, minAmount: propMinAmount, allowCustom, primaryColor, title, currency: propCurrency = "INR", feeHandlingType: propFeeHandling, platformFeePercent: propFeePercent, onBusyChange }: {
+export function DonateForm({ clubId, eventId, presetAmounts: savedPresets, minAmount: propMinAmount, allowCustom, primaryColor, title, currency: propCurrency = "INR", feeHandlingType: propFeeHandling, platformFeePercent: propFeePercent, onBusyChange }: {
   clubId: string
   eventId?: string
   presetAmounts: number[]
@@ -107,9 +111,10 @@ export function DonateForm({ clubId, eventId, presetAmounts, minAmount: propMinA
 }) {
   const { user } = useAuth()
   const isMember = (user as any)?.role === "member"
-  const [selected, setSelected] = useState<number | null>(presetAmounts[0] ?? null)
+  const initialAmount = quickAmounts(savedPresets, allowCustom, propMinAmount)[0]
+  const [selected, setSelected] = useState<number | null>(initialAmount ?? null)
   // With a custom amount allowed, the preset chips just fill the amount box.
-  const [custom, setCustom] = useState(allowCustom && presetAmounts[0] ? String(presetAmounts[0]) : "")
+  const [custom, setCustom] = useState(allowCustom && initialAmount ? String(initialAmount) : "")
   const [customError, setCustomError] = useState<string | null>(null)
   const [donor, setDonor] = useState({ name: "", email: "", phone: "" })
   const [busy, setBusy] = useState(false)
@@ -129,6 +134,7 @@ export function DonateForm({ clubId, eventId, presetAmounts, minAmount: propMinA
 
   const currency = config?.currency || propCurrency
   const minAmount = config?.minAmount ?? propMinAmount
+  const presetAmounts = quickAmounts(savedPresets, allowCustom, minAmount)
   const feeHandlingType = config?.feeHandlingType ?? propFeeHandling
   const platformFeePercent = config?.platformFeePercent ?? propFeePercent
   const money = (n: number) => fmt(n, currency)
