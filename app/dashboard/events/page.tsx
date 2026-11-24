@@ -704,6 +704,8 @@ function EventsPageContent() {
                                       <ScanLine className="w-4 h-4 mr-2" />
                                       Scan QR
                                     </DropdownMenuItem>
+                                    {!isDraft && (
+                                    <>
                                     <DropdownMenuItem
                                       disabled={Boolean(event.cancellation)}
                                       onClick={() => setCancelTarget({ event, intent: { kind: 'cancel', mode: 'cancel' } })}
@@ -718,6 +720,8 @@ function EventsPageContent() {
                                       <RotateCcw className="w-4 h-4 mr-2" />
                                       {event.cancellation ? 'Process Refund for All Tickets' : 'Cancel and Refund All Tickets'}
                                     </DropdownMenuItem>
+                                    </>
+                                    )}
                                     </>
                                     )}
                                     {!event.cancellation && !isDraft && !isClosed && (
