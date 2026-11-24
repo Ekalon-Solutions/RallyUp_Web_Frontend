@@ -7,10 +7,10 @@ const linkColumns = [
   {
     title: "Navigation",
     links: [
-      { label: "Discovery", href: "/discovery" },
+      { label: "Discovery", href: "/clubs" },
       { label: "About Wingman", href: "/about" },
       { label: "Affiliations", href: "/affiliations" },
-      { label: "Who are we?", href: "/who-are-we" },
+      { label: "Who are we?", href: "/about" },
     ],
   },
   {
@@ -18,7 +18,7 @@ const linkColumns = [
     links: [
       { label: "FAQs", href: "/faqs" },
       { label: "Contact Us", href: "/contact" },
-      { label: "Data Deletion Form", href: "/data-deletion" },
+      { label: "Data Deletion Form", href: "/delete-account" },
       { label: "Partner Agreement", href: "/partner-agreement" },
     ],
   },

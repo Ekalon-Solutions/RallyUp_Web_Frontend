@@ -16,6 +16,11 @@ import { SiteFooter } from "@/components/site-footer";
 import { useEffect, useState } from "react";
 import SvgIcon from "@/components/svg-icon";
 import Button from "@/components/landing/button";
+import Link from "next/link";
+import type { Event } from "@/lib/api";
+import { EventImage } from "@/components/events/event-image";
+import { eventVariantUrl } from "@/lib/eventImageCache";
+import { useLandingEvents, useLandingSearch, eventTag, eventShortDate, eventWhen, eventPrice, eventVenue, isOngoing } from "@/hooks/use-landing-events";
 /* ---------------------------------- HERO ---------------------------------- */
 
 interface HeroSlide {
@@ -219,90 +224,28 @@ function HeroSection({ slides }: { slides: HeroSlide[] }) {
 
 /* ------------------------------ EVENT CARDS ------------------------------- */
 
-interface EventData {
-  id: number;
-  tag: "SCREENING" | "LIVE MATCH" | "KNOCKOUT";
-  date: string;
-  title: string;
-  subtitle: string;
-  location: string;
-  price: string;
-  imageSrc: string;
+// Full-bleed event image (falls back to the stock photo while loading / when missing).
+function EventCover({ event, className = "" }: { event: Event; className?: string }) {
+  return (
+    <>
+      <Image src="/new-wingman/images/main-page-image-1.jpg" alt="" fill className="object-cover" />
+      <EventImage
+        eventId={event._id}
+        imageVersion={event.imageVersion}
+        size="list"
+        directUrl={eventVariantUrl(event, "list")}
+        alt={event.title}
+        aspectClassName=""
+        className={`!absolute inset-0 h-full bg-transparent [&_img]:h-full [&_img]:w-full [&_img]:object-cover ${className}`}
+      />
+    </>
+  );
 }
 
-// Put the images in /public/events/ (names below) or change the paths.
-const events: EventData[] = [
-  {
-    id: 1,
-    tag: "SCREENING",
-    date: "OCT 24",
-    title: "Metro City All-Stars Finals",
-    subtitle: "Basketball • Music • Fan Zone",
-    location: "Metro Arena, Downtown",
-    price: "From £50",
-    imageSrc: "/events/metro-city-1.png",
-  },
-  {
-    id: 2,
-    tag: "SCREENING",
-    date: "OCT 26",
-    title: "Carabao Cup Final",
-    subtitle: "Arsenal FC vs Manchester City",
-    location: "Wembley Stadium, London",
-    price: "From £35",
-    imageSrc: "/events/carabao-cup.png",
-  },
-  {
-    id: 3,
-    tag: "LIVE MATCH",
-    date: "NOV 2",
-    title: "Derby Day Clash",
-    subtitle: "City Blues vs Orange Tigers",
-    location: "City Stadium, East Side",
-    price: "From £50",
-    imageSrc: "/events/derby-day.png",
-  },
-  {
-    id: 4,
-    tag: "SCREENING",
-    date: "OCT 24",
-    title: "Metro City All-Stars Finals",
-    subtitle: "Basketball • Music • Fan Zone",
-    location: "Metro Arena, Downtown",
-    price: "From £35",
-    imageSrc: "/events/metro-city-2.png",
-  },
-  {
-    id: 5,
-    tag: "LIVE MATCH",
-    date: "NOV 9",
-    title: "Premier League Showdown",
-    subtitle: "Red Rivals vs City Blues",
-    location: "Old Stadium, North End",
-    price: "From £50",
-    imageSrc: "/events/premier-league.png",
-  },
-  {
-    id: 6,
-    tag: "KNOCKOUT",
-    date: "NOV 10",
-    title: "Free Kick Frenzy",
-    subtitle: "Greens vs Royal Blues",
-    location: "Green Park Arena, South Gate",
-    price: "From £35",
-    imageSrc: "/events/free-kick.png",
-  },
-];
-
-function EventCard({ event }: { event: EventData }) {
+function EventCard({ event }: { event: Event }) {
   return (
-    <div className="group relative w-full min-w-0 max-w-[24.3125rem] h-[21rem] rounded-[1rem] overflow-hidden border border-white/10 bg-[#0B0D12]">
-      <Image
-        src="/new-wingman/images/main-page-image-1.jpg"
-        alt={event.title}
-        fill
-        className="object-cover transition-transform duration-500 group-hover:scale-105"
-      />
+    <Link href="/events" className="group relative block w-full min-w-0 max-w-[24.3125rem] h-[21rem] rounded-[1rem] overflow-hidden border border-white/10 bg-[#0B0D12]">
+      <EventCover event={event} className="transition-transform duration-500 group-hover:scale-105" />
 
       {/* Bottom dark gradient */}
       <div
@@ -323,11 +266,13 @@ function EventCard({ event }: { event: EventData }) {
             height={8}
             className="w-[8.334px] h-[7.947px] opacity-100 shrink-0 object-contain block"
           />
-          <span>{event.tag}</span>
+          <span className="truncate">{eventTag(event)}</span>
         </span>
-        <span className="w-[3.375rem] h-[1.25rem] shrink-0 rounded-[0.375rem] bg-[#000000B3] inline-flex items-center justify-center font-['Inter',_sans-serif] font-[700] text-[0.625rem] leading-[100%] tracking-[0em] text-wingman-emphasis-text uppercase whitespace-nowrap">
-          {event.date}
-        </span>
+        {eventShortDate(event) && (
+          <span className="min-w-[3.375rem] px-[0.375rem] h-[1.25rem] shrink-0 rounded-[0.375rem] bg-[#000000B3] inline-flex items-center justify-center font-['Inter',_sans-serif] font-[700] text-[0.625rem] leading-[100%] tracking-[0em] text-wingman-emphasis-text uppercase whitespace-nowrap">
+            {eventShortDate(event)}
+          </span>
+        )}
       </div>
 
       {/* Bottom content */}
@@ -335,8 +280,8 @@ function EventCard({ event }: { event: EventData }) {
         <h3 className="font-['Inter',_sans-serif] font-[900] text-[1.375rem] leading-[1.75rem] tracking-[-0.03125rem] text-wingman-emphasis-text uppercase break-words">
           {event.title}
         </h3>
-        <p className="mt-[0.25rem] font-['Inter',_sans-serif] font-[600] text-[0.625rem] leading-[100%] tracking-[0.12em] text-wingman-muted-text uppercase">
-          {event.subtitle}
+        <p className="mt-[0.25rem] line-clamp-1 font-['Inter',_sans-serif] font-[600] text-[0.625rem] leading-[1.2] tracking-[0.12em] text-wingman-muted-text uppercase">
+          {eventWhen(event)}
         </p>
 
         {/* Divider */}
@@ -349,24 +294,33 @@ function EventCard({ event }: { event: EventData }) {
               className="w-[0.875rem] h-[0.875rem] shrink-0 bg-[#9CA3AF]"
             />
             <span className="truncate font-['Inter',_sans-serif] font-[500] text-[0.75rem] leading-[100%] tracking-[0em] text-wingman-muted-text">
-              {event.location}
+              {eventVenue(event)}
             </span>
           </div>
 
-          <Button variant="price" className="h-[1.9375rem] w-[6.4375rem]">
-            {event.price}
-          </Button>
+          <span className="inline-flex shrink-0 items-center justify-center h-[1.9375rem] min-w-[6.4375rem] px-[0.75rem] rounded-[6.25rem] border border-[#000000C4] bg-[#FFFFFF] font-['Inter',sans-serif] text-[0.75rem] font-[700] text-[#050505] whitespace-nowrap transition-colors duration-300 group-hover:bg-[#82E0FA]">
+            {eventPrice(event)}
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
-function EventsGrid() {
+function EventsEmpty({ loading }: { loading: boolean }) {
+  return (
+    <p className="w-full py-[3rem] text-center font-['SF_Compact',_sans-serif] text-[1rem] text-wingman-secondary-text">
+      {loading ? "Loading events…" : "No events found."}
+    </p>
+  );
+}
+
+function EventsGrid({ events, loading }: { events: Event[]; loading: boolean }) {
+  if (events.length === 0) return <div className="mt-[2.5rem]"><EventsEmpty loading={loading} /></div>;
   return (
     <div className="grid w-full min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 justify-items-center gap-[1rem] mt-[2.5rem]">
       {events.map((event) => (
-        <EventCard key={event.id} event={event} />
+        <EventCard key={event._id} event={event} />
       ))}
     </div>
   );
@@ -569,41 +523,14 @@ function AffiliatedClubSection() {
 
 const mobilePills = ["All", "Screenings", "Watch-Parties", "Membership"];
 
-interface MobileEvent {
-  id: number;
-  tag: string;
-  title: string;
-  price: string;
-  fee?: string;
-  when: string;
-  where: string;
-  imageSrc: string;
+interface SearchFilterProps {
+  tab: string;
+  onTab: (tab: string) => void;
+  search: string;
+  onSearch: (q: string) => void;
 }
 
-// Put the images in /public/events/ or change the paths.
-const mobileUpcoming: MobileEvent[] = [
-  {
-    id: 1,
-    tag: "SCREENING",
-    title: "Elite Round Robin",
-    price: "$12",
-    fee: "(+fees)",
-    when: "Tomorrow, 19:00",
-    where: "Sky Lounge",
-    imageSrc: "/events/elite-round-robin.png",
-  },
-  {
-    id: 2,
-    tag: "WATCH-PARTIES",
-    title: "TROPHY CELEBRATIONS",
-    price: "FREE",
-    when: "Tomorrow, 22:00",
-    where: "Sky Lounge",
-    imageSrc: "/events/trophy-celebrations.png",
-  },
-];
-
-function MobileSearchAndFilters() {
+function MobileSearchAndFilters({ tab, onTab, search, onSearch }: SearchFilterProps) {
   return (
     <>
       <div className="relative h-[3.375rem] w-full">
@@ -612,18 +539,23 @@ function MobileSearchAndFilters() {
           className="absolute left-[1rem] top-1/2 -translate-y-1/2 w-[1.125rem] h-[1.125rem] opacity-100 bg-[#859398]"
         />
         <input
-          type="text"
+          type="search"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          aria-label="Search events"
           placeholder="Find matches, socials, or clinics..."
-          className="w-full h-full rounded-[0.75rem] bg-[#2A2A2A] border border-[#FFFFFF1F] pl-[3rem] pr-[1rem] font-['SF_Compact',_sans-serif] font-[457] text-[1rem] leading-none tracking-[0px] text-[#859398] placeholder:text-[#859398] focus:outline-none focus:ring-[0.0625rem] focus:ring-[#26DAFF] focus:border-[#26DAFF] transition-all"
+          className="w-full h-full rounded-[0.75rem] bg-[#2A2A2A] border border-[#FFFFFF1F] pl-[3rem] pr-[1rem] font-['SF_Compact',_sans-serif] font-[457] text-[1rem] leading-none tracking-[0px] text-wingman-primary-text placeholder:text-[#859398] focus:outline-none focus:ring-[0.0625rem] focus:ring-[#26DAFF] focus:border-[#26DAFF] transition-all"
         />
       </div>
 
       <div className="mt-[0.75rem] flex flex-nowrap items-center gap-[0.25rem] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {mobilePills.map((label, i) => (
+        {mobilePills.map((label) => (
           <button
             key={label}
+            type="button"
+            onClick={() => onTab(label === "All" ? "All Events" : label)}
             className={
-              i === 0
+              (label === "All" ? "All Events" : label) === tab
                 ? "shrink-0 h-[2.125rem] px-[1rem] rounded-full bg-[#A8E8FF] font-['SF_Pro',_sans-serif] font-[860] text-[0.75rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-[#003642]"
                 : "shrink-0 h-[2.125rem] px-[0.75rem] rounded-full bg-[#201F1F] border border-[#FFFFFF1F] font-['SF_Pro',_sans-serif] font-[860] text-[0.75rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-[#BBC9CF] hover:bg-[#2A2929] transition-colors"
             }
@@ -636,28 +568,23 @@ function MobileSearchAndFilters() {
   );
 }
 
-function MobileOngoingCard() {
+function MobileOngoingCard({ event }: { event: Event }) {
   return (
     <div className="relative mt-[3rem] w-full max-w-8xl h-[26.89875rem] opacity-100 overflow-hidden rounded-[1.5rem]">
-      <Image
-        src="/new-wingman/images/main-page-image-1.jpg"
-        alt="Mastering the Vibora"
-        fill
-        className="object-cover"
-      />
+      <EventCover event={event} />
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
-      <span className="absolute top-[2.5625rem] left-[1rem] w-[7.875rem] h-[1.5625rem] px-[0.5rem] py-[0.25rem] whitespace-nowrap rounded-full border border-[#A8E8FF66] bg-[#A8E8FF33] backdrop-blur-[0.75rem] opacity-100 inline-flex items-center justify-center font-['SF_Compact',_sans-serif] font-[457] text-[0.625rem] leading-[1rem] tracking-[0.0375rem] uppercase align-middle text-wingman-cyan">
-        WATCH-PARTIES
+      <span className="absolute top-[2.5625rem] left-[1rem] min-w-[7.875rem] h-[1.5625rem] px-[0.5rem] py-[0.25rem] whitespace-nowrap rounded-full border border-[#A8E8FF66] bg-[#A8E8FF33] backdrop-blur-[0.75rem] opacity-100 inline-flex items-center justify-center font-['SF_Compact',_sans-serif] font-[457] text-[0.625rem] leading-[1rem] tracking-[0.0375rem] uppercase align-middle text-wingman-cyan">
+        {eventTag(event)}
       </span>
 
       <div className="absolute left-[1rem] right-[1rem] bottom-[1.75rem] flex flex-col items-start">
         <h3 className="font-['SF_Pro',_sans-serif] font-[700] text-[1.75rem] leading-[2.25rem] tracking-[0px] align-middle text-wingman-primary-text max-w-[16.25rem] mb-[1rem]">
-          Mastering the Vibora
+          {event.title}
         </h3>
-        <button className="relative top-[1rem] w-[7.5625rem] h-[3.25rem] rounded-[0.75rem] opacity-100 bg-[linear-gradient(90deg,#00D4FF_0%,#9D05FF_100%)] font-['SF_Compact',_sans-serif] font-[457] text-[1rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-[#001F27] hover:opacity-95 transition-opacity">
+        <Link href="/events" className="relative top-[1rem] inline-flex items-center justify-center w-[7.5625rem] h-[3.25rem] rounded-[0.75rem] opacity-100 bg-[linear-gradient(90deg,#00D4FF_0%,#9D05FF_100%)] font-['SF_Compact',_sans-serif] font-[457] text-[1rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-[#001F27] hover:opacity-95 transition-opacity">
           Register
-        </button>
+        </Link>
       </div>
     </div>
   );
@@ -679,25 +606,20 @@ function MobileJoinClub() {
         Join an affiliated club to unlock discounts, early access to events,
         membership perks and full features.
       </p>
-      <button className="mx-auto w-[13.3125rem] h-[2.9375rem] rounded-[0.375rem] bg-[linear-gradient(90deg,#00D4FF_0%,#9D05FF_100%)] font-['SF_Compact',_sans-serif] font-[656] text-[0.875rem] leading-[1.25rem] tracking-[0.04375rem] text-center align-middle uppercase text-[#003642] hover:opacity-90 transition-opacity">
+      <Link href="/clubs" className="mx-auto inline-flex items-center justify-center w-[13.3125rem] h-[2.9375rem] rounded-[0.375rem] bg-[linear-gradient(90deg,#00D4FF_0%,#9D05FF_100%)] font-['SF_Compact',_sans-serif] font-[656] text-[0.875rem] leading-[1.25rem] tracking-[0.04375rem] text-center align-middle uppercase text-[#003642] hover:opacity-90 transition-opacity">
         Explore clubs
-      </button>
+      </Link>
     </div>
   );
 }
 
-function MobileEventCard({ event }: { event: MobileEvent }) {
+function MobileEventCard({ event }: { event: Event }) {
   return (
     <div className="w-full max-w-8xl min-h-[24.65625rem] rounded-[1rem] border border-[#FFFFFF1F] bg-white/[0.03] overflow-hidden opacity-100">
       <div className="relative w-full h-[12rem] overflow-hidden">
-        <Image
-          src="/new-wingman/images/main-page-image-1.jpg"
-          alt={event.title}
-          fill
-          className="object-cover"
-        />
-        <span className="absolute top-[1rem] left-[1rem] min-w-[5.5rem] h-[1.75rem] px-[0.625rem] py-[0.25rem] rounded-[0.5rem] border border-[#FFFFFF1F] bg-[#050505CC] backdrop-blur-[0.75rem] opacity-100 inline-flex items-center justify-center font-['SF_Compact',_sans-serif] font-[457] text-[0.75rem] leading-[1rem] tracking-[0px] align-middle uppercase text-wingman-primary-text">
-          {event.tag}
+        <EventCover event={event} />
+        <span className="absolute z-10 top-[1rem] left-[1rem] min-w-[5.5rem] h-[1.75rem] px-[0.625rem] py-[0.25rem] rounded-[0.5rem] border border-[#FFFFFF1F] bg-[#050505CC] backdrop-blur-[0.75rem] opacity-100 inline-flex items-center justify-center font-['SF_Compact',_sans-serif] font-[457] text-[0.75rem] leading-[1rem] tracking-[0px] align-middle uppercase text-wingman-primary-text">
+          {eventTag(event)}
         </span>
       </div>
 
@@ -708,13 +630,8 @@ function MobileEventCard({ event }: { event: MobileEvent }) {
           </h3>
           <div className="flex flex-col items-end shrink-0">
             <span className="font-['SF_Pro',_sans-serif] font-[400] text-[1rem] leading-[1.5rem] tracking-[0px] text-right align-middle text-[#A8E8FF]">
-              {event.price}
+              {eventPrice(event)}
             </span>
-            {event.fee && (
-              <span className="font-['SF_Compact',_sans-serif] font-[457] text-[0.5rem] leading-[0.9375rem] tracking-[-0.03125rem] text-right align-middle capitalize text-wingman-secondary-text">
-                {event.fee}
-              </span>
-            )}
           </div>
         </div>
 
@@ -723,51 +640,65 @@ function MobileEventCard({ event }: { event: MobileEvent }) {
             src="/new-wingman/icons/calender2.svg"
             className="w-[0.84375rem] h-[0.9375rem] shrink-0 bg-[#BBC9CF]"
           />
-          {event.when}
+          {eventWhen(event)}
         </div>
         <div className="mt-[0.375rem] flex items-center gap-[0.375rem] font-['SF_Compact',_sans-serif] font-[457] text-[0.875rem] leading-[1.25rem] tracking-[0px] align-middle text-wingman-secondary-text">
           <SvgIcon
             src="/new-wingman/icons/map-pin.svg"
             className="w-[0.84375rem] h-[0.9375rem] shrink-0 bg-[#9CA3AF]"
           />
-          {event.where}
+          {eventVenue(event)}
         </div>
 
         <div className="mt-[1rem] pt-[1.06875rem] border-t border-white/10 flex justify-center">
-          <button
-            type="button"
-            className="w-[11.25rem] h-[3.125rem] rounded-[0.75rem] border border-wingman-cyan bg-transparent font-['SF_Compact',_sans-serif] font-[457] text-[1rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-wingman-cyan hover:bg-wingman-cyan/10 transition-colors"
+          <Link
+            href="/events"
+            className="inline-flex items-center justify-center w-[11.25rem] h-[3.125rem] rounded-[0.75rem] border border-wingman-cyan bg-transparent font-['SF_Compact',_sans-serif] font-[457] text-[1rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-wingman-cyan hover:bg-wingman-cyan/10 transition-colors"
           >
             Buy Ticket
-          </button>
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-function MobileView() {
+function MobileView({ events, loading, ...filters }: SearchFilterProps & { events: Event[]; loading: boolean }) {
+  const ongoing = events.filter((e) => isOngoing(e));
+  const featured = ongoing[0] ?? events[0];
+  const upcoming = events.filter((e) => e !== featured && !isOngoing(e));
+
   return (
     <div className="md:hidden mx-auto w-full max-w-8xl pt-[1.25rem] pb-[3rem]">
-      <MobileSearchAndFilters />
+      <MobileSearchAndFilters {...filters} />
 
-      <h2 className="mt-[2.25rem] mb-[1rem] font-['SF_Pro',_sans-serif] font-[400] text-[1.5rem] leading-[2rem] tracking-[0px] align-middle text-wingman-primary-text">
-        Ongoing Events
-      </h2>
-      <MobileOngoingCard />
+      {filters.tab === "Membership" ? (
+        <MembershipSection />
+      ) : (
+        <>
+          <h2 className="mt-[2.25rem] mb-[1rem] font-['SF_Pro',_sans-serif] font-[400] text-[1.5rem] leading-[2rem] tracking-[0px] align-middle text-wingman-primary-text">
+            {ongoing.length > 0 ? "Ongoing Events" : "Featured Event"}
+          </h2>
+          {featured ? <MobileOngoingCard event={featured} /> : <EventsEmpty loading={loading} />}
 
-      <div className="mt-[1.5rem]">
-        <MobileJoinClub />
-      </div>
+          <div className="mt-[1.5rem]">
+            <MobileJoinClub />
+          </div>
 
-      <h2 className="mt-[2.5rem] mb-[1rem] font-['SF_Pro',_sans-serif] font-[400] text-[1.5rem] leading-[2rem] tracking-[0px] align-middle text-wingman-primary-text">
-        Upcoming Events
-      </h2>
-      <div className="flex flex-col gap-[1.5rem]">
-        {mobileUpcoming.map((event) => (
-          <MobileEventCard key={event.id} event={event} />
-        ))}
-      </div>
+          {upcoming.length > 0 && (
+            <>
+              <h2 className="mt-[2.5rem] mb-[1rem] font-['SF_Pro',_sans-serif] font-[400] text-[1.5rem] leading-[2rem] tracking-[0px] align-middle text-wingman-primary-text">
+                Upcoming Events
+              </h2>
+              <div className="flex flex-col gap-[1.5rem]">
+                {upcoming.map((event) => (
+                  <MobileEventCard key={event._id} event={event} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -783,6 +714,8 @@ const tabs = ["All Events", "Screenings", "Watch-Parties", "Membership"];
 export default function LandingPage() {
   // NEW (2/3): active tab state, first lines inside the component
   const [activeTab, setActiveTab] = useState("All Events");
+  const [search, setSearch] = useLandingSearch();
+  const { events, loading } = useLandingEvents(activeTab, search);
 
   return (
     <div className="min-h-screen">
@@ -846,13 +779,13 @@ export default function LandingPage() {
           </div>
 
           {/* NEW: swaps the events grid for the pass section */}
-          {activeTab === "Membership" ? <MembershipSection /> : <EventsGrid />}
+          {activeTab === "Membership" ? <MembershipSection /> : <EventsGrid events={events} loading={loading} />}
 
           <AffiliatedClubSection />
         </div>
 
         {/* Mobile (< 768px) */}
-        <MobileView />
+        <MobileView events={events} loading={loading} tab={activeTab} onTab={setActiveTab} search={search} onSearch={setSearch} />
       </main>
 
       <SiteFooter />

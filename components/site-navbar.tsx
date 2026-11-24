@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import SvgIcon from "./svg-icon"
 import LoginModal from "./modals/login-modal"
+import { LANDING_SEARCH_EVENT } from "@/hooks/use-landing-events"
 
 type SiteNavbarProps = {
   brandName?: string
@@ -29,9 +30,9 @@ type SiteNavbarProps = {
 
 // First three = desktop nav links (hrefs unchanged). All five = mobile drawer.
 const navLinks = [
-  { label: "Discovery", href: "/discovery", iconSrc: "/new-wingman/icons/compass.svg", underline: true },
-  { label: "About Wingman", href: "/discovery", iconSrc: "/new-wingman/icons/info.svg", underline: true },
-  { label: "Affiliations", href: "/discovery", iconSrc: "/new-wingman/icons/handshake.svg", underline: true },
+  { label: "Discovery", href: "/clubs", iconSrc: "/new-wingman/icons/compass.svg", underline: true },
+  { label: "About Wingman", href: "/about", iconSrc: "/new-wingman/icons/info.svg", underline: true },
+  { label: "Affiliations", href: "/affiliations", iconSrc: "/new-wingman/icons/handshake.svg", underline: true },
   { label: "FAQs", href: "/faqs", iconSrc: "/new-wingman/icons/help-circle.svg" },
   { label: "Contact Us", href: "/contact", iconSrc: "/new-wingman/icons/mail.svg" },
 ]
@@ -196,8 +197,18 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
             <div className="group relative hidden lg:block w-[15rem] xl:w-[20.8125rem] h-[3rem] xl:h-[3.375rem]">
               <Search className="absolute left-[1.25rem] top-1/2 -translate-y-1/2 text-[#859398] w-[0.9375rem] h-[0.9375rem]" />
               <input
-                type="text"
+                type="search"
+                aria-label="Search events"
                 placeholder="Search events..."
+                onChange={(e) => {
+                  // Live-filter the landing page's events while on it.
+                  if (pathname === "/") window.dispatchEvent(new CustomEvent(LANDING_SEARCH_EVENT, { detail: e.target.value }))
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" || pathname === "/") return
+                  const q = e.currentTarget.value.trim()
+                  router.push(q ? `/?q=${encodeURIComponent(q)}` : "/")
+                }}
                 className="w-full h-full bg-white/5 border border-white/10 rounded-[9999px] pl-[2.875rem] pr-5 font-['SF_Compact',_sans-serif] font-[457] text-[max(0.875rem,14px)] leading-[100%] tracking-[0rem] text-white placeholder:text-[#859398] focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
               />
               <span
