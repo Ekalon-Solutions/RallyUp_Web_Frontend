@@ -117,7 +117,6 @@ const CATEGORIES = [
   { value: "others", label: "Others" },
 ]
 
-const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AUD", "JPY","IDR", "SGD", "THB", "AED"]
 
 function toDatetimeLocal(iso?: string): string {
   if (!iso) return ""
