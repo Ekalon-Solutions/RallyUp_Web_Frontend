@@ -774,17 +774,6 @@ function CreateEventForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Currency</Label>
-                  <Select value={form.currency} onValueChange={(v) => set("currency", v)}>
-                    <SelectTrigger className="border-border bg-background text-foreground"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {CURRENCIES.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
