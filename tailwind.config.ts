@@ -13,6 +13,20 @@ const config: Config = {
 		extend: {
 			colors: {
 				'wingman-orange': 'hsl(var(--wingman-orange) / <alpha-value>)',
+				// defined by aryan
+				'wingman-primary-text': 'hsl(var(--wingman-primary-text) / <alpha-value>)',//#E5E2E1
+				'wingman-emphasis-text': 'hsl(var(--wingman-emphasis-text) / <alpha-value>)',//#FFFFFF
+				'wingman-secondary-text': 'hsl(var(--wingman-secondary-text) / <alpha-value>)',//#BBC9CF
+				'wingman-muted-text': 'hsl(var(--wingman-muted-text) / <alpha-value>)',//#9CA3AF
+				'wingman-light-accent-text': 'hsl(var(--wingman-light-accent-text) / <alpha-value>)',//#003642
+				'wingman-light-surface-text': 'hsl(var(--wingman-light-surface-text) / <alpha-value>)',//#050505
+				'wingman-cyan': 'hsl(var(--wingman-cyan) / <alpha-value>)', // #A8E8FF;
+
+				// button
+				'wingman-green-button': 'hsl(var(--wingman-green-button) / <alpha-value>)',
+				'wingman-green-button-text': 'hsl(var(--wingman-green-button-text) / <alpha-value>)',
+
+				// 
 				'wingman-orange-muted': 'hsl(var(--wingman-orange-muted) / <alpha-value>)',
 				'wingman-orange-dark': 'hsl(var(--wingman-orange-dark) / <alpha-value>)',
 				'wingman-purple': 'hsl(var(--wingman-purple) / <alpha-value>)',
@@ -83,6 +97,8 @@ const config: Config = {
 			},
 			fontFamily: {
 				sans: ['var(--font-poppins)', 'sans-serif'],
+				sf: ['"SF Pro Display"', '"SF Pro Text"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+				'sf-compact': ['"SF Compact"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -173,6 +189,15 @@ const config: Config = {
 				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
 				'marquee': 'marquee 8s linear infinite',
 				'scan-line': 'scan-line 2s linear infinite'
+			},
+			// by aryan
+			backgroundImage: {
+				'gradient-brand': 'linear-gradient(90deg, #00D4FF 0%, #9D05FF 100%)', //for buttons
+			},
+			screens: {
+				'desk': '768px',    // not in use
+				'mobile': '768px',  
+				'aside-hide': '1024px'
 			}
 		}
 	},

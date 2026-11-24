@@ -1,316 +1,275 @@
-"use client"
-
 import type React from "react"
-import Image from "next/image"
+import { ChevronDown, Mail } from "lucide-react"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
-import { ScrollToTop } from "@/components/scroll-to-top"
-import { FadeIn } from "@/components/fade-in"
-import { JellyCursor } from "@/components/jelly-cursor"
-import { ParticleBackground } from "@/components/particle-background"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { HelpCircle, Sparkles, MessageCircle, BookOpen } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import SvgIcon from "@/components/svg-icon";
+import Button from "@/components/landing/button";
+
+export const metadata = {
+  title: "FAQs | Wingman Pro",
+  description: "Frequently asked questions about Wingman Pro",
+}
+
+type Faq = { question: string; answer: string }
+
+type Category = {
+  id: string
+  title: string
+  description: string
+  accent: string
+  headingSide: "left" | "right"
+  faqs: Faq[]
+}
+
+const categories: Category[] = [
+  {
+    id: "general-technical",
+    title: "General & Technical",
+    description: "The foundation of Wingman Pro technology and infrastructure.",
+    accent: "from-wingman-cyan to-wingman-cyan/0",
+    headingSide: "left",
+    faqs: [
+      {
+        question: "What is Wingman Pro?",
+        answer:
+          "Wingman Pro is a digital hub that helps supporter groups and sports clubs manage members, deliver content, and run event engagement from a single platform.",
+      },
+      {
+        question: "Who is Wingman Pro designed for?",
+        answer:
+          "It is built for sports clubs, supporters' clubs, and their administrators and members who need a precise, reliable way to organise their community.",
+      },
+      {
+        question: "What technology does Wingman Pro use?",
+        answer:
+          "Wingman Pro is a modern web application with a companion mobile app, secured with OTP-based authentication and built on current data security best practices.",
+      },
+      {
+        question: "Does Wingman Pro replace our existing website?",
+        answer:
+          "Not necessarily. Wingman Pro can work alongside your current website as your members' hub, or serve as your club's main home on the web. It's your choice.",
+      },
+    ],
+  },
+  {
+    id: "onboarding-usage",
+    title: "Onboarding & Usage",
+    description: "Smooth transitions and daily operational excellence.",
+    accent: "from-purple-500 to-transparent",
+    headingSide: "right",
+    faqs: [
+      {
+        question: "How do users log into the app?",
+        answer:
+          "Members sign in with a One-Time Password (OTP) sent to their registered email and mobile number. There is no password to remember.",
+      },
+      {
+        question: "How do we get our current member data onto Wingman Pro?",
+        answer:
+          "Club administrators can upload and manage member data directly within Wingman Pro. Our team can help you with the initial setup.",
+      },
+      {
+        question: "Can members update their own profile information?",
+        answer:
+          "Yes. Members can keep their own profile details up to date, while administrators retain control over access rights and enrollment.",
+      },
+    ],
+  },
+  {
+    id: "financial-commerce",
+    title: "Financial & Commerce",
+    description: "Precision management of revenue and member transactions.",
+    accent: "from-emerald-400 to-transparent",
+    headingSide: "left",
+    faqs: [
+      {
+        question: "Can Wingman Pro handle our merchandise sales?",
+        answer:
+          "Yes. Wingman Pro supports club commerce, so you can manage merchandise and member purchases alongside your other club activity.",
+      },
+      {
+        question: "Is there an extra fee for payment processing?",
+        answer:
+          "Payment processing fees depend on your plan and payment provider. Contact our team and we will walk you through the exact pricing for your club.",
+      },
+    ],
+  },
+]
+
+const mobileOnlyCategories: Category[] = [
+  {
+    id: "security-compliance",
+    title: "Security & Compliance",
+    description: "How Wingman Pro protects your club's data.",
+    accent: "from-emerald-400 to-transparent",
+    headingSide: "left",
+    faqs: [
+      {
+        question: "How is my club's data protected?",
+        answer:
+          "Wingman Pro uses OTP-based authentication and follows current data security best practices to keep your club's and members' information safe.",
+      },
+    ],
+  },
+]
+
+function FaqItem({ faq }: { faq: Faq }): React.JSX.Element {
+  return (
+    <details className="group rounded-[0.75rem] border border-[#FFFFFF1A] bg-[#121212B2] backdrop-blur-[1.25rem] transition-colors hover:border-white/20 max-[767px]:rounded-[0.5rem]">
+      <summary className="flex min-h-[5.125rem] cursor-pointer list-none items-center justify-between gap-4 px-6 [&::-webkit-details-marker]:hidden max-[767px]:min-h-[3.75rem] max-[767px]:px-5">
+        <span className="max-w-[32.8125rem] font-sf text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text align-middle max-[767px]:font-sf-compact max-[767px]:font-[656] max-[767px]:text-[0.875rem] max-[767px]:leading-[1.25rem]">
+          {faq.question}
+        </span>
+        <SvgIcon
+          src="/new-wingman/icons/arrow-down.svg"
+          className="h-[0.4625rem] w-[0.75rem] shrink-0 bg-wingman-cyan transition-transform duration-200 group-open:rotate-180"
+        />
+      </summary>
+
+      <p className="px-6 pb-6 pt-2 font-sf-compact text-[0.9375rem] leading-6 text-zinc-400 max-[767px]:px-5 max-[767px]:pb-4 max-[767px]:pt-0 max-[767px]:text-[0.8125rem] max-[767px]:leading-[1.125rem]">
+        {faq.answer}
+      </p>
+    </details>
+  )
+}
+
+function CategorySection({ category }: { category: Category }): React.JSX.Element {
+  const headingRight = category.headingSide === "right"
+
+  return (
+    <section
+      id={category.id}
+      className="scroll-mt-28 flex flex-col gap-8 border-b border-white/10 py-14 last:border-b-0 mobile:gap-12 mobile:flex-row max-[767px]:gap-4 max-[767px]:border-none max-[767px]:py-6"
+    >
+      {/* Heading column */}
+      <div
+        className={`w-full shrink-0 mobile:w-[23.333rem] ${headingRight ? "mobile:order-2" : ""} max-[767px]:mb-2`}
+      >
+        <div className="flex items-center gap-3">
+          {/* Vertical line indicator for mobile */}
+          <div className="hidden h-[2rem] w-[0.25rem] rounded-full bg-wingman-cyan max-[767px]:block" />
+          <h2 className="font-sf text-[2rem] font-[700] leading-[2.5rem] tracking-[-0.02rem] text-wingman-emphasis-text align-middle max-[767px]:text-[1.5rem] max-[767px]:font-[590] max-[767px]:leading-[2rem] max-[767px]:text-wingman-primary-text">
+            {category.title}
+          </h2>
+        </div>
+        <p className="mt-3 font-sf-compact text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text align-middle max-[767px]:hidden">
+          {category.description}
+        </p>
+        <div className={`mt-4 h-px w-[6rem] bg-gradient-to-r ${category.accent} max-[767px]:hidden`} />
+      </div>
+
+      {/* FAQ column */}
+      <div className={`flex-1 space-y-3 ${headingRight ? "mobile:order-1" : ""} max-[767px]:space-y-4`}>
+        {category.faqs.map((faq) => (
+          <FaqItem key={faq.question} faq={faq} />
+        ))}
+      </div>
+    </section>
+  )
+}
 
 export default function FAQsPage(): React.JSX.Element {
-    const faqs = [
-        {
-            color: "#F1441A",
-            category: "General & Technical",
-            questions: [
-                {
-                    question: "What is Wingman Pro?",
-                    answer: <>It is an all-encompassing sports club management platform developed by <strong>RallyUp Solutions Pvt. Ltd.</strong> It centralizes member management, communications, events, and payments into one cohesive system, eliminating the need for fragmented tools.</>
-                },
-                {
-                    question: "Who is Wingman Pro designed for?",
-                    answer: "It is designed for sports club administrators, managers, and volunteer staff who need to streamline operations, reduce paperwork, improve member engagement, and grow their organization efficiently."
-                },
-                {
-                    question: "What technology does Wingman Pro use?",
-                    answer: "The core platform utilizes a robust, scalable technology stack designed for growth and reliability. We are the reliable partner that keeps your operations seamless and secure."
-                },
-                {
-                    question: "Does Wingman Pro replace our existing website?",
-                    answer: <><strong>Wingman Pro</strong> acts as your central operating system, replacing fragmented administrative tools. You can either use its dedicated interface as your primary web portal or easily integrate its key functions (like registration and store links) into your existing club website.</>
-                }
-            ]
-        },
-        {
-            color:"#07B065",
-            category: "Onboarding & Usage",
-            questions: [
-                {
-                    question: "How do users log into the app?",
-                    answer: <>User access is secured via a mandatory <strong>OTP (One-Time Password)</strong> login mechanism delivered instantly via <strong>Email and Mobile SMS</strong>.</>
-                },
-                {
-                    question: "How do we get our current member data onto Wingman Pro?",
-                    answer: <>Our support team handles the secure data migration. You provide your existing member data in a standard format (like <strong>CSV or Excel</strong>), and we manage the mapping and secure transfer to your new <strong>Wingman Pro</strong> dashboard. We work with you to verify all data accuracy before going live.</>
-                },
-                {
-                    question: "What kind of training is provided for our volunteers and administrators?",
-                    answer: "We provide comprehensive, personalized training sessions tailored to your team's roles, including one-on-one sessions, dedicated after-sales support through our communication channels and easy to use self-help documentation."
-                },
-                {
-                    question: "Can we track attendance for events and training sessions?",
-                    answer: <>Yes. The <strong>Event Management module</strong> includes <strong>Attendance Tracking functionality</strong>. You can quickly track check-ins for events, training, or meetings, providing valuable data for resource allocation and member engagement analysis.</>
-                },
-                {
-                    question: "Can members update their own profile information?",
-                    answer: "Yes. Members have direct, secure access to their profile and can update their personal contact details and preferences at any time. This ensures the data accuracy remains current, reducing the administrative burden on club staff."
-                }
-            ]
-        },
-        {
-            color:"#4784DB",
-            category: "Financial & Commerce Management",
-            questions: [
-                {
-                    question: "Can Wingman Pro handle our merchandise sales and ticketing?",
-                    answer: <>Yes. <strong>Wingman Pro</strong> includes fully integrated <strong>Store and Ticketing modules</strong>. You can list merchandise, manage inventory, sell event tickets (including recurring events), and consolidate all sales directly into centralized financial reports.</>
-                },
-                {
-                    question: "Is there an extra fee for payment processing?",
-                    answer: <>We integrate with secure, reputable payment gateways (<strong>RazorPay and Stripe</strong>). The standard transaction processing fee charged by the payment gateway itself will apply to each transaction. All fees are transparently outlined in your pricing package taken during the contract agreement.</>
-                },
-                {
-                    question: "How does the system handle membership renewals?",
-                    answer: <>The platform gives you the option to automate this process. You can set up automated renewal reminders via in-app notification, email and SMS. The system automatically tracks member status (<strong>Active, Pending, Expired</strong>) and allows administrators to easily generate reports, minimizing manual administrative effort.</>
-                }
-            ]
-        },
-        {
-            color:"#FFB00C",
-            category: "Security & Compliance",
-            questions: [
-                {
-                    question: "How is my club's data protected?",
-                    answer: "We implement comprehensive technical and organizational safeguards, including data encryption, access controls, and regular security assessments. We are committed to global data protection principles."
-                },
-                {
-                    question: "Is the platform compliant with international data laws?",
-                    answer: <>Yes. We adhere to the stringent <strong>DPDPA (India)</strong> and general principles of global frameworks like <strong>GDPR/UK GDPR</strong> by maintaining secure data practices and implementing robust data subject rights mechanisms.</>
-                },
-                {
-                    question: "What role does RallyUp Solutions play in managing my members' data?",
-                    answer: <>We act as the <strong>Data Processor</strong> (or <strong>Data Fiduciary/Controller</strong>, depending on the region) providing the secure technology. The Club/Group maintains full responsibility for the data accuracy and integrity of its members.</>
-                }
-            ]
-        },
-        {
-            color:"#F1441A",
-            category: "Engagement & Data Security",
-            questions: [
-                {
-                    question: "How does Wingman Pro help us engage with our members more effectively?",
-                    answer: <>The platform centralizes communication tools, allowing you to send targeted SMS and Email notifications for urgent updates, events, or announcements. Furthermore, features like the <strong>Leaderboard, Polls</strong>, and specialized Content sections (<strong>News/Events, Gallery</strong>) encourage active participation, helping to strengthen community loyalty and engagement.</>
-                },
-                {
-                    question: "What happens if a member withdraws their consent for data usage?",
-                    answer: <>As required by global data privacy laws (like the <strong>DPDPA and GDPR</strong>), <strong>Wingman Pro</strong> provides tools to manage consent withdrawal. If a member revokes their consent, our system enables administrators to instantly halt all processing of that user's non-essential personal data and securely erase it upon request (subject to necessary legal retention requirements).</>
-                },
-                {
-                    question: "Can we track attendance for events and training sessions?",
-                    answer: <>Yes. The <strong>Event Management module</strong> includes <strong>Attendance Tracking functionality</strong>. You can quickly track check-ins for events, training, or meetings, providing valuable data for resource allocation and member engagement analysis.</>
-                }
-            ]
-        },
-        {
-            color:"#07B065",
-            category: "Customization, Branding & Data Ownership",
-            questions: [
-                {
-                    question: "Can we brand the platform with our club's colours and logo?",
-                    answer: <>Absolutely. <strong>Wingman Pro</strong> supports deep visual customization. Administrators can easily upload the club's logo, set primary and secondary colours, and configure branding elements to ensure the member interface is fully consistent with the club's identity.</>
-                },
-                {
-                    question: "Who owns the data we upload to Wingman Pro?",
-                    answer: <>You retain full ownership of all <strong>User Content</strong> and member data uploaded to the platform. <strong>RallyUp Solutions</strong> acts purely as the data processor (or fiduciary) providing the secure technology and hosting service. We will never sell or misuse your member data, as strictly outlined in our <strong>Privacy Policy and Terms & Conditions</strong>.</>
-                },
-                {
-                    question: "Can we export our data if we decide to leave the Wingman Pro platform?",
-                    answer: <>Yes. We ensure full data portability. Clubs maintain the right to receive a copy of their core data (member details, financial reports, etc.) in a standard, machine-readable format upon request, guaranteeing a smooth transition if your needs ever change.</>
-                }
-            ]
-        }
-    ]
+  return (
+    <main
+      className="min-h-screen overflow-x-clip bg-wingman-light-surface-text text-white"
+      style={{
+        backgroundImage: `
+          radial-gradient(ellipse 30% 28.125rem at top left, #A8E8FF1A 0%, transparent 100%),
+          radial-gradient(ellipse 30% 28.125rem at top right, #DFB7FF1A 0%, transparent 100%)
+        `,
+        backgroundRepeat: "no-repeat"
+      }}
+    >
+      <SiteNavbar />
 
-    const categoryBackgrounds: Record<string, string> = {
-        "General & Technical": "#FF5C1A21",
-        "Onboarding & Usage": "#44867B2E",
-        "Financial & Commerce Management": "#4784DB3D",
-        "Security & Compliance": "#FFB00C1A",
-        "Engagement & Data Security": "#FF5C1A21",
-        "Customization, Branding & Data Ownership": "#44867B2E",
-    }
+      {/* Hero */}
+      <div className="relative">
+        <div className="pointer-events-none absolute left-1/2 top-0 h-[22.5rem] w-[56.25rem] max-w-full -translate-x-1/2 rounded-full" />
 
-    return (
-        <main className="min-h-screen bg-white text-background relative overflow-x-clip public-theme">
-            {/* <JellyCursor /> */}
-            <SiteNavbar />
+        <div className="relative mx-auto max-w-8xl px-4 pb-16 pt-12 mobile:px-8 max-[767px]:pb-6 max-[767px]:pt-6">
+          <p className="font-sf-compact text-sm font-[656] tracking-[0.0875rem] align-middle uppercase text-wingman-cyan max-[767px]:hidden">Knowledge Base</p>
 
-            <div className="bg-white pt-16 md:pt-20 lg:pt-24 relative z-10">
-                <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
+          {/* Desktop Title Block */}
+          <div className="heading-group-desktop mx-auto mt-10 max-w-2xl text-center max-[767px]:hidden">
+            <h1 className="heading-main">
+              Frequently Asked Questions
+            </h1>
+            <p className="subheading-main">
+              Find answers to common questions about Wingman Pro. Precision-engineered solutions for
+              high-performance supporter groups and sports clubs.
+            </p>
+          </div>
 
-                    <div className="absolute inset-0 -z-10" />
-                    <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none z-[-5]">
-                        <Image src="/Vector.svg" alt="" fill className="object-contain" />
-                    </div>
+          {/* Mobile Title Block */}
+          <div className="heading-group-mobile hidden max-[767px]:flex my-4">
+            <h1 className="heading-main-mobile">Frequently Asked Questions</h1>
 
-                    <FadeIn>
-                       <div className="flex flex-col text-center justify-center items-center mb-12 relative">
-                        <h1 className="md:text-4xl text-4xl lg:text-5xl font-bold text-center mb-12 relative z-10">
-                            <span className="text-background">
-                            Frequently Asked{" "}
-                            <span className="text-primary animate-pulse-glow inline-block">
-                                Questions
-                            </span>
-                            </span>
-                        </h1>
+            {/* green span can go here, gap stays the same */}
 
-                        <p className="text-background font-[400] text-lg max-w-2xl mx-auto relative z-10">
-                            Find answers to common questions about Wingman Pro. Can't find what you're
-                            looking for?{" "}
-                            <a href="/contact" className="text-primary hover:underline">
-                            Contact us
-                            </a>{" "}
-                            and we'll be happy to help.
-                        </p>
-                        </div>
-                    </FadeIn>
+            <p className="subheading-main-mobile">
+              Find answers to common questions about Wingman Pro. Can't find what you're
+              looking for? Contact us and we'll be happy to help.
+            </p>
+          </div>
 
-                    <FadeIn>
-                        <div className="space-y-8">
-                            {faqs.map((category, categoryIndex) => (
-                                <div key={categoryIndex} className="space-y-4 relative">
-                                    <div
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 animate-scale-in border border-secondary"
-                                        style={{
-                                            backgroundColor: `${category.color}30`, // adds transparency
-                                            color: category.color,
-                                            animationDelay: `${categoryIndex * 0.1}s`,
-                                            borderColor: category.color,
-                                        }}
-                                        >
-                                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: category.color }}></span>
-                                            <h2 className="text-sm">
-                                                {category.category}
-                                            </h2>
-                                    </div>
-                                    <Accordion type="single" collapsible className="space-y-3">
-                                        {category.questions.map((faq, faqIndex) => (
-                                            <AccordionItem
-                                                key={faqIndex}
-                                                value={`item-${categoryIndex}-${faqIndex}`}
-                                                className="border border-[#0D0D0D] md:border-[#6668A1] rounded-2xl px-5 bg-white data-[state=open]:border-[color:var(--category-color)] transition-all duration-300 animate-scale-in overflow-hidden"
-                                                style={{ 
-                                                    animationDelay: `${(categoryIndex * 0.1) + (faqIndex * 0.05)}s`,
-                                                    '--category-color': category.color
-                                                } as React.CSSProperties}
-                                            >
-                                                <AccordionTrigger className="text-left py-4 text-sm font-medium text-[#0D0D0D] md:text-[#6668A1] hover:no-underline data-[state=open]:text-[color:var(--category-color)] transition-colors duration-300">
-                                                    {faq.question}
-                                                </AccordionTrigger>
-                                                <AccordionContent className="text-[#6668A1] text-sm leading-relaxed pb-5">
-                                                    {faq.answer}
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        ))}
-                                    </Accordion>
-                                </div>
-                            ))}
-                        </div>
-                    </FadeIn>
+          {/* Desktop Buttons */}
+          <div className="mt-[4.375rem] flex flex-wrap items-center justify-start gap-4 max-[767px]:hidden">
+            <Button className="h-[2.875rem] w-[11.25rem]">Explore Categories</Button>
+            <Button className="h-[2.875rem] w-[11.25rem]">Contact Support</Button>
 
-                    
-                </div>
-                <div className="w-full mt-20">
-                    <FadeIn>
-                        <div className="relative overflow-hidden bg-[linear-gradient(to_right,#FFFFFF_50%,#1761CA_100%)]">
-                            {/* Exact geometric line pattern */}
-                            <svg
-                                className="hidden md:block absolute inset-0 w-full h-full"
-                                viewBox="0 0 1440 500"
-                                preserveAspectRatio="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                {/* LEFT TRIANGLE */}
-                                <line
-                                x1="0"
-                                y1="500"
-                                x2="380"
-                                y2="0"
-                                stroke="#C9C1CF"
-                                strokeWidth="0.8"
-                                />
-                                <line
-                                x1="380"
-                                y1="0"
-                                x2="770"
-                                y2="500"
-                                stroke="#C9C1CF"
-                                strokeWidth="0.8"
-                                />
+          </div>
+        </div>
+      </div>
 
-                                {/* CENTER INTERSECTING TRIANGLE */}
-                                <line
-                                x1="530"
-                                y1="500"
-                                x2="905"
-                                y2="0"
-                                stroke="#A291B178"
-                                strokeWidth="0.8"
-                                />
-                                <line
-                                x1="905"
-                                y1="0"
-                                x2="1245"
-                                y2="500"
-                                stroke="#F1441A1F"
-                                strokeWidth="0.8"
-                                />
+      {/* Categories */}
+      <div className="mx-auto max-w-8xl px-4 mobile:px-8 my-[2rem] max-[767px]:my-0">
+        {categories.map((category) => (
+          <CategorySection key={category.id} category={category} />
+        ))}
 
-                                {/* PARALLEL INNER RIGHT LINE */}
-                                <line
-                                x1="880"
-                                y1="0"
-                                x2="1215"
-                                y2="500"
-                                stroke="#8598C7AB"
-                                strokeWidth="0.8"
-                                />
-                            </svg>
-                            
-                            <div className="relative z-10 px-6 py-16 md:py-14 flex flex-col items-center text-center">
-                                <span className="text-primary font-medium text-base tracking-wide mb-6">
-                                    Still have questions?
-                                </span>
+        {/* Small screens only */}
+        <div className="hidden max-[767px]:block">
+          {mobileOnlyCategories.map((category) => (
+            <CategorySection key={category.id} category={category} />
+          ))}
+        </div>
 
-                                <h2 className="text-4xl md:text-5xl font-bold tracking-tight leading-none text-black">
-                                    We're Here <span className="text-primary">To Help.</span>
-                                </h2>
+        {/* Contact Block */}
+        <div className="relative mx-auto my-16 flex h-[26.625rem] w-full max-w-[74rem] flex-col items-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-black pt-[6.0625rem] text-center max-[767px]:my-12 max-[767px]:h-auto max-[767px]:min-h-0 max-[767px]:rounded-[1rem] max-[767px]:glass-panel max-[767px]:py-10 max-[767px]:px-6 max-[767px]:items-center">
+          <div className="pointer-events-none absolute left-1/2 top-0 h-48 w-96 -translate-x-1/2 rounded-full max-[767px]:hidden" />
 
-                                <p className="mt-8 max-w-3xl text-secondary text-xl md:text-lg font-medium">
-                                    Reach out to our strategy team and we'll get back to you right away.
-                                </p>
+          <div className="relative z-10 flex h-[10.5rem] w-full max-w-[73.875rem] flex-col items-center justify-between px-4 max-[767px]:h-auto max-[767px]:gap-3 max-[767px]:px-0 max-[767px]:items-center">
+            {/* Desktop content */}
+            <h2 className="font-sf text-[2.5rem] mobile:text-[4rem] font-[860] leading-[1.1] mobile:leading-[4.5rem] tracking-[-0.08rem] text-wingman-emphasis-text align-middle max-[767px]:hidden">
+              Still have questions?
+            </h2>
+            <p className="mx-auto h-[3.5rem] w-[34.375rem] max-w-full font-sf-compact text-[1.125rem] font-[457] leading-[1.75rem] tracking-[0rem] text-wingman-secondary-text align-middle max-[767px]:hidden">
+              We&apos;re here to help. Reach out to our strategy team and we&apos;ll get back to you right away.
+            </p>
 
-                                <a
-                                  href="/contact"
-                                  className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B]"
-                                >
-                                  Contact Us
-                                </a>
-                            </div>
-                        </div>
-                    </FadeIn>
-                </div>
+            {/* Mobile Content */}
+            <h2 className="hidden max-[767px]:block font-sf text-[1.75rem] font-[700] leading-[2.25rem] text-center align-middle text-wingman-emphasis-text">
+              We're Here To Help.
+            </h2>
+            <p className="hidden max-[767px]:block w-[16.875rem] max-w-full font-sf-compact text-[1rem] font-[457] leading-[1.5rem] text-center align-middle text-wingman-secondary-text">
+              Reach out to our strategy team and we'll get back to you right away.
+            </p>
+          </div>
 
-            </div>
-            <SiteFooter />
-            <ScrollToTop />
-        </main>
-    )
+          <Button
+            variant="primary"
+            href="mailto:response@wingman-pro.com"
+            className="
+    relative z-10 mt-[2.5rem] h-[4rem] w-[13.5625rem]
+    max-[767px]:mt-6 max-[767px]:h-[3.25rem] max-[767px]:w-[13.3125rem]
+  "
+          >
+            Contact Us
+          </Button>
+        </div>
+      </div>
+
+      <SiteFooter />
+    </main>
+  )
 }

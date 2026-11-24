@@ -140,15 +140,17 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
       </head>
 
-      <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`} suppressHydrationWarning>
+      <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable} bg-background text-foreground min-h-screen`} suppressHydrationWarning>
         <AppUpdateWatcher />
         <Analytics />
         <AntiScrapingProtection />
-        <DashboardThemeProvider />
+        {/* <DashboardThemeProvider /> */}
         <ThemeProvider
+          defaultTheme="dark"
+          forcedTheme="dark"
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          // defaultTheme="system"
+          // enableSystem
           disableTransitionOnChange
         >
           <ThemeColorMeta />

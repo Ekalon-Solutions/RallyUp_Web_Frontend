@@ -1,138 +1,615 @@
-import type React from"react"
-import Link from"next/link"
-import Image from"next/image"
-import { SiteNavbar } from"@/components/site-navbar"
-import { SiteFooter } from"@/components/site-footer"
-import { ScrollToTop } from"@/components/scroll-to-top"
+import type React from "react"
+import Link from "next/link"
+import {
+    Info,
+    Gavel,
+    Ban,
+    Code2,
+    UserX,
+    Mail,
+    ShieldCheck,
+    LifeBuoy,
+    Clock,
+    CheckCircle2,
+    CircleHelp,
+    ShieldAlert,
+} from "lucide-react"
+import { SiteNavbar } from "@/components/site-navbar"
+import { SiteFooter } from "@/components/site-footer"
+import SvgIcon from "@/components/svg-icon"
+import Button from "@/components/landing/button"
 
 export const metadata = {
- title:"Terms of Service | Wingman Pro",
- description:"Wingman Pro Terms of Service",
+    title: "Terms of Service | Wingman Pro",
+    description: "Wingman Pro Terms of Service",
+}
+
+type Section = {
+    id: string
+    title: string
+    content: React.ReactNode
+}
+
+const conductItems = [
+    {
+        icon: "/new-wingman/icons/hammer.svg",
+        title: "Illegal Use",
+        text: "Use the service for any illegal or unauthorized purpose.",
+    },
+    {
+        icon: "/new-wingman/icons/stop.svg",
+        title: "Harassment",
+        text: "Harass, abuse, or harm another person or group.",
+    },
+    {
+        icon: "/new-wingman/icons/bug.svg",
+        title: "Reverse Engineering",
+        text: "Attempt to decompile or extract source code from our systems.",
+    },
+    {
+        icon: "/new-wingman/icons/user-off.svg",
+        title: "Impersonation",
+        text: "Misrepresent your identity or affiliation with any person.",
+    },
+]
+
+const limitations = [
+    "Third-party integrations may vary by region.",
+    'Experimental "Pro" features are provided on an "as-is" basis.',
+    "Data synchronization speeds depend on network latency.",
+]
+
+/* ---------- Mobile-only content (from mobile Figma frame) ---------- */
+const mobileChips = [
+    { id: "m-acceptance", label: "Acceptance" },
+    { id: "m-accounts", label: "Accounts" },
+    { id: "m-pro-features", label: "Pro Features" },
+    { id: "m-conduct", label: "Conduct" },
+    { id: "m-property", label: "Property" },
+]
+
+const mobileAccountItems = [
+    {
+        n: "2.1",
+        text: "To access certain features of the service, you must register for an account. You agree to provide accurate, current, and complete information.",
+    },
+    {
+        n: "2.2",
+        text: "You are responsible for safeguarding the password that you use to access the service and for any activities or actions under your password.",
+    },
+    {
+        n: "2.3",
+        text: "Wingman Pro reserves the right to terminate accounts that are inactive for an extended period or that violate our community guidelines.",
+    },
+]
+
+const mobileProFeatures = [
+    "Real-time data synchronization",
+    "Unlimited professional dashboards",
+    "Priority 24/7 technical support",
+]
+
+const mobileProhibited = [
+    {
+        icon: "/new-wingman/icons/hammer.svg",
+        title: "Data Mining",
+        text: "Automated extraction of proprietary data from Wingman Pro services.",
+    },
+    {
+        icon: "/new-wingman/icons/phone-alert.svg",
+        title: "System Interference",
+        text: "Circumventing security or authentication measures.",
+    },
+]
+
+const mobileHeading =
+    "font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] bg-gradient-to-r from-[#ABE8FF] to-[#DFB7FF] bg-clip-text text-transparent inline-block"
+const mobileBody =
+    "font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] text-wingman-secondary-text"
+// const mobileAccentSection = "border-l-2 border-[#A8E8FF]/60 pl-4"
+
+const P = ({ children }: { children: React.ReactNode }) => (
+    <p className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.625rem] tracking-[0rem] text-wingman-secondary-text">
+        {children}
+    </p>
+)
+const sections: Section[] = [
+    {
+        id: "acceptance-of-terms",
+        title: "Acceptance of Terms",
+        content: (
+            <>
+                <P>
+                    By creating an account, downloading the mobile application, or otherwise using the Wingman Pro
+                    platform (&ldquo;the Service&rdquo;), you acknowledge that you have read, understood, and agreed to
+                    be bound by these Terms of Service. If you do not agree to these terms, you may not access or use
+                    the Service.
+                </P>
+                <P>
+                    We reserve the right to modify these terms at any time. Changes will be effective immediately upon
+                    posting to the Service. Your continued use of Wingman Pro following the posting of changes
+                    constitutes your acceptance of such changes.
+                </P>
+            </>
+        ),
+    },
+    {
+        id: "platform-services",
+        title: "Platform Services",
+        content: (
+            <>
+                <P>
+                    Wingman Pro provides a high-performance precision interface for professional networking, event
+                    management, and club discovery. While we strive for 99.9% uptime, we do not guarantee that the
+                    service will be available without interruption or errors.
+                </P>
+
+                <div className="glass-panel">
+                    <div className="mb-4 flex items-center gap-3">
+                        <SvgIcon
+                            src="/new-wingman/icons/info.svg"
+                            className="h-[1.25rem] w-[1.25rem] shrink-0 bg-wingman-cyan"
+                        />
+                        <span className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.625rem] tracking-[0rem] text-wingman-primary-text">
+                            Key Service Limitations
+                        </span>
+                    </div>
+                    <ul className="list-inside list-disc space-y-2 pl-2">
+                        {limitations.map((item) => (
+                            <li
+                                key={item}
+                                className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.625rem] tracking-[0rem] text-wingman-secondary-text"
+                            >
+                                {item}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </>
+        ),
+    },
+    {
+        id: "user-accounts",
+        title: "User Accounts",
+        content: (
+            <>
+                <P>
+                    To access most features of the Service, you must register for an account. You agree to provide
+                    accurate, current, and complete information during the registration process and to update such
+                    information to keep it accurate and complete.
+                </P>
+                <P>
+                    Access to Wingman Pro is secured via a One-Time Password (OTP) sent to your email and mobile
+                    number. You are responsible for safeguarding your devices and email access, and you take sole
+                    responsibility for any activities or actions under your account, whether or not you have
+                    authorized such activities or actions.
+                </P>
+            </>
+        ),
+    },
+    {
+        id: "code-of-conduct",
+        title: "Code of Conduct",
+        content: (
+            <>
+                <P>
+                    Wingman Pro is a community of professionals. To maintain this environment, you agree not to:
+                </P>
+                {/* w-full ensures it stretches, gap-4 applies exactly 1rem spacing */}
+                <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+                    {conductItems.map(({ icon, title, text }) => (
+                        <div
+                            key={title}
+                            // Removed max-w-[402px] so the boxes fill the grid columns evenly
+                            className="flex h-[6.625rem] w-full flex-col gap-[0.5rem] rounded-[0.5rem] border border-[#FFFFFF1F] p-[1rem]"
+                        >
+                            <div className="flex items-center gap-[0.5rem]">
+                                <SvgIcon
+                                    src={icon}
+                                    className="h-[1.1875rem] w-[1.125rem] shrink-0 bg-[#FFB4AB]"
+                                />
+                                <span className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.5rem] tracking-[0rem] text-wingman-primary-text">
+                                    {title}
+                                </span>
+                            </div>
+                            <p className="align-middle font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] tracking-[0rem] text-wingman-secondary-text">
+                                {text}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </>
+        ),
+    },
+    {
+        id: "billing-subscriptions",
+        title: "Billing & Subscriptions",
+        content: (
+            <>
+                <P>
+                    Wingman Pro offers both free and paid subscription tiers. Subscription fees are billed in advance
+                    on a monthly or annual basis and are non-refundable except as required by law.
+                </P>
+                <P>
+                    Failure to pay subscription fees will result in the downgrading or suspension of your account
+                    services. We reserve the right to change our subscription fees upon 30 days&apos; notice.
+                </P>
+            </>
+        ),
+    },
+    {
+        id: "intellectual-property",
+        title: "Intellectual Property",
+        content: (
+            <>
+                <P>
+                    All content, trademarks, logos, and service marks displayed on the platform are the property of
+                    RallyUp Solutions Private Limited or their respective third-party owners. You are granted a
+                    limited, non-exclusive license to use the platform for its intended purposes.
+                </P>
+                <P>
+                    You may not reproduce, distribute, or create derivative works from any part of the Service without
+                    our express written consent.
+                </P>
+            </>
+        ),
+    }
+]
+
+function SectionBlock({ section, index }: { section: Section; index: number }): React.JSX.Element {
+    return (
+        <section id={section.id} className="scroll-mt-28 space-y-6">
+            <div className="flex items-center gap-4">
+                {/* 40x40 Number Box */}
+                <div className="flex h-[2.5rem] w-[2.5rem] items-center justify-center rounded-[0.5rem] bg-[#A8E8FF1A]">
+                    <span className="text-center align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.5rem] tracking-[0rem] text-wingman-cyan">
+                        {String(index + 1).padStart(2, "0")}
+                    </span>
+                </div>
+                {/* Section Title */}
+                <h2 className="align-middle font-['SF_Pro',sans-serif] text-[2rem] font-[700] leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+                    {section.title}
+                </h2>
+            </div>
+            <div className="space-y-4">{section.content}</div>
+        </section>
+    )
 }
 
 export default function TermsPage(): React.JSX.Element {
- return (
- <main className="min-h-screen bg-white text-background public-theme">
- <SiteNavbar />
- <div className="bg-secondary-purple/40 px-4 py-16 relative z-10">
-            <div className="max-w-3xl mx-auto">
-                <div className="absolute inset-0 -z-10" />
-                <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none z-[-5]">
-                    <Image src="/Vector.svg" alt="" fill className="object-contain" />
+    return (
+        // overflow-x-clip (not hidden) keeps the glow from causing horizontal scroll without breaking position: sticky
+        <main
+            className="min-h-screen bg-[#050505] md:bg-[#131313] text-white"
+            style={{
+                backgroundImage: `
+            radial-gradient(ellipse 30% 28.125rem at top left, #A8E8FF1A 0%, transparent 100%),
+            radial-gradient(ellipse 30% 28.125rem at top right, #DFB7FF1A 0%, transparent 100%)
+        `,
+                backgroundRepeat: "no-repeat"
+            }}
+        >
+            <SiteNavbar />
+
+            {/* Hero */}
+            <div className="relative">
+                {/* Blur glow: hsla(196, 100%, 83%, 0.1) */}
+                <div className="pointer-events-none absolute left-1/2 top-0 h-[21.25rem] w-[56.25rem] max-w-full -translate-x-1/2 rounded-full" />
+
+                <div className="relative mx-auto flex w-full max-w-8xl flex-col items-start gap-4 px-4 pb-6 pt-8 text-left mobile:items-center mobile:gap-6 mobile:px-8 mobile:pb-16 mobile:pt-16 mobile:text-center">
+                    {/* Mobile heading */}
+                    <h1 className="font-sf text-[1.5rem] font-bold leading-[2.25rem] mobile:hidden">
+                        Terms of Service
+                    </h1>
+
+                    {/* Desktop heading */}
+                    <h1 className="heading-main hidden mobile:block">
+                        Terms of Service
+                    </h1>
+
+                    {/* Mobile meta */}
+                    <div className="flex flex-col items-start gap-3 mobile:hidden">
+                        <span className="flex h-[1.625rem] w-[8.125rem] items-center justify-center rounded-full border border-[#A8E8FF4D] font-sf-compact text-[0.75rem] font-[457] uppercase leading-[1rem] text-wingman-cyan">
+                            Legal Document
+                        </span>
+                        <span className="flex h-[2.375rem] w-[14.75rem] items-center justify-center gap-2 rounded-full border border-[#A8E8FF33] bg-[#A8E8FF1A] font-sf-compact text-[0.75rem] font-[457] leading-[1.5rem] text-wingman-cyan">
+                            <SvgIcon
+                                src="/new-wingman/icons/history.svg"
+                                className="h-[0.75rem] w-[0.75rem] shrink-0 bg-wingman-cyan"
+                            />
+                            Last Updated: October 24, 2025
+                        </span>
+                    </div>
+
+                    {/* Desktop description */}
+                    <p className="subheading-main hidden mobile:block">
+                        Please read these terms carefully before using Wingman Pro. By accessing our platform, you agree
+                        to be bound by these legal conditions designed to protect you and our community.
+                    </p>
+
+                    {/* Desktop last updated */}
+                    <p className="hidden text-center align-middle font-sf-compact text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[0.175rem] text-wingman-cyan mobile:block">
+                        LAST UPDATED: OCTOBER 24, 2025
+                    </p>
                 </div>
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary/20 mb-6 animate-scale-in">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 animate-pulse" />
-                    <span className="text-[10px] font-medium leading-[14px] text-primary uppercase tracking-normal">Terms of Service</span>
+            </div>
+
+            {/* ================= MOBILE ONLY BODY ================= */}
+            <div className="mx-auto flex w-full max-w-8xl flex-col gap-8 px-4 pb-12 mobile:hidden">
+
+                {/* Sections chips */}
+                <div>
+                    <h2 className="font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] text-wingman-primary-text">
+                        Sections
+                    </h2>
+                    <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
+                        {mobileChips.map(({ id, label }) => (
+                            <a
+                                key={id}
+                                href={`#${id}`}
+                                className="flex h-[2rem] shrink-0 items-center justify-center rounded-full border border-[#FFFFFF1F] bg-[#1C1B1B] px-4 font-['SF_Compact',sans-serif] text-[0.8125rem] font-[457] text-wingman-primary-text"
+                            >
+                                {label}
+                            </a>
+                        ))}
+                    </div>
                 </div>
- <h1 className="text-3xl md:text-4xl font-bold mb-4 z-10 relative">TERMS AND CONDITIONS OF SERVICE</h1>
- <p className="text-sm text-secondary mb-2">
- RALLYUP SOLUTIONS PRIVATE LIMITED (for Wingman Pro)
- </p>
- <p className="text-sm text-secondary mb-10">
- Effective Date: October 31, 2025
- </p>
 
- <section className="space-y-6 text-secondary">
- <p>
- These Terms and Conditions of Service ("Terms") constitute a legally binding agreement between RallyUp Solutions Private Limited ("RallyUp Solutions,""we,""us,"or"our"), and you, the client, administrator, club, supporters' club, or end-user ("User,""you,"or"your") concerning your access to and use of our proprietary web application platform, Wingman Pro (the"Service"or"Wingman Pro"), and all associated services.
- </p>
+                {/* 1. Acceptance of Terms */}
+                <section id="m-acceptance" className="scroll-mt-24 relative pl-5">
+                    {/* Left Glowing Vertical Bar */}
+                    <div
+                        className="absolute bottom-0 left-0 top-1.5 w-[0.125rem]"
+                        style={{
+                            background: "linear-gradient(180deg, #3CD7FF 0%, rgba(60, 215, 255, 0) 100%)",
+                            boxShadow: "0 0 0.5rem 0 #3CD7FF"
+                        }}
+                    />
+                    <h2 className={mobileHeading}>1. Acceptance of Terms</h2>
+                    <div className="mt-4 flex flex-col gap-4">
+                        <p className={mobileBody}>
+                            By accessing or using the Wingman Pro platform, you agree to be bound by these Terms of
+                            Service and all applicable laws and regulations. If you do not agree with any of these
+                            terms, you are prohibited from using or accessing this site.
+                        </p>
+                        <p className={mobileBody}>
+                            The materials contained in this platform are protected by applicable copyright and
+                            trademark law. Wingman Pro provides high-performance data analytics and professional
+                            precision tools.
+                        </p>
+                    </div>
+                </section>
 
- <h2 className="text-xl font-semibold text-background">1. Acceptance of Terms</h2>
- <p>
- By accessing, registering for, or using Wingman Pro, you agree that you have read, understood, and agree to be bound by all of these Terms and Conditions. If you do not agree with all of these Terms, you are expressly prohibited from using Wingman Pro and must discontinue use immediately.
- </p>
+                {/* 2. User Accounts & Security */}
+                <section id="m-accounts" className="scroll-mt-24 relative pl-5">
+                    {/* Left Glowing Vertical Bar */}
+                    <div
+                        className="absolute bottom-0 left-0 top-1.5 w-[0.125rem]"
+                        style={{
+                            background: "linear-gradient(180deg, #3CD7FF 0%, rgba(60, 215, 255, 0) 100%)",
+                            boxShadow: "0 0 0.5rem 0 #3CD7FF"
+                        }}
+                    />
+                    <h2 className={mobileHeading}>2. User Accounts &amp; Security</h2>
+                    <ol className="mt-4 flex flex-col gap-4">
+                        {mobileAccountItems.map(({ n, text }) => (
+                            <li key={n} className="flex gap-4">
+                                <span className="w-8 shrink-0 font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.625rem] text-wingman-cyan">
+                                    {n}
+                                </span>
+                                <p className={mobileBody}>{text}</p>
+                            </li>
+                        ))}
+                    </ol>
+                </section>
 
- <h2 className="text-xl font-semibold text-background">2. General Terms of Use</h2>
- <ul className="list-disc pl-5 space-y-2">
- <li><strong>Service Purpose:</strong> Wingman Pro is a digital hub designed to streamline member management, content delivery, and event engagement for supporter groups.</li>
- <li><strong>Eligibility:</strong> Use of Wingman Pro is limited to individuals who can form legally binding contracts under applicable law. By registering, you represent and warrant that you are at least 18 years of age or the age of legal majority in your jurisdiction.</li>
- <li><strong>Availability:</strong> We will use commercially reasonable efforts to make Wingman Pro available. However, we do not guarantee that Wingman Pro, or any content on it, will always be available or uninterrupted.</li>
- <li><strong>Changes:</strong> We reserve the right, in our sole discretion, to make changes or modifications to these Terms at any time. We will provide reasonable notice of any material changes, typically by posting the revised Terms on the Service with the Effective Date and may notify you directly via email. The updated version of these Terms will be effective seven (7) days after posting. Your continued use of Wingman Pro after the effective date of the revised Terms constitutes your acceptance of the changes.</li>
- </ul>
 
- <h2 className="text-xl font-semibold text-background">3. User Accounts and Authentication</h2>
- <ul className="list-disc pl-5 space-y-2">
- <li><strong>Registration:</strong> To access Wingman Pro, you must register an account and adhere to all registration requirements. You must provide true, accurate, current, and complete information.</li>
- <li><strong>Authentication and OTP:</strong> Access to Wingman Pro is secured via an OTP (One-Time Password) mechanism. The OTP will be shared with the User via Email and Mobile SMS. You acknowledge that you are responsible for maintaining the confidentiality of your mobile device and email access and all activities that occur under your account. You must notify us immediately of any unauthorized use of your account.</li>
- <li><strong>Data Accuracy:</strong> You are responsible for ensuring the accuracy and completeness of any data, information, or content you provide or upload to Wingman Pro. We shall not be liable for any errors or omissions in data provided by the User.</li>
- </ul>
+                {/* 3. Pro Features & Subscriptions */}
+                <section
+                    id="m-pro-features"
+                    className="glass-panel relative scroll-mt-24 overflow-hidden border border-[#FFFFFF14]"
+                >
+                    {/* Left Glowing Vertical Bar (on the box's left edge) */}
+                    <div
+                        className="absolute bottom-0 left-0 top-0 w-[0.125rem]"
+                        style={{
+                            background: "linear-gradient(180deg, #3CD7FF 0%, rgba(60, 215, 255, 0) 100%)",
+                            boxShadow: "0 0 0.5rem 0 #3CD7FF",
+                        }}
+                    />
 
- <h2 className="text-xl font-semibold text-background">4. Relationship Agreement with Sports Clubs</h2>
- <p>
- If you are a sports club or supporter group ("Club") contracting with RallyUp Solutions for the use of Wingman Pro, the following terms apply:
- </p>
- <ul className="list-disc pl-5 space-y-2">
- <li><strong>User Management Responsibility:</strong> The Club acknowledges and agrees that the full responsibility for member enrollment, management, data maintenance, and administration of access rights rests solely with the Club.</li>
- <li><strong>Data Accuracy and Consent Obligation:</strong> The Club is solely responsible for the accuracy, completeness, and legality of all member data uploaded or managed within Wingman Pro. The Club further represents and warrants that it has secured all necessary consents, permissions, and rights to upload and manage the member data within Wingman Pro and that the data transfer complies with all applicable privacy laws.</li>
- </ul>
 
- <h2 className="text-xl font-semibold text-background">5. Intellectual Property Rights (IP)</h2>
- <ul className="list-disc pl-5 space-y-2">
- <li><strong>Our IP:</strong> All content, features, functionality, design, code, logos, trademarks, and the underlying technology of Wingman Pro are owned by RallyUp Solutions Private Limited and are protected by copyright and intellectual property laws.</li>
- <li><strong>License Grant:</strong> We grant you a limited, non-exclusive, non-transferable, revocable license to access and use Wingman Pro solely for its intended purpose and subject to your compliance with these Terms. For Clubs, the granted license includes the right to sublicense access to its registered members, strictly in accordance with these Terms and solely for the intended purpose of Wingman Pro.</li>
- <li><strong>User Content:</strong> You retain all ownership rights to the content, data, and materials you upload to Wingman Pro ("User Content"). By submitting User Content, you grant RallyUp Solutions a worldwide, royalty-free, perpetual license to use, reproduce, and display the User Content solely for the purpose of providing and maintaining the services to you and your supporter group.</li>
- <li><strong>Prohibition on Copying/Reproduction:</strong> You are strictly prohibited from copying, duplicating, or reproducing the application (Wingman Pro) or any significant portion of its design, underlying code, or functionality without the express written permission of RallyUp Solutions Private Limited.</li>
- </ul>
+                    {/* Top Right Blur */}
 
- <h2 className="text-xl font-semibold text-background">6. Prohibitions and Use Restrictions</h2>
- <p>
- You agree not to access or use Wingman Pro for any purpose that is unlawful or prohibited by these Terms. Specifically, you agree not to:
- </p>
- <ul className="list-disc pl-5 space-y-2">
- <li><strong>Unauthorized Service Provision:</strong> You are prohibited from reselling, sublicensing, or otherwise providing access to Wingman Pro or any of its services to any third-party who is not directly in contract with RallyUp Solutions Private Limited or using the service as a registered member of your contracted club.</li>
- <li><strong>Reverse Engineering:</strong> Circumvent, disable, or otherwise interfere with security-related features of Wingman Pro or attempt to decipher, decompile, disassemble, or reverse engineer any of the underlying software.</li>
- <li><strong>Malicious Interference:</strong> Introduce or upload any software routines, mechanisms, or code intended to disrupt, damage, gain unauthorized access to, or detrimentally interfere with any system, data, or personal information on Wingman Pro (including, but not limited to, viruses, worms, back doors, time bombs, or other destructive agents).</li>
- <li><strong>Spam and Unsolicited Communications:</strong> Engage in any use of the system to send unsolicited commercial emails or use automated scripts for communication without express authorization.</li>
- <li><strong>Unauthorized Access:</strong> Engage in unauthorized framing of or linking to Wingman Pro.</li>
- </ul>
+                    <div className="absolute right-[0.0625rem] top-[0.0625rem] h-[8rem] w-[8rem] rounded-full bg-[#00D4FF1A] blur-[3.75rem]" />
+                    <div className="relative z-10">
+                        <h2 className={mobileHeading}>3. Pro Features &amp; Subscriptions</h2>
+                        <p className={`mt-4 ${mobileBody}`}>
+                            Wingman Pro offers premium subscription tiers. By subscribing, you agree to the specific
+                            billing cycles and payment terms outlined during the checkout process.
+                        </p>
+                        <ul className="mt-4 flex flex-col gap-3">
+                            {mobileProFeatures.map((item) => (
+                                <li key={item} className="flex items-start gap-3">
+                                    <CheckCircle2 className="mt-[0.125rem] h-[0.75rem] w-[0.75rem] shrink-0 text-[#00FADC]" />
+                                    <span className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] text-wingman-secondary-text">
+                                        {item}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="mt-5 rounded-[0.5rem] border border-[#00D4FF33] bg-[#00D4FF0D] p-4">
+                            <p className="font-['SF_Compact',sans-serif] text-[0.75rem] font-[556] italic leading-[1rem] text-wingman-cyan">
+                                Note: All fees are non-refundable except as required by law or as explicitly stated in our
+                                Refund Policy.
+                            </p>
+                        </div>
+                    </div>
+                </section>
 
- <h2 className="text-xl font-semibold text-background">7. Data Protection and Security</h2>
- <ul className="list-disc pl-5 space-y-2">
- <li><strong>Data Collection:</strong> We collect and process personal data, including data used for the mandatory OTP authentication. By using Wingman Pro, you consent to our collection and use of this data as outlined in our Privacy Policy (a separate document).</li>
- <li><strong>Security Measures:</strong> We commit to adhering to best practices for data security and user privacy. We will implement appropriate technical and organizational measures to protect personal data from unauthorized access, disclosure, or misuse.</li>
- <li><strong>User Responsibility:</strong> You acknowledge that you are responsible for protecting the confidentiality of your own user data and any sensitive information stored under your account.</li>
- </ul>
+                {/* 4. Acceptable Use Policy */}
+                <section id="m-conduct" className="scroll-mt-24 relative pl-5">
+                    {/* Left Glowing Vertical Bar */}
+                    <div
+                        className="absolute bottom-0 left-0 top-1.5 w-[0.125rem]"
+                        style={{
+                            background: "linear-gradient(180deg, #3CD7FF 0%, rgba(60, 215, 255, 0) 100%)",
+                            boxShadow: "0 0 0.5rem 0 #3CD7FF"
+                        }}
+                    />
+                    <h2 className={mobileHeading}>4. Acceptable Use Policy</h2>
+                    <p className={`mt-4 ${mobileBody}`}>
+                        You may not use Wingman Pro for any illegal purpose or in any manner that could damage,
+                        disable, overburden, or impair our servers. Prohibited actions include:
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3">
+                        {mobileProhibited.map(({ icon, title, text }) => (
+                            <div key={title} className="flex h-[7rem] flex-col justify-center rounded-[0.75rem] border border-[#FFFFFF1F] p-[1.0625rem]">
+                                <div className="flex items-center gap-3">
+                                    <SvgIcon
+                                        src={icon}
+                                        className="h-[1.1875rem] w-[1.125rem] shrink-0 bg-[#FFB4AB]"
+                                    />
+                                    <p className="font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.625rem] text-wingman-primary-text">
+                                        {title}
+                                    </p>
+                                </div>
+                                <p className="mt-2 font-['SF_Compact',sans-serif] text-[0.75rem] font-[556] leading-[1rem] text-wingman-secondary-text">
+                                    {text}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </section>
 
- <h2 className="text-xl font-semibold text-background">8. Limitations of Liability</h2>
- <ul className="list-disc pl-5 space-y-2">
- <li><strong>No Warranties:</strong> Wingman Pro is provided on an"as-is"and"as-available"basis. We expressly disclaim all warranties, express or implied, including, without limitation, the implied warranties of merchantability, fitness for a particular purpose, and non-infringement.</li>
- <li><strong>Limitation of Damages:</strong> Except in cases of our gross negligence or willful misconduct, in no event will RallyUp Solutions Private Limited, its directors, employees, or agents be liable to you or any third party for any direct, indirect, consequential, exemplary, incidental, special, or punitive damages, including lost profit, lost revenue, loss of data, or other damages arising from your use of Wingman Pro, even if we have been advised of the possibility of such damages.</li>
- <li><strong>Maximum Liability:</strong> Notwithstanding anything to the contrary contained herein, our liability to you for any cause whatsoever and regardless of the form of the action, will at all times be limited to the amount paid, if any, by you to us during the six (6) month period prior to any cause of action arising.</li>
- </ul>
+                {/* 5. Intellectual Property */}
+                <section id="m-property" className="scroll-mt-24 relative pl-5">
+                    {/* Left Glowing Vertical Bar */}
+                    <div
+                        className="absolute bottom-0 left-0 top-1.5 w-[0.125rem]"
+                        style={{
+                            background: "linear-gradient(180deg, #3CD7FF 0%, rgba(60, 215, 255, 0) 100%)",
+                            boxShadow: "0 0 0.5rem 0 #3CD7FF"
+                        }}
+                    />
+                    <h2 className={mobileHeading}>5. Intellectual Property</h2>
+                    <p className={`mt-4 ${mobileBody}`}>
+                        The Service and its original content, features, and functionality are and will remain the
+                        exclusive property of Wingman Pro and its licensors. Our trademarks and trade dress may not be
+                        used in connection with any product or service without prior written consent.
+                    </p>
+                </section>
 
- <h2 className="text-xl font-semibold text-background">9. Termination</h2>
- <p>
- We may, in our sole discretion and without liability, terminate or suspend your account and deny access to all or any part of Wingman Pro for any reason, including, without limitation, breach of any representation, warranty, or covenant contained in these Terms. Upon termination, your right to use Wingman Pro will immediately cease.
- </p>
+                {/* Questions or Concerns */}
+                <section className="mt-4 flex h-[27rem] flex-col items-center justify-center rounded-[1.5rem] border border-[#A8E8FF33] bg-[#00D4FF0D] px-6 text-center">
+                    <span className="flex h-[4rem] w-[4rem] items-center justify-center rounded-full bg-[#A8E8FF33]">
+                        <SvgIcon
+                            src="/new-wingman/icons/help-circle.svg"
+                            className="h-[1.5625rem] w-[1.3125rem] shrink-0 bg-wingman-cyan"
+                        />                    </span>
+                    <h2 className="mt-6 font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] text-wingman-primary-text">
+                        Questions or<br />Concerns?
+                    </h2>
+                    <p className="mt-3 font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.625rem] text-wingman-secondary-text">
+                        Our legal team is available to clarify<br />any parts of this agreement.
+                    </p>
+                    <div className="mt-8 flex w-full flex-col gap-2">
+                        <Button
+                            variant="primary"
+                            href="mailto:response@wingman-pro.com"
+                            className="
+    h-[3.5rem] w-full
+    !font-sf-compact !text-[1rem] !font-[656] !leading-[1.625rem] !text-wingman-light-accent-text
+  "
+                        >
+                            Contact Us
+                        </Button>
+                        <Link
+                            href="/help"
+                            className="flex h-[3.5rem] w-full items-center justify-center rounded-[0.75rem] border border-wingman-cyan bg-transparent font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.625rem] text-wingman-cyan transition-opacity hover:opacity-80"
+                        >
+                            Visit Help Center
+                        </Link>
+                    </div>
+                </section>
+            </div>
 
- <h2 className="text-xl font-semibold text-background">10. Governing Law and Dispute Resolution</h2>
- <p>
- These Terms and your use of Wingman Pro are governed by and construed in accordance with the laws of India.
- </p>
- <p>
- <strong>Dispute Resolution:</strong> Prior to the initiation of any legal action, the parties agree to first attempt to resolve any dispute, claim, or controversy arising out of or relating to these Terms through good-faith mediation in Mumbai, Maharashtra, India, with a mutually agreed-upon mediator. Any legal action or proceeding arising under these Terms shall be brought exclusively in the courts located in Mumbai, Maharashtra, India, and you hereby consent to the personal jurisdiction and venue of such courts.
- </p>
+            {/* Body (desktop, modified layout logic): nav pinned far left (sticky), content centered */}
+            <div className="mx-auto hidden w-full max-w-8xl px-4 pb-20 mobile:block aside-hide:grid aside-hide:grid-cols-[16rem_minmax(0,1fr)] aside-hide:items-start aside-hide:gap-8 aside-hide:px-12">
 
- <h2 className="text-xl font-semibold text-background">11. Contact Information</h2>
- <p>
- If you have questions or comments about these Terms, please contact us at:
- </p>
- <ul className="list-disc pl-5 space-y-2">
- <li>Ankit Ameria – on behalf of RallyUp Solutions Private Limited</li>
- <li>Email: <a className="underline"href="mailto:response@wingman-pro.com">response@wingman-pro.com</a></li>
- <li>Contact: +91 89551 22434</li>
- </ul>
- </section>
+                {/* Added self-start to prevent the aside from stretching, allowing sticky to work */}
+                <aside className="hidden aside-hide:flex sticky top-28 self-start h-[24.25rem] w-[18.75rem] flex-col gap-[1rem] border-l border-[#FFFFFF1F] pl-[1.5rem]">
+                    <p className="align-middle font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[0.0875rem] text-wingman-cyan">
+                        NAVIGATION
+                    </p>
+                    <nav className="flex flex-col gap-[1rem]">
+                        {sections.map((section, i) => (
+                            <a
+                                key={section.id}
+                                href={`#${section.id}`}
+                                className="align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text transition-colors hover:text-wingman-cyan"
+                            >
+                                {i + 1}. {section.title}
+                            </a>
+                        ))}
+                    </nav>
+                </aside>
 
- <div className="mt-10">
- <Link href="/privacy"className="text-primary hover:text-primary">View our Privacy Policy</Link>
- </div>
- </div>
- </div>
- <SiteFooter />
- <ScrollToTop />
- </main>
- )
+                {/* Changed to max-w-8xl here to take full width when aside is hidden */}
+                <div className="mx-auto w-full max-w-8xl space-y-12 aside-hide:max-w-none">
+                    {sections.map((section, i) => (
+                        <SectionBlock key={section.id} section={section} index={i} />
+                    ))}
+
+                    {/* Questions card */}
+                    <div className="glass-panel relative overflow-hidden">
+                        {/* Top Right Glow/Blur Overlay */}
+                        <div className="absolute -top-[2.4375rem] -right-[1.25rem] h-[10rem] w-[10rem] rounded-full bg-[#A8E8FF33] blur-[3.75rem]" />
+
+                        <h3 className="relative align-middle font-['SF_Pro',sans-serif] text-[2rem] font-[700] leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+                            Have questions?
+                        </h3>
+                        <p className="relative max-w-[43.75rem] align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                            If you have any questions regarding these Terms, please contact our legal department for clarification. We are here to ensure your experience with Wingman Pro is transparent and secure.
+                        </p>
+
+                        <div className="relative mt-2 flex flex-wrap gap-4">
+                            {/* Contact Us */}
+                            <Button
+                                variant="primary"
+                                href="mailto:response@wingman-pro.com"
+                                className="
+    h-[3.125rem] w-[9.4375rem] gap-[0.5rem] whitespace-nowrap px-[2rem] py-[0.8125rem]
+    !font-sf-compact !text-[1rem] !font-[656] !leading-[1.5rem] !text-wingman-emphasis-text
+  "
+                            >
+                                <Mail className="h-[1.125rem] w-[1.125rem] shrink-0" />
+                                Contact Us
+                            </Button>
+
+                            {/* Privacy Policy */}
+                            <Link
+                                href="/privacy"
+                                className="flex h-[3.125rem] w-[11.0625rem] whitespace-nowrap items-center justify-center gap-[0.5rem] rounded-[0.75rem] border border-[#FFFFFF1F] px-[2rem] py-[0.75rem] text-center align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.5rem] tracking-[0rem] text-wingman-primary-text transition-colors hover:bg-white/5"
+                            >
+                                <ShieldCheck className="h-[1.125rem] w-[1.125rem] shrink-0" />
+                                Privacy Policy
+                            </Link>
+
+                            {/* Visit Help Center */}
+                            <Link
+                                href="/help"
+                                className="flex h-[3.125rem] w-[12.5rem] whitespace-nowrap items-center justify-center gap-[0.5rem] rounded-[0.75rem] border border-[#FFFFFF1F] px-[2rem] py-[0.75rem] text-center align-middle font-['SF_Compact',sans-serif] text-[1rem] font-[656] leading-[1.5rem] tracking-[0rem] text-wingman-primary-text transition-colors hover:bg-white/5"
+                            >
+                                <LifeBuoy className="h-[1.125rem] w-[1.125rem] shrink-0" />
+                                Visit Help Center
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <SiteFooter />
+        </main>
+    )
 }
-
-

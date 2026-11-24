@@ -1,555 +1,694 @@
-"use client"
-
 import type React from "react"
+import Image from "next/image"
+import {
+  CreditCard,
+  Cloud,
+  ShieldCheck,
+  Users,
+  Building2,
+  Sprout,
+  Banknote,
+  Globe,
+  ArrowRight,
+} from "lucide-react"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
-import { ScrollToTop } from "@/components/scroll-to-top"
-import { FadeIn } from "@/components/fade-in"
+import SvgIcon from "@/components/svg-icon"
+import Button from "@/components/landing/button"
 
-import Image from "next/image"
+export const metadata = {
+  title: "Affiliations | Wingman Pro",
+  description: "Our affiliation ecosystem: partnerships, technology and global reach for supporter groups and sports clubs",
+}
 
-export default function AffiliationsPage(): React.JSX.Element {
+const TEAL = "text-[#19e6c8]"
+
+const stats = [
+  { value: "4+", label: "Continents", valueClass: "text-cyan-300" },
+  { value: "10+", label: "Markets", valueClass: "text-fuchsia-400" },
+  { value: "35+", label: "Tech Pillars", valueClass: "text-[#19e6c8]" },
+]
+
+const paymentChips = ["RazorPay", "AMEX", "Credit Cards", "UPI", "Pay Later"]
+
+const benefits = [
+  {
+    title: "Club Solutions",
+    text: "Dedicated platforms for professional clubs to manage membership, ticketing, and fan engagement — everything in one place.",
+  },
+  {
+    title: "Community Building",
+    text: "Features designed to strengthen connections between fans, clubs, and local communities.",
+  },
+  {
+    title: "Supporter Tools",
+    text: "Complete toolkit for independent fan clubs — member management, events, and merchandise built in.",
+  },
+  {
+    title: "Custom Partnerships",
+    text: "Tailored solutions and integrations for organizations with specific needs and requirements.",
+  },
+]
+
+const partners = [
+  {
+    icon: "/new-wingman/icons/user-group.svg",
+    title: "Supporter Group Networks",
+    text: "Collaborations with global supporter networks — sharing best practices in member management and delivering shared knowledge among Wingman Pro communities.",
+    iconClass: "bg-wingman-cyan",
+  },
+  {
+    icon: "/new-wingman/icons/industry.svg",
+    title: "Corporate Sponsors",
+    text: "Streamlined engagement channels between sponsors and our network of engaged supporter groups — unlocking new revenue opportunities for partner clubs.",
+    iconClass: "bg-[#DFB7FF]", // Adjust color class as needed (e.g., purple)
+  },
+  {
+    icon: "/new-wingman/icons/award.svg",
+    title: "Youth & Grassroots Programs",
+    text: "Purpose-built tracking for attendance and engagement scoring — documenting development, supporting grant obligations, and growing local communities.",
+    iconClass: "bg-[#19e6c8]",
+  },
+]
+
+const regions = [
+  {
+    name: "Asia-Pacific",
+    lines: ["India • Singapore", "Malaysia • Indonesia", "Thailand • Australia"],
+    nameClass: "text-[#19e6c8]",
+  },
+  {
+    name: "Middle East",
+    lines: ["UAE", "& expanding regionally"],
+    nameClass: "text-fuchsia-300",
+  },
+  {
+    name: "Americas",
+    lines: ["United States", "Mexico"],
+    nameClass: "text-violet-300",
+  },
+  {
+    name: "Europe",
+    lines: ["United Kingdom", "Germany", "& growing presence"],
+    nameClass: "text-cyan-300",
+  },
+]
+
+/* ---------- Mobile-only content (from mobile Figma frames) ---------- */
+const mobileStats = [
+  {
+    value: "4+",
+    label: "CONTINENTS",
+    leftBarGradient: "#A8E8FF",
+    style: {
+      border: "0.0625rem solid rgba(255, 255, 255, 0.08)",
+      borderLeft: "none",
+      boxShadow: "0 0 1.25rem 0 #00D4FF26",
+      backdropFilter: "blur(1rem)",
+      backgroundColor: "#121212",
+    },
+  },
+  {
+    value: "10+",
+    label: "MARKETS",
+    leftBarGradient: "#DFB7FF",
+    style: {
+      border: "0.0625rem solid rgba(255, 255, 255, 0.08)",
+      borderLeft: "none",
+      boxShadow: "0 0 1.25rem 0 #9D00FF26",
+      backdropFilter: "blur(1rem)",
+      backgroundColor: "#121212",
+    },
+  },
+  {
+    value: "35+",
+    label: "TECH PILLARS",
+    spanClass: "col-span-2",
+    leftBarGradient: "#00FADC",
+    style: {
+      border: "0.0625rem solid rgba(255, 255, 255, 0.08)",
+      borderLeft: "none",
+      backdropFilter: "blur(1rem)",
+      backgroundColor: "#121212",
+    },
+  },
+]
+
+const mobileScale = [
+  {
+    icon: "/new-wingman/icons/cash.svg",
+    title: "Seamless Payments",
+    text: "Secure integrations with RazorPay and international processors. Multi-currency support including UPI.",
+    iconColor: "bg-wingman-cyan",
+    iconBox: "bg-[#00D4FF1A]",
+    borderBox: "border-[#A8E8FF33]",
+    chips: ["Ticketing", "Membership", "Merchandise"],
+  },
+  {
+    icon: "/new-wingman/icons/cloud.svg",
+    title: "Always On",
+    text: "Built on leading global cloud providers guaranteeing data security, low latency, and resilient operations.",
+    iconColor: "bg-[#DFB7FF]",
+    iconBox: "bg-[#9D05FF1A]",
+    borderBox: "border-[#DFB7FF33]",
+    chips: ["Security", "Compliance"],
+  },
+  {
+    icon: "/new-wingman/icons/lock.svg",
+    title: "Trusted Identity",
+    text: "Integrated with Meta, Google Firebase and AWS to deliver secure, rapid OTP-based authentication for every user.",
+    iconColor: "bg-[#00FADC]",
+    iconBox: "bg-[#00DBC01A]",
+    borderBox: "border-[#00FADC33]",
+    chips: [],
+  },
+]
+const mobilePartners = [
+  {
+    title: "Supporter Group Networks",
+    text: "Collaborations with global supporter networks — sharing best practices in member management.",
+  },
+  {
+    title: "Corporate Sponsors",
+    text: "Streamlined engagement channels between sponsors and our network of engaged supporter groups.",
+  },
+  {
+    title: "Youth & Grassroots Programs",
+    text: "Purpose-built tracking for attendance and engagement scoring — documenting development.",
+  },
+]
+
+const mobileRegions = [
+  { name: "Asia-Pacific", text: "India • Singapore • Malaysia • Indonesia • Thailand • Australia", color: "text-[#00FADC]" },
+  { name: "Middle East", text: "UAE & expanding regionally", color: "text-[#DFB7FF]" },
+  { name: "Americas", text: "United States • Mexico", color: "text-[#00FADC]" },
+  { name: "Europe", text: "United Kingdom • Germany & growing presence", color: "text-[#00FADC]" },
+]
+
+const mobileEyebrow =
+  "font-['SF_Compact',sans-serif] text-[0.8125rem] font-[656] uppercase tracking-[0.0875rem]"
+const mobileTitle = "font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] text-wingman-primary-text"
+const mobileBody =
+  "font-['SF_Compact',sans-serif] text-[0.9375rem] font-[457] leading-[1.5rem] text-wingman-secondary-text"
+
+const card = "rounded-2xl border border-white/10 bg-white/[0.02]"
+const gradientText = "bg-gradient-to-r from-[#7be3ff] via-[#b8c4ff] to-[#e0b4ff] bg-clip-text text-transparent"
+
+function SectionHeading({
+  label,
+  title,
+  labelClass = "text-cyan-300",
+}: {
+  label: string
+  title: string
+  labelClass?: string
+}): React.JSX.Element {
   return (
-    <main className="min-h-screen bg-white text-slate-900 relative overflow-x-clip font-sans public-theme">
-      <SiteNavbar brandName="Wingman Pro" />
-
-      {/* Top Section */}
-      <section className="relative isolate w-full py-12 lg:py-15 flex flex-col justify-center min-h-[60vh]">
-        {/* Faint background graphic */}
-        <div className="absolute -bottom-32 right-0 w-[25rem] h-[25rem] lg:w-[35rem] lg:h-[35rem] opacity-60 pointer-events-none select-none z-[-5]">
-          <Image src="/VectorLeft.svg" alt="" fill className="object-contain object-right-bottom" />
-        </div>
-
-        <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 w-full">
-          <FadeIn>
-            <div className="relative z-10 max-w-3xl">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary my-12">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="text-[#E18F67] text-[10px] font-medium leading-tight">
-                  Partnerships & Affiliations
-                </span>
-              </div>
-
-              <h1 className="text-5xl font-extrabold mb-6 text-background tracking-tight leading-[1.1]">
-                Our <span className="text-primary">Affiliation</span> Ecosystem
-              </h1>
-
-              <p className="text-background text-lg md:text-xl mb-12 max-w-2xl leading-relaxed">
-                Connecting supporter groups and sports organizations with the technology, infrastructure, and partnerships they need to thrive.
-              </p>
-
-              <div className="flex flex-col md:flex-row flex-wrap gap-5">
-                {/* Stat Card 1 */}
-                <div className="w-full md:w-auto flex items-center gap-4 bg-[#59595926] md:bg-[#00958133] rounded-2xl p-4 pr-12 border border-green-50 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] md:bg-[#009581] flex items-center justify-center shadow-sm">
-                    <Image src="/globalicon.svg" alt="Global Icon" width={28} height={28} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-3xl font-semibold text-background mr-1">4<span className="text-[#1761CA] md:text-[#009581]">+</span></span>
-                    <span className="text-sm text-background font-medium">Continents</span>
-                  </div>
-                </div>
-
-                {/* Stat Card 2 */}
-                <div className="w-full md:w-auto flex items-center gap-4 bg-[#59595940] md:bg-[#1761CA33] rounded-2xl p-4 pr-12 border border-purple-50 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] md:bg-[#1761CA] flex items-center justify-center shadow-sm">
-                    <Image src="/locationicon.svg" alt="Location Icon" width={28} height={28} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-3xl font-semibold text-background mr-1">10<span className="text-[#1761CA] md:text-[#1761CA]">+</span></span>
-                    <span className="text-sm text-background font-medium">Markets</span>
-                  </div>
-                </div>
-
-                {/* Stat Card 3 */}
-                <div className="w-full md:w-auto flex items-center gap-4 bg-[#5959595C] md:bg-[#CC3B1633] rounded-2xl p-4 pr-12 border border-orange-50 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] md:bg-[#CC3B16] flex items-center justify-center shadow-sm">
-                    <Image src="/baricon.svg" alt="Features Icon" width={28} height={28} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-3xl font-semibold text-background mr-1">
-                      <span className="md:hidden">3</span>
-                      <span className="hidden md:inline">5<span className="text-[#1761CA] md:text-[#CC3B16]">+</span></span>
-                    </span>
-                    <span className="text-sm text-background font-medium">
-                      <span className="md:hidden">Tech Pillars</span>
-                      <span className="hidden md:inline">Core Features</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* Bottom Section */}
-      <section className="relative z-10 bg-[#ffffff] py-16 md:py-20 lg:py-24">
-        <FadeIn>
-          <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
-            {/* Badge */}
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span className="text-base text-primary">Technology Partners & Infrastructure</span>
-            </div>
-
-            <h2 className="text-4xl lg:text-6xl font-extrabold mb-6 text-background tracking-tight leading-[1.1]">
-              Built to <span className="text-primary">Scale.</span>
-            </h2>
-
-            <p className="text-secondary text-lg md:text-xl mb-16 max-w-2xl">
-              These alliances keep our platform secure, scalable, and always-on for supporter communities across the globe.
-            </p>
-
-            <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-              {/* Card 1 */}
-              <div className="hidden md:block group relative w-full h-64 [perspective:1000px]">
-                <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                  {/* Front Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-[#00000040] rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm border border-black/5">
-                    <div className="w-14 h-14 rounded-2xl bg-[#17C5D1] flex items-center justify-center shadow-sm mb-2">
-                      <Image src="/affiliationslogo/Framepayment.svg" alt="Payment Gateways" width={32} height={32} />
-                    </div>
-                    <h3 className="text-background text-lg">Payment Gateways</h3>
-                  </div>
-
-                  {/* Back Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#17C5D1] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
-                    <div className="inline-flex items-center justify-center rounded-full border border-white/50 px-3 py-1 mb-4">
-                      <span className="text-[10px] text-white font-medium tracking-wide uppercase">Wingman Pro</span>
-                    </div>
-                    <h3 className="text-lg text-white font-medium mb-3">Seamless Payments</h3>
-                    <p className="text-xs leading-relaxed text-white/90">
-                      Secure integrations with RazorPay and international processors. Multi-currency support including UPI — covering membership fees, merchandise, and ticketing.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2 */}
-              <div className="hidden md:block group relative w-full h-64 [perspective:1000px]">
-                <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                  {/* Front Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-[#00000040] rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-md border border-black/5">
-                    <div className="w-14 h-14 rounded-2xl bg-[#009581] flex items-center justify-center shadow-sm mb-2">
-                      <Image src="/affiliationslogo/Framecloud.svg" alt="Cloud Hosting" width={32} height={32} />
-                    </div>
-                    <h3 className="text-background text-lg">Cloud Hosting &<br />Infrastructure</h3>
-                  </div>
-
-                  {/* Back Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#009581] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
-                    <div className="inline-flex items-center justify-center rounded-full border border-white/50 px-3 py-1 mb-4">
-                      <span className="text-[10px] text-white font-medium tracking-wide uppercase">Wingman Pro</span>
-                    </div>
-                    <h3 className="text-lg text-white font-medium mb-3">Always On</h3>
-                    <p className="text-xs leading-relaxed text-white/90">
-                      Built on leading global cloud providers guaranteeing data security, low latency, and resilient operations backed by international compliance standards.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 3 */}
-              <div className="hidden md:block group relative w-full h-64 [perspective:1000px]">
-                <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                  {/* Front Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-[#00000040] rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm border border-black/5">
-                    <div className="w-14 h-14 rounded-2xl bg-[#1761CA] flex items-center justify-center shadow-sm mb-2">
-                      <Image src="/affiliationslogo/Frameauthentication.svg" alt="Authentication Services" width={32} height={32} />
-                    </div>
-                    <h3 className="text-background text-lg leading-snug">Authentication<br />Services</h3>
-                  </div>
-
-                  {/* Back Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#1761CA] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
-                    <div className="inline-flex items-center justify-center rounded-full border border-white/50 px-3 py-1 mb-4">
-                      <span className="text-[10px] text-white font-medium tracking-wide uppercase">Wingman Pro</span>
-                    </div>
-                    <h3 className="text-lg text-white font-medium mb-3">Trusted Identity</h3>
-                    <p className="text-xs leading-relaxed text-white/90">
-                      Integrated with Google Firebase to deliver secure, rapid OTP-based authentication and identity management for every user on the platform.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {/* Card 1 */}
-              <div className="md:hidden bg-[#00000040] rounded-3xl p-8 flex flex-col items-start text-left gap-4 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-[#1761CA] flex items-center justify-center shadow-sm mb-2">
-                  <Image src="/affiliationslogo/Framepayment.svg" alt="Payment Gateways" width={32} height={32} />
-                </div>
-                <h3 className="text-background text-lg">Payment Gateways</h3>
-                <p className="text-[#4D4D4D] text-sm leading-relaxed max-w-sm">
-                  Seamless, secure transactions for memberships, merchandise, and event ticketing worldwide.
-                </p>
-              </div>
-
-              {/* Card 2 */}
-              <div className="md:hidden bg-[#00000040] rounded-3xl p-8 flex flex-col items-start text-left gap-4 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-[#1761CA] flex items-center justify-center shadow-sm mb-2">
-                  <Image src="/affiliationslogo/Framecloud.svg" alt="Cloud Hosting" width={32} height={32} />
-                </div>
-                <h3 className="text-background text-lg">Cloud Hosting & Infrastructure</h3>
-                <p className="text-[#4D4D4D] text-sm leading-relaxed max-w-sm">
-                  Reliable, scalable cloud architecture purpose-built for high-traffic fan communities.
-                </p>
-              </div>
-
-              {/* Card 3 */}
-              <div className="md:hidden bg-[#00000040] rounded-3xl p-8 flex flex-col items-start text-left gap-4 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-[#1761CA] flex items-center justify-center shadow-sm mb-2">
-                  <Image src="/affiliationslogo/Frameauthentication.svg" alt="Authentication & Identity Services" width={32} height={32} />
-                </div>
-                <h3 className="text-background text-lg">Authentication & Identity Services</h3>
-                <p className="text-[#4D4D4D] text-sm leading-relaxed max-w-sm">
-                  Robust identity management and secure access control for every member on your platform.
-                </p>
-              </div>
-            </div>
-          </div>
-        </FadeIn>
-      </section>
-
-      <div className="flex flex-col">
-        {/* What You Get Section */}
-        <section className="order-3 md:order-1 py-16 md:py-20 lg:py-24 bg-white relative">
-          <FadeIn>
-            <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-base text-primary">Partnership Benefits</span>
-              </div>
-              <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
-                What <span className="text-primary">You Get.</span>
-              </h2>
-
-              <div className="grid md:grid-cols-5 gap-6">
-                {/* Card 1 */}
-                <div className="group md:col-span-3 bg-[#222222] hover:bg-[#444444] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:z-10 hover:shadow-[4px_4px_4px_0px_#00000040] transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                  <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] text-[#2A2A2A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
-                    01
-                  </span>
-                  <div className="w-14 h-14 rounded-xl bg-[#8A8A8A] flex items-center justify-center relative z-10 mt-2 md:mt-0">
-                    <Image src="/affiliationslogo/Frametrophy.svg" alt="Club Solutions" width={28} height={28} />
-                  </div>
-                  <div className="mt-auto pt-12 relative z-10 w-full">
-                    <h3 className="font-bold text-white text-3xl mb-3">Club Solutions</h3>
-                    <p className="text-[#A3A3A3] text-base leading-relaxed max-w-xl">
-                      Dedicated platforms for professional clubs to manage membership, ticketing, and fan engagement — everything in one place.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card 2 */}
-                <div className="group md:col-span-2 bg-[#404040] hover:bg-[#4D4D4D] md:bg-[#7174BE] md:hover:bg-[#8A8EE9] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:z-10 hover:shadow-[4px_4px_4px_0px_#00000040] transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                  <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#4D4D4D] group-hover:text-[#525252] md:text-[#797CCB] md:group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
-                  <div className="w-14 h-14 rounded-xl bg-[#727274] md:bg-[#D6D3F0] flex items-center justify-center relative z-10 mt-2 md:mt-0">
-                    <Image src="/affiliationslogo/Framecommunity.svg" alt="Community Building" width={28} height={28} />
-                  </div>
-                  <div className="mt-auto pt-12 relative z-10 w-full">
-                    <h3 className="font-bold text-white text-3xl mb-3">Community Building</h3>
-                    <p className="text-[#B0B0B0] md:text-[#E0DDF0] text-base leading-relaxed max-w-sm">
-                      Features designed to strengthen connections between fans, clubs, and local communities.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card 3 */}
-                <div className="group md:col-span-2 bg-[#7F7F7F] hover:bg-[#8C8C8C] md:bg-[#D8D5FB] md:hover:bg-[#BCBDFF] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:z-10 hover:shadow-[4px_4px_4px_0px_#00000040] transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                  <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#8C8C8C] group-hover:text-[#999999] md:text-[#E9E6FF] md:group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
-                    03</span>
-                  <div className="w-14 h-14 rounded-xl bg-[#404040] md:bg-[#8076B9] flex items-center justify-center relative z-10 mt-2 md:mt-0">
-                    <Image src="/affiliationslogo/Vectortool.svg" alt="Supporter Group Tools" width={28} height={28} />
-                  </div>
-                  <div className="mt-auto pt-12 relative z-10 w-full">
-                    <h3 className="font-bold text-[#6D6392] text-3xl mb-3 group-hover:text-[#4A4363] transition-colors duration-300">Supporter Group Tools</h3>
-                    <p className="text-[#D4D5FB] md:text-[#6D6392] text-base leading-relaxed max-w-sm md:group-hover:text-[#4A4363] transition-colors duration-300">
-                      Complete toolkit for independent fan clubs — member management, events, and merchandise built in.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card 4 */}
-                <div className="group md:col-span-3 bg-[#BFBFBF] hover:bg-[#CCCCCC] md:bg-[#E4D9DF] md:hover:bg-[#D8BBEE] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:z-10 hover:shadow-[4px_4px_4px_0px_#00000040] transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                  <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] text-[#ACACAC] group-hover:text-[#B5B5B5] md:text-[#F4ECF0] md:group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
-                  <div className="w-14 h-14 rounded-xl bg-[#7F7F7F] md:bg-[#7B6A76] flex items-center justify-center relative z-10 mt-2 md:mt-0">
-                    <Image src="/affiliationslogo/Framepartnership.svg" alt="Custom Partnerships" width={28} height={28} />
-                  </div>
-                  <div className="mt-auto pt-12 relative z-10 w-full">
-                    <h3 className="font-bold text-[#564954] text-3xl mb-3 group-hover:text-[#2E2E2E] transition-colors duration-300">Custom Partnerships</h3>
-                    <p className="text-[#6C5E6A] text-base leading-relaxed max-w-xl group-hover:text-[#4A4A4A] transition-colors duration-300">
-                      Tailored solutions and integrations for organizations with specific needs and requirements.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </FadeIn>
-        </section>
-
-        {/* Who We Work With Section */}
-        <section className="order-1 md:order-2 py-16 md:py-20 lg:py-24 bg-white relative">
-          <FadeIn>
-            <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-base text-primary">League & Organizational Affiliates</span>
-              </div>
-              <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
-                Who We <span className="text-primary">Work With.</span>
-              </h2>
-
-              <div className="grid md:grid-cols-3 gap-10">
-                {/* Card 1 */}
-                <div className="group bg-[#00000040] md:bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center shadow-sm hover:shadow-[1px_1px_10px_0px_#00000052] hover:z-30 transition-all duration-300 min-h-[18rem]">
-
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
-                    <Image
-                      className="transition-transform duration-300 group-hover:rotate-[-45deg]"
-                      src="/affiliationslogo/Framesupporter.svg"
-                      alt="Supporter Group Networks"
-                      width={28}
-                      height={28}
-                    />
-                  </div>
-
-                  <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
-                    <h3 className="text-background text-lg mb-4">
-                      Supporter Group Networks
-                    </h3>
-
-                    <p className="text-[#000000] text-sm leading-relaxed max-w-sm ">
-                      Collaborations with global supporter networks — sharing best practices
-                      in member management and delivering shared knowledge among Wingman Pro
-                      communities.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card 2 */}
-                <div className="group bg-[#00000040] md:bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center shadow-sm hover:shadow-[1px_1px_10px_0px_#00000052] hover:z-30 transition-all duration-300 min-h-[18rem]">
-
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
-                    <Image
-                      className="transition-transform duration-300 group-hover:rotate-[-45deg]"
-                      src="/affiliationslogo/Vectorcorporate.svg"
-                      alt="Corporate Sponsors"
-                      width={28}
-                      height={28}
-                    />
-                  </div>
-
-                  <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
-                    <h3 className="text-background text-lg mb-4">
-                      Corporate Sponsors
-                    </h3>
-
-                    <p className="text-[#000000] text-sm leading-relaxed max-w-sm">
-                      Streamlined engagement channels between sponsors and our network of
-                      engaged supporter groups — unlocking new revenue opportunities for
-                      partner clubs.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card 3 */}
-                <div className="group bg-[#00000040] md:bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center shadow-sm hover:shadow-[1px_1px_10px_0px_#00000052] hover:z-30 transition-all duration-300 min-h-[18rem]">
-
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
-                    <Image
-                      className="transition-transform duration-300 group-hover:rotate-[-45deg]"
-                      src="/affiliationslogo/Framegrassroots.svg"
-                      alt="Youth & Grassroots Programs"
-                      width={28}
-                      height={28}
-                    />
-                  </div>
-
-                  <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
-                    <h3 className="text-background text-lg mb-4">
-                      Youth & Grassroots Programs
-                    </h3>
-
-                    <p className="text-[#000000] text-sm leading-relaxed max-w-sm">
-                      Purpose-built tracking for attendance and engagement scoring —
-                      documenting development, supporting grant obligations, and growing
-                      local communities.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </FadeIn>
-        </section>
-
-        {/* Global Reach Section */}
-        <section className="order-2 md:order-3 py-16 md:py-20 lg:py-24 bg-[#222222] relative overflow-hidden">
-          {/* Large faint background text */}
-          <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none select-none overflow-hidden">
-            <span
-              className="text-6xl md:text-8xl lg:text-9xl text-[#353434] tracking-wider leading-none whitespace-nowrap"
-              style={{ fontFamily: "var(--font-purple-purse)" }}
-            >
-              GLOBAL
-            </span>
-          </div>
-
-          <FadeIn>
-            <div className="max-w-8xl mx-auto relative z-10 px-6 sm:px-8 lg:px-12 xl:px-16">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
-                <span className="text-base text-[#90DB9D]">Global Reach</span>
-              </div>
-              <h2 className="text-4xl lg:text-6xl font-extrabold mb-16 text-white tracking-tight leading-[1.1]">
-                We're <span className="text-[#90DB9D]">Everywhere.</span>
-              </h2>
-
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Card 1 */}
-                <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
-                    <Image src="/affiliationslogo/Frameasia.svg" alt="Asia-Pacific Icon" width={28} height={28} />
-                  </div>
-                  <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Asia-Pacific</h3>
-                  <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
-                    India • Singapore • Malaysia
-                    <br />
-                    Indonesia • Thailand • Australia
-                  </p>
-                </div>
-
-                {/* Card 2 */}
-                <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
-                    <Image src="/affiliationslogo/Framemiddleeast.svg" alt="Middle East Icon" width={28} height={28} />
-                  </div>
-                  <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Middle East</h3>
-                  <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
-                    UAE
-                    <br />
-                    & expanding regionally
-                  </p>
-                </div>
-
-                {/* Card 3 */}
-                <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
-                    <Image src="/affiliationslogo/Frameamericas.svg" alt="Americas Icon" width={28} height={28} />
-                  </div>
-                  <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Americas</h3>
-                  <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
-                    United States • Mexico
-                  </p>
-                </div>
-
-                {/* Card 4 */}
-                <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
-                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
-                    <Image src="/affiliationslogo/Frameeurope.svg" alt="Europe Icon" width={28} height={28} />
-                  </div>
-                  <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Europe</h3>
-                  <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
-                    United Kingdom • Germany
-                    <br />
-                    & growing presence
-                  </p>
-                </div>
-              </div>
-            </div>
-          </FadeIn>
-        </section>
-      </div>
-
-      {/* CTA Section */}
-      <div className="w-full">
-        <FadeIn>
-          <div className="relative overflow-hidden bg-[linear-gradient(to_right,#FFFFFF_50%,#1761CA_100%)]">
-            {/* Exact geometric line pattern */}
-            <svg
-              className="hidden md:block absolute inset-0 w-full h-full"
-              viewBox="0 0 1440 500"
-              preserveAspectRatio="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* LEFT TRIANGLE */}
-              <line
-                x1="0"
-                y1="500"
-                x2="380"
-                y2="0"
-                stroke="#C9C1CF"
-                strokeWidth="0.8"
-              />
-              <line
-                x1="380"
-                y1="0"
-                x2="770"
-                y2="500"
-                stroke="#C9C1CF"
-                strokeWidth="0.8"
-              />
-
-              {/* CENTER INTERSECTING TRIANGLE */}
-              <line
-                x1="530"
-                y1="500"
-                x2="905"
-                y2="0"
-                stroke="#A291B178"
-                strokeWidth="0.8"
-              />
-              <line
-                x1="905"
-                y1="0"
-                x2="1245"
-                y2="500"
-                stroke="#F1441A1F"
-                strokeWidth="0.8"
-              />
-
-              {/* PARALLEL INNER RIGHT LINE */}
-              <line
-                x1="880"
-                y1="0"
-                x2="1215"
-                y2="500"
-                stroke="#8598C7AB"
-                strokeWidth="0.8"
-              />
-            </svg>
-
-            {/* CONTENT */}
-            <div className="relative z-10 px-6 py-16 md:py-14 flex flex-col items-center text-center">
-              <span className="text-primary font-medium text-base tracking-wide mb-6">
-                Interested in Partnering?
-              </span>
-
-              <h2 className="text-4xl md:text-5xl font-bold tracking-tight leading-none text-black">
-                Let's Build{" "}
-                <span className="text-primary">Together.</span>
-              </h2>
-
-              <p className="mt-8 max-w-3xl text-secondary text-xl md:text-lg font-medium">
-                Whether you're a football club, supporter group, or football
-                organization — we'd love to explore how Wingman Pro can support your
-                community.
-              </p>
-
-              <a
-                href="/contact"
-                className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B]"
-              >
-                Contact Us
-              </a>
-            </div>
-          </div>
-        </FadeIn>
-      </div>
-
-      <SiteFooter brandName="Wingman Pro" />
-      <ScrollToTop />
-    </main>
+    <div className="text-center">
+      <p className={`text-[0.625rem] font-semibold uppercase tracking-[0.25em] ${labelClass}`}>{label}</p>
+      <h2 className={`mt-3 text-4xl font-bold mobile:text-5xl ${gradientText}`}>{title}</h2>
+    </div>
   )
 }
 
+export default function AffiliationsPage(): React.JSX.Element {
+  return (
+    <main
+      className="min-h-screen overflow-x-clip bg-wingman-light-surface-text text-white"
+    >
+      <SiteNavbar />
+
+      {/* Hero */}
+      <section className="relative">
+        {/* Mobile hero */}
+
+        <div className="relative flex flex-col items-start gap-4 px-4 pb-6 pt-8 text-left mobile:hidden">
+          <h1 className="font-sf text-[1.5rem] font-[700] leading-[2.1875rem] tracking-[0rem]">
+            <span className="bg-gradient-to-r from-[#7be3ff] to-[#c4b5fd] bg-clip-text pr-1 text-transparent">
+              Our Affiliation{" "}
+            </span>
+            <span className="bg-gradient-to-r from-purple-500 to-fuchsia-400 bg-clip-text pr-1 text-transparent">
+              Ecosystem.
+            </span>
+          </h1>
+
+          <p className="font-sf-compact text-[1.125rem] font-[457] leading-[1.75rem] text-wingman-secondary-text">
+            Connecting supporter groups and sports organizations with the technology, infrastructure, and
+            partnerships they need to thrive.
+          </p>
+
+          <div className="mt-[1rem] grid w-full grid-cols-2 gap-[0.75rem] text-left">
+            {mobileStats.map(({ value, label, spanClass, leftBarGradient, style }) => (
+              <div
+                key={label}
+                className={`relative flex flex-col gap-[0.25rem] overflow-hidden p-[1rem] ${spanClass || ""}`}
+                style={style}
+              >
+                <div
+                  className="pointer-events-none absolute bottom-0 left-0 top-0 w-[0.25rem]"
+                  style={{
+                    background: leftBarGradient,
+                  }}
+                />
+                <p className="font-sf text-[1.75rem] font-[700] leading-[2.25rem] text-wingman-primary-text">
+                  {value}
+                </p>
+                <p className="font-sf-compact text-[0.75rem] font-[556] uppercase leading-[1rem] text-wingman-secondary-text">
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop hero */}
+        <div className="relative mx-auto hidden max-w-6xl flex-col items-center gap-6 px-4 pb-12 pt-14 text-center mobile:flex mobile:px-8">
+          <h1 className="align-middle font-sf text-[4rem] font-[860] leading-[5rem] tracking-[-0.08rem] text-transparent bg-clip-text bg-gradient-to-r from-[#ABE8FF] to-[#DFB7FF] drop-shadow-[0_0_0.75rem_#A8E8FF66]">
+            Our Affiliation Ecosystem
+          </h1>
+
+          <span className="rounded-full border border-wingman-green-button/30 bg-wingman-green-button/10 px-3 text-xs font-medium uppercase text-wingman-green-button-text py-1">
+            Partnerships &amp; Affiliations
+          </span>
+
+          <p className="subheading-main">
+            Connecting supporter groups and sports organizations with the technology, infrastructure, and
+            partnerships they need to thrive.
+          </p>
+
+          <div className="mx-auto w-full max-w-4xl border-t border-[#FFFFFF1F] pt-[2rem]">
+            <dl className="flex w-full items-start justify-between gap-[4rem] text-left max-mobile:flex-wrap max-mobile:justify-center">
+              {stats.map(({ value, label }) => (
+                <div key={label} className="flex flex-col gap-1">
+                  <dt className="align-middle font-sf text-[2rem] font-bold leading-[2.5rem] tracking-[-0.02rem] text-wingman-cyan">
+                    {value}
+                  </dt>
+                  <dd className="align-middle font-sf-compact text-[0.75rem] font-[556] uppercase leading-[1rem] tracking-[0.0375rem] text-wingman-secondary-text">
+                    {label}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= MOBILE ONLY: Built to Scale ================= */}
+      <section className="px-4 py-10 mobile:hidden">
+        <p className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[0.04375rem] text-[#DFB7FF]">
+          INFRASTRUCTURE
+        </p>
+        <h2 className="mt-[0.5rem] font-['SF_Pro',sans-serif] text-[1.5rem] font-[700] leading-[2.25rem] text-wingman-primary-text">
+          Built to Scale.
+        </h2>
+        <p className="mt-[0.75rem] font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] text-wingman-secondary-text">
+          These alliances keep our platform secure, scalable, and always-on for supporter communities across the globe.
+        </p>
+
+        <div className="mt-[1.5rem] flex flex-col gap-[1rem]">
+          {mobileScale.map(({ icon, title, text, iconColor, iconBox, borderBox, chips }) => (
+            <div key={title} className="rounded-[1rem] border border-[#FFFFFF1F] bg-[#121212] p-[1.25rem]">
+              <div className="flex items-center gap-[1rem]">
+                <span className={`flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-[0.75rem] border ${borderBox} ${iconBox}`}>
+                  <SvgIcon
+                    src={icon}
+                    className={`h-[1rem] w-[1.375rem] shrink-0 ${iconColor}`}
+                  />
+                </span>
+                <h3 className="font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] text-wingman-primary-text">
+                  {title}
+                </h3>
+              </div>
+              <p className="mt-[1rem] font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] text-wingman-secondary-text">
+                {text}
+              </p>
+              {chips.length > 0 && (
+                <div className="mt-[1rem] flex flex-wrap gap-[0.5rem]">
+                  {chips.map((chip) => (
+                    <span
+                      key={chip}
+                      className="flex h-[1.5rem] items-center justify-center rounded-full border border-[#FFFFFF1F] bg-[#201F1F] px-[0.75rem] font-['Inter',sans-serif] text-[0.625rem] font-[700] uppercase leading-[0.9375rem] text-wingman-primary-text"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Built to Scale (desktop) */}
+      <section className="hidden px-4 pb-24 mobile:block mobile:px-8">
+        <div className="mx-auto max-w-8xl">
+          <p className="align-middle text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[-0.04375rem] text-[#DFB7FF]">
+            CORE FEATURES
+          </p>
+          <h2 className="mt-2 align-middle text-[2rem] font-bold leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+            Built to Scale.
+          </h2>
+          <p className="mt-3 max-w-md align-middle text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+            These alliances keep our platform secure, scalable, and always-on for
+            supporter communities across the globe.
+          </p>
+
+          <div className="mt-8 grid gap-4 aside-hide:grid-cols-3">
+            {/* Payment Gateways */}
+            <div className="glass-panel flex h-full flex-col p-[2.5rem] aside-hide:col-span-2">
+              <div className="flex items-center gap-3">
+                <SvgIcon
+                  src="/new-wingman/icons/cash.svg"
+                  className="h-[1.5rem] w-[2.0625rem] shrink-0 bg-wingman-cyan"
+                />                <h3 className="align-middle text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                  Payment Gateways
+                </h3>
+              </div>
+              <p className="mt-5 max-w-md align-middle text-[1.125rem] font-[457] leading-[1.75rem] tracking-[0rem] text-wingman-secondary-text">
+                Secure integrations with RazorPay and international processors. Multi-currency support including
+                UPI — covering membership fees, merchandise, and ticketing.
+              </p>
+              <div className="mt-auto flex flex-wrap gap-2.5 pt-8">
+                {paymentChips.map((chip) => (
+                  <span
+                    key={chip}
+                    className="flex h-[3rem] w-[7.5rem] items-center justify-center rounded-[0.5rem] border border-[#FFFFFF1F] bg-[#FFFFFF0D] align-middle text-[1rem] font-[656] leading-[1.5rem] text-wingman-secondary-text"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Cloud Hosting */}
+            <div className="flex h-[24.1875rem] flex-col justify-between rounded-[1rem] border border-[#FFFFFF1F] bg-gradient-to-br from-[#121212] to-[#1C1B1B] p-[2.5rem] backdrop-blur-[1.25rem]">
+              <div>
+                <span className="flex h-[4rem] w-[4rem] items-center justify-center rounded-[0.75rem] border border-[#DFB7FF33] bg-[#DFB7FF1A]">
+                  <SvgIcon
+                    src="/new-wingman/icons/cloud.svg"
+                    className="h-[1.25rem] w-[1.71875rem] shrink-0 bg-[#DFB7FF]"
+                  />
+                </span>
+                <h3 className="mt-5 align-middle text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                  Cloud Hosting
+                </h3>
+                <p className="mt-3 align-middle text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                  Built on leading global providers guaranteeing data security and low latency.
+                </p>
+              </div>
+              <div className="border-t border-[#FFFFFF1F] pt-4">
+                <p className="align-middle text-[1rem] font-[457] uppercase leading-[1.5rem] tracking-[0.05rem] text-[#DFB7FF]">
+                  Always On
+                </p>
+              </div>
+            </div>
+
+            {/* Authentication */}
+            <div className="flex h-[24.1875rem] flex-col justify-between rounded-[1rem] border border-[#FFFFFF1F] bg-gradient-to-br from-[#121212] to-[#1C1B1B] p-[2.5rem] backdrop-blur-[1.25rem]">
+              <div>
+                <span className="flex h-[4rem] w-[4rem] items-center justify-center rounded-[0.75rem] border border-[#00FADC33] bg-[#00FADC1A]">
+                  <SvgIcon
+                    src="/new-wingman/icons/shield-check.svg"
+                    className="h-[1.5rem] w-[1.5rem] shrink-0 bg-[#00FADC]"
+                  />
+                </span>
+                <h3 className="mt-5 align-middle text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                  Authentication
+                </h3>
+                <p className="mt-3 align-middle text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                  Integrated with Google Firebase for secure OTP-based identity management.
+                </p>
+              </div>
+              <div className="border-t border-[#FFFFFF1F] pt-4">
+                <p className="align-middle text-[1rem] font-[457] uppercase leading-[1.5rem] tracking-[0.05rem] text-[#00FADC]">
+                  TRUSTED IDENTITY
+                </p>
+              </div>
+            </div>
+
+            {/* Infrastructure */}
+            <div className="flex h-[24.1875rem] items-center justify-between gap-[2.5rem] rounded-[1rem] border border-[#FFFFFF1F] bg-[#12121299] p-[2.5rem] backdrop-blur-[1.25rem] aside-hide:col-span-2 max-mobile:h-auto max-mobile:flex-col">
+              <div className="flex-1">
+                <h3 className="align-middle text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                  Infrastructure
+                </h3>
+                <p className="mt-3 align-middle text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                  Scalable cloud architecture purpose-built for high-traffic fan communities and
+                  international compliance standards.
+                </p>
+              </div>
+              <div className="relative hidden h-[19.0625rem] w-[21.875rem] shrink-0 opacity-60 mobile:block">
+                {/* Export this image from Figma and save it as /public/affiliations-infrastructure.jpg */}
+                <Image
+                  src="/new-wingman/images/affiliation-image.jpg"
+                  alt="Global network infrastructure"
+                  fill
+                  className="rounded-lg object-cover"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= MOBILE ONLY: What You Get ================= */}
+      <section className="bg-[#1C1B1B4D] px-4 py-10 mobile:hidden">
+        <p className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[0.04375rem] text-wingman-cyan">
+          PARTNERSHIP BENEFITS
+        </p>
+        <h2 className="mt-[0.5rem] font-['SF_Pro',sans-serif] text-[1.5rem] font-[700] leading-[2.25rem] text-wingman-primary-text">
+          What You Get.
+        </h2>
+        <ol className="mt-[1.5rem] flex flex-col gap-[1.5rem]">
+          {benefits.map(({ title, text }, i) => (
+            <li key={title} className="flex gap-[1rem]">
+              <span className="w-[2rem] shrink-0 font-['SF_Pro',sans-serif] text-[1.5rem] font-[590] leading-[2rem] text-wingman-cyan">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div>
+                <h3 className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] text-wingman-primary-text">
+                  {title}
+                </h3>
+                {/* Note: Ensure your 'benefits' array text matches your Figma prompt for exact length */}
+                <p className="mt-[0.5rem] font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] text-wingman-secondary-text">
+                  {text}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* What You Get (desktop) */}
+      <section className="hidden bg-[#1C1B1B4D] px-4 py-[6rem] mobile:block mobile:px-8">
+        <div className="mx-auto w-full max-w-8xl">
+          <div className="text-center">
+            <p className="align-middle text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[0.0875rem] text-wingman-cyan">
+              PARTNERSHIP BENEFITS
+            </p>
+            <h2 className="mt-2 align-middle text-[4rem] font-[860] leading-[4.5rem] tracking-[-0.08rem] text-transparent bg-clip-text bg-gradient-to-r from-[#ABE8FF] to-[#DFB7FF]">
+              What You Get.
+            </h2>
+          </div>
+
+          {/* Switched to CSS grid and removed the fixed max-w-[272px] on cards so they expand to fill the 8xl container */}
+          <div className="mt-12 grid gap-[1rem] mobile:grid-cols-2 aside-hide:grid-cols-4">
+            {benefits.map(({ title, text }, i) => (
+              <div key={title} className="flex h-[22.125rem] w-full flex-col gap-[1rem] rounded-[1rem] border border-[#FFFFFF1F] bg-[#121212] p-[2rem]">
+                <p className="align-middle text-[4rem] font-[860] leading-[4.5rem] tracking-[-0.08rem] text-[#BBC9CF1A]">
+                  {String(i + 1).padStart(2, "0")}
+                </p>
+                <h3 className="align-middle text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                  {title}
+                </h3>
+                <p className="align-middle text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                  {text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ================= MOBILE ONLY: Who We Work With ================= */}
+      <section className="px-4 py-10 mobile:hidden">
+        <p className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[0.04375rem] text-[#DFB7FF]">
+          LEAGUE & ORGANIZATIONAL
+        </p>
+        <h2 className="mt-[0.5rem] font-['SF_Pro',sans-serif] text-[1.5rem] font-[700] leading-[2.25rem] text-wingman-primary-text">
+          Who We Work With.
+        </h2>
+        <div className="mt-[1.5rem] flex flex-col gap-[1rem]">
+          {mobilePartners.map(({ title, text }) => (
+            <div key={title} className="rounded-[1rem] border border-[#FFFFFF1F] bg-[#121212] p-[1.25rem]">
+              <h3 className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] text-wingman-primary-text">
+                {title}
+              </h3>
+              <p className="mt-[0.5rem] font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] text-wingman-secondary-text">
+                {text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Who We Work With (desktop) */}
+      <section className="hidden px-4 py-24 mobile:block mobile:px-8">
+        <div className="mx-auto grid w-full max-w-8xl gap-12 aside-hide:grid-cols-[1fr_1.7fr]">
+          <div>
+            <p className="align-middle text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[-0.04375rem] text-[#00FADC]">
+              LEAGUE &amp; ORGANIZATIONAL AFFILIATES
+            </p>
+            <h2 className="mt-3 align-middle text-[2rem] font-bold leading-[2.5rem] tracking-[-0.02rem] text-wingman-primary-text">
+              Who We Work With.
+            </h2>
+            <p className="mt-4 max-w-xs align-middle text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+              Wingman Pro fosters a collaborative network designed to uplift every tier of the sporting world.
+            </p>
+          </div>
+
+          <ul className="space-y-8">
+            {partners.map(({ icon, title, text }) => (
+              <li key={title} className="flex gap-[1rem]">
+                <span className="flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full border border-[#A8E8FF33] bg-[#A8E8FF1A]">
+                  <SvgIcon
+                    src={icon}
+                    className="h-[0.9375rem] w-[1.875rem] shrink-0 bg-wingman-cyan"
+                  />
+                </span>
+                <div>
+                  <h3 className="align-middle text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-primary-text">
+                    {title}
+                  </h3>
+                  <p className="mt-2 align-middle text-[1rem] font-[457] leading-[1.625rem] tracking-[0rem] text-wingman-secondary-text">
+                    {text}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ================= MOBILE ONLY: We're Everywhere ================= */}
+      <section className="bg-[#121212] px-4 py-10 mobile:hidden">
+        <div className="flex items-start justify-between gap-[1rem]">
+          <div>
+            <p className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[0.04375rem] text-[#00FADC]">
+              GLOBAL REACH
+            </p>
+            <h2 className="mt-[0.5rem] font-['SF_Pro',sans-serif] text-[1.75rem] font-[700] leading-[2.25rem] text-wingman-primary-text">
+              We&apos;re Everywhere.
+            </h2>
+          </div>
+          <SvgIcon
+            src="/new-wingman/icons/earth.svg"
+            className="h-[3.3125rem] w-[3.3125rem] shrink-0 bg-wingman-secondary-text"
+          />
+        </div>
+        <div className="mt-[1.5rem] flex flex-col gap-[1.5rem]">
+          {mobileRegions.map(({ name, text }) => (
+            <div key={name} className="border-l border-[#FFFFFF1F] pl-[1rem]">
+              <h3 className="font-['SF_Compact',sans-serif] text-[0.875rem] font-[656] leading-[1.25rem] text-wingman-cyan">
+                {name}
+              </h3>
+              <p className="mt-[0.5rem] font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] text-wingman-primary-text">
+                {text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* We're Everywhere (desktop) */}
+      <section className="hidden bg-wingman-light-surface-text px-4 py-[6rem] mobile:block mobile:px-8">
+        <div className="mx-auto w-full max-w-8xl">
+          <div className="text-center">
+            <p className="align-middle text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[0.0875rem] text-wingman-cyan">
+              GLOBAL REACH
+            </p>
+            <h2 className="mt-2 align-middle text-[4rem] font-[860] leading-[4.5rem] tracking-[-0.08rem] text-transparent bg-clip-text bg-gradient-to-r from-[#ABE8FF] to-[#DFB7FF]">
+              We're Everywhere.
+            </h2>
+          </div>
+
+          <div className="mt-12 grid gap-[1rem] mobile:grid-cols-2 aside-hide:grid-cols-4">
+            {regions.map(({ name, lines }) => (
+              <div key={name} className="flex h-[12.625rem] w-full flex-col gap-[1rem] rounded-[0.75rem] border border-[#FFFFFF1F] bg-[#12121299] p-[2rem] backdrop-blur-[1.25rem]">
+                <h3 className="align-middle text-[1.5rem] font-[590] leading-[2rem] tracking-[0rem] text-wingman-cyan">
+                  {name}
+                </h3>
+                <div className="flex flex-col">
+                  {lines.map((line) => (
+                    <p key={line} className="align-middle text-[1rem] font-[457] leading-[1.5rem] tracking-[0rem] text-wingman-secondary-text">
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ================= MOBILE ONLY: CTA ================= */}
+      <section className="px-4 pb-[4rem] pt-[1.5rem] mobile:hidden">
+        <div className="flex flex-col items-center rounded-[1rem] border border-[#FFFFFF1F] bg-[#121212] p-[1.5rem] text-center">
+          <h2 className="font-['SF_Pro',sans-serif] text-[1.5rem] font-[700] leading-[2.25rem] text-center text-wingman-primary-text">
+            Let&apos;s Build Together.
+          </h2>
+          <p className="mt-[0.75rem] font-['SF_Compact',sans-serif] text-[1rem] font-[457] leading-[1.5rem] text-center text-wingman-secondary-text">
+            Whether you&apos;re a football club, supporter group, or organization — we&apos;d love to explore how Wingman Pro can support you.
+          </p>
+          <Button
+            variant="primary"
+            href="mailto:response@wingman-pro.com"
+            className="
+    mt-[1.5rem] h-[3.5rem] w-full gap-[0.5rem] uppercase
+    !font-sf-compact !text-[0.875rem] !font-[656] !leading-[1.25rem]
+    !tracking-[0.0875rem] !text-[#001F27]
+  "
+          >
+            CONTACT US
+            <SvgIcon
+              src="/new-wingman/icons/arrow-right.svg"
+              className="h-[1rem] w-[1rem] shrink-0 bg-[#001F27]"
+            />
+          </Button>
+        </div>
+      </section>
+
+      {/* CTA Section (desktop) */}
+      <section className="hidden px-4 pb-24 mobile:block mobile:px-8">
+        <div className="mx-auto w-full max-w-8xl">
+          <div className="rounded-[1.5rem] bg-gradient-to-r from-[#00D4FF] to-[#9D05FF] p-[1px]">
+            <div className="flex h-auto min-h-[27.125rem] flex-col items-center justify-center rounded-[1.4375rem] bg-[#121212] p-[4rem] text-center max-mobile:p-[2rem]">
+              <p className="align-middle text-[0.875rem] font-[656] uppercase leading-[1.25rem] tracking-[0.175rem] text-wingman-cyan">
+                INTERESTED IN PARTNERING?
+              </p>
+              <h2 className="mt-4 align-middle text-[4rem] font-[860] leading-[4.5rem] tracking-[-0.08rem] text-wingman-primary-text max-mobile:text-[2.5rem] max-mobile:leading-[3rem]">
+                Let&apos;s Build Together.
+              </h2>
+              <p className="mx-auto mt-5 max-w-2xl align-middle text-[1.125rem] font-[457] leading-[1.75rem] tracking-[0rem] text-wingman-secondary-text">
+                Whether you&apos;re a football club, supporter group, or football organization —
+                we&apos;d love to explore how Wingman Pro can support your community.
+              </p>
+              <Button
+                variant="primary"
+                href="mailto:response@wingman-pro.com"
+                className="
+    mt-8 h-[3.125rem] w-[9.4375rem] whitespace-nowrap px-[2rem] py-[0.8125rem]
+    !text-[1rem] !font-[656] !leading-[1.5rem] !text-wingman-emphasis-text
+  "
+              >
+                Contact Us
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+      <SiteFooter />
+    </main >
+  )
+}
