@@ -20,6 +20,8 @@ import Link from "next/link";
 import type { Event } from "@/lib/api";
 import { EventImage } from "@/components/events/event-image";
 import { eventVariantUrl } from "@/lib/eventImageCache";
+import { formatMoney } from "@/lib/display-currency";
+import { useLandingPlans, planValidity, type LandingPlan } from "@/hooks/use-landing-events";
 import { useLandingEvents, useLandingSearch, eventTag, eventShortDate, eventWhen, eventPrice, eventVenue, isOngoing } from "@/hooks/use-landing-events";
 /* ---------------------------------- HERO ---------------------------------- */
 
@@ -331,35 +333,24 @@ function EventsGrid({ events, loading }: { events: Event[]; loading: boolean }) 
 
 /* --------------------------- MEMBERSHIP SECTION --------------------------- */
 
-interface PlanData {
-  id: number;
-  name: string;
-  description: string;
-  price: string;
-  validity: string;
-}
-
-const plans: PlanData[] = [
-  { id: 1, name: "Basic", description: "Perfect for getting started with essential access.", price: "₹0.00", validity: "Sep, 2026 - Sep, 2027" },
-  { id: 2, name: "VIP", description: "Great value with expanded benefits and features.", price: "₹1,082.60", validity: "Sep, 2026 - Sep, 2027" },
-  { id: 3, name: "Premium", description: "Premium experience with exclusive privileges.", price: "₹1,948.68", validity: "Sep, 2026 - Sep, 2027" },
-  { id: 4, name: "Elite", description: "Enhanced benefits for a better experience.", price: "₹2,165.20", validity: "Sep, 2026 - Sep, 2027" },
-  { id: 5, name: "Ultimate", description: "A plan for testing features and access.", price: "₹2,166.28", validity: "Sep, 2026 - Sep, 2027" },
-];
-
-function PlanCard({ plan }: { plan: PlanData }) {
+function PlanCard({ plan }: { plan: LandingPlan }) {
   return (
-    <div className="w-full min-w-0 h-[21.125rem] rounded-[0.75rem] border-[0.0625rem] border-[#26343E] bg-[#0B0F14] p-[1.125rem] flex flex-col">
+    <div className="w-full min-w-0 min-h-[21.125rem] rounded-[0.75rem] border-[0.0625rem] border-[#26343E] bg-[#0B0F14] p-[1.125rem] flex flex-col">
       {/* Header: icon + name + description */}
-      <div className="flex items-start gap-[0.75rem] h-[5.125rem] pt-[1rem] min-w-0">
+      <div className="flex items-start gap-[0.75rem] min-h-[5.125rem] pb-[0.75rem] pt-[1rem] min-w-0">
         <div className="w-[2rem] h-[2rem] rounded-full bg-[#1A2B3D] shrink-0" />
         <div className="flex flex-col min-w-0">
           <h3 className="font-['Inter',_sans-serif] font-[700] text-[1.125rem] leading-[1.375rem] tracking-[0em] text-wingman-emphasis-text">
             {plan.name}
           </h3>
-          <p className="font-['Inter',_sans-serif] font-[400] text-[0.75rem] leading-[1rem] tracking-[0em] text-wingman-secondary-text">
-            {plan.description}
+          <p className="font-['Inter',_sans-serif] font-[600] text-[0.6875rem] leading-[1rem] tracking-[0em] text-wingman-cyan truncate">
+            {plan.club.name}
           </p>
+          {plan.description && (
+            <p className="line-clamp-2 font-['Inter',_sans-serif] font-[400] text-[0.75rem] leading-[1rem] tracking-[0em] text-wingman-secondary-text">
+              {plan.description}
+            </p>
+          )}
         </div>
       </div>
 
@@ -372,31 +363,38 @@ function PlanCard({ plan }: { plan: PlanData }) {
           Price
         </span>
         <span className="font-['Inter',_sans-serif] font-[700] text-[1.4375rem] leading-[1.6875rem] tracking-[0em] text-wingman-emphasis-text">
-          {plan.price}
+          {formatMoney(plan.price || 0, plan.currency)}
         </span>
 
         <span className="mt-[0.75rem] font-['Inter',_sans-serif] font-[400] text-[0.6875rem] leading-[0.9375rem] tracking-[0em] text-wingman-muted-text">
           Validity
         </span>
         <span className="font-['Inter',_sans-serif] font-[400] text-[0.75rem] leading-[1rem] tracking-[0em] text-wingman-secondary-text">
-          {plan.validity}
+          {planValidity(plan)}
         </span>
       </div>
 
       {/* Actions */}
       <div className="mt-auto flex flex-col items-center gap-[0.75rem]">
-        <button className="w-full h-[2.125rem] rounded-[0.5rem] bg-[#82E0FA] font-['Inter',_sans-serif] font-[700] text-[0.75rem] leading-[1rem] tracking-[0em] text-center text-wingman-light-surface-text hover:opacity-90 transition-opacity whitespace-nowrap">
+        <Link
+          href={`/club/${plan.club._id}/membership/${plan._id}`}
+          className="w-full h-[2.125rem] inline-flex items-center justify-center rounded-[0.5rem] bg-[#82E0FA] font-['Inter',_sans-serif] font-[700] text-[0.75rem] leading-[1rem] tracking-[0em] text-center text-wingman-light-surface-text hover:opacity-90 transition-opacity whitespace-nowrap"
+        >
           Purchase Membership Plan
-        </button>
-        <button className="font-['Inter',_sans-serif] font-[700] text-[0.75rem] leading-[1rem] tracking-[0em] text-center text-wingman-cyan hover:opacity-80 transition-opacity whitespace-nowrap">
+        </Link>
+        <Link
+          href={`/membership-plans?clubId=${plan.club._id}`}
+          className="font-['Inter',_sans-serif] font-[700] text-[0.75rem] leading-[1rem] tracking-[0em] text-center text-wingman-cyan hover:opacity-80 transition-opacity whitespace-nowrap"
+        >
           Know More About The Plan ↗
-        </button>
+        </Link>
       </div>
     </div>
   );
 }
 
 function MembershipSection() {
+  const { plans, loading } = useLandingPlans();
   return (
     <div className="w-full min-w-0 max-w-[74rem] mt-[2rem]">
       <h2 className="font-['Inter',_sans-serif] font-[800] text-[2rem] leading-[2.375rem] tracking-[0em] text-wingman-emphasis-text">
@@ -407,11 +405,17 @@ function MembershipSection() {
         events, priority booking, and member-only perks.
       </p>
 
-      <div className="mt-[2rem] grid w-full min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[0.5rem]">
-        {plans.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} />
-        ))}
-      </div>
+      {plans.length === 0 ? (
+        <p className="w-full py-[3rem] text-center font-['SF_Compact',_sans-serif] text-[1rem] text-wingman-secondary-text">
+          {loading ? "Loading membership plans…" : "No membership plans available right now."}
+        </p>
+      ) : (
+        <div className="mt-[2rem] grid w-full min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[0.5rem]">
+          {plans.map((plan) => (
+            <PlanCard key={plan._id} plan={plan} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -708,6 +712,9 @@ function MobileView({ events, loading, ...filters }: SearchFilterProps & { event
 const filterPill =
   "shrink-0 min-h-[2.875rem] px-[1.25rem] rounded-full bg-[#1C1B1B] border border-[#FFFFFF1F] font-['SF_Compact',_sans-serif] font-[457] text-[0.875rem] md:text-[1rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-wingman-secondary-text hover:text-white hover:bg-[#252424] transition-colors inline-flex items-center justify-center whitespace-nowrap";
 
+const filterControl =
+  "flex-1 sm:flex-initial flex items-center justify-center gap-[0.5rem] min-h-[2.875rem] px-[1rem] rounded-[0.75rem] bg-[#1C1B1B] border border-[#FFFFFF1F] font-['SF_Compact',_sans-serif] font-[457] text-[0.875rem] md:text-[1rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-wingman-primary-text hover:bg-[#252424] focus-within:ring-[0.0625rem] focus-within:ring-[#26DAFF] transition-colors whitespace-nowrap";
+
 // NEW (1/3): tab names, above the component
 const tabs = ["All Events", "Screenings", "Watch-Parties", "Membership"];
 
@@ -715,7 +722,9 @@ export default function LandingPage() {
   // NEW (2/3): active tab state, first lines inside the component
   const [activeTab, setActiveTab] = useState("All Events");
   const [search, setSearch] = useLandingSearch();
-  const { events, loading } = useLandingEvents(activeTab, search);
+  const [date, setDate] = useState("");
+  const [location, setLocation] = useState("");
+  const { events, loading, locations } = useLandingEvents({ tab: activeTab, search, date, location });
 
   return (
     <div className="min-h-screen">
@@ -746,22 +755,56 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Right: date & location filters (unchanged) */}
+            {/* Right: date & location filters */}
             <div className="flex items-center gap-[0.5rem] w-full sm:w-auto min-h-[2.875rem]">
-              <button className="flex-1 sm:flex-initial sm:min-w-[7.5rem] flex items-center justify-center gap-[0.5rem] min-h-[2.875rem] px-[1rem] rounded-[0.75rem] bg-[#1C1B1B] border border-[#FFFFFF1F] font-['SF_Compact',_sans-serif] font-[457] text-[0.875rem] md:text-[1rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-wingman-primary-text hover:bg-[#252424] transition-colors whitespace-nowrap">
+              {/* Native date picker under a transparent input, so the button look stays the same. */}
+              <label className={`${filterControl} relative sm:min-w-[7.5rem] cursor-pointer`}>
                 <SvgIcon
                   src="/new-wingman/icons/calender2.svg"
                   className="w-[0.84375rem] h-[0.9375rem] shrink-0 bg-[#E5E2E1]"
                 />
-                Any Date
-              </button>
-              <button className="flex-1 sm:flex-initial sm:min-w-[7.25rem] flex items-center justify-center gap-[0.5rem] min-h-[2.875rem] px-[1rem] rounded-[0.75rem] bg-[#1C1B1B] border border-[#FFFFFF1F] font-['SF_Compact',_sans-serif] font-[457] text-[0.875rem] md:text-[1rem] leading-[1.5rem] tracking-[0px] text-center align-middle text-wingman-primary-text hover:bg-[#252424] transition-colors whitespace-nowrap">
+                {date
+                  ? new Date(`${date}T00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                  : "Any Date"}
+                <input
+                  type="date"
+                  aria-label="Filter events by date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+              </label>
+              {date && (
+                <button
+                  type="button"
+                  aria-label="Clear date filter"
+                  onClick={() => setDate("")}
+                  className="shrink-0 h-[2.875rem] w-[2.875rem] rounded-[0.75rem] bg-[#1C1B1B] border border-[#FFFFFF1F] text-wingman-secondary-text hover:text-white hover:bg-[#252424] transition-colors"
+                >
+                  ×
+                </button>
+              )}
+              <label className={`${filterControl} relative sm:min-w-[7.25rem] cursor-pointer`}>
                 <SvgIcon
                   src="/new-wingman/icons/map-pin.svg"
                   className="w-[0.84375rem] h-[0.9375rem] shrink-0 bg-[#9CA3AF]"
                 />
-                London
-              </button>
+                <span className="max-w-[12rem] truncate">{location || "Any Location"}</span>
+                <select
+                  aria-label="Filter events by location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
+                >
+                  <option value="">Any Location</option>
+                  {locations.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           </div>
 

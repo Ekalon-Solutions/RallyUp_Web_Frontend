@@ -30,8 +30,34 @@ export function useLandingSearch() {
   return [search, setSearch] as const
 }
 
-/** Public, active events for the landing page, filtered by tab + search text. */
-export function useLandingEvents(tab: string, search: string) {
+export interface LandingEventFilters {
+  tab: string
+  search: string
+  /** "YYYY-MM-DD" (local day) or "" for any date. */
+  date: string
+  /** A venue name from `locations`, or "" for any location. */
+  location: string
+}
+
+/** Venue names of an event (one per venue for multi-venue events). */
+const venueNames = (e: Event): string[] => {
+  const names = e.venues?.length ? e.venues.map((v) => v.name?.trim()) : [e.venue?.trim()]
+  return names.filter((n): n is string => !!n)
+}
+
+/** True if the event runs at any point during the local day `ymd`. */
+const happensOn = (e: Event, ymd: string) => {
+  const start = startMs(e)
+  if (Number.isNaN(start)) return false
+  const [y, m, d] = ymd.split("-").map(Number)
+  const dayStart = new Date(y, m - 1, d).getTime()
+  const dayEnd = new Date(y, m - 1, d + 1).getTime()
+  const end = e.endTime ? new Date(e.endTime).getTime() : start
+  return start < dayEnd && end >= dayStart
+}
+
+/** Public, active events for the landing page, filtered by tab, search text, date and location. */
+export function useLandingEvents({ tab, search, date, location }: LandingEventFilters) {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -61,13 +87,21 @@ export function useLandingEvents(tab: string, search: string) {
     const q = search.trim().toLowerCase()
     return events.filter((e) => {
       if (category && e.category !== category) return false
+      if (date && !happensOn(e, date)) return false
+      if (location && !venueNames(e).includes(location)) return false
       if (!q) return true
       return [e.title, e.description, getEventVenueDisplay(e), e.category]
         .some((field) => field?.toLowerCase().includes(q))
     })
-  }, [events, tab, search])
+  }, [events, tab, search, date, location])
 
-  return { events: filtered, loading }
+  // Location choices come from every loaded event, so picking one never empties the list.
+  const locations = useMemo(
+    () => [...new Set(events.flatMap(venueNames))].sort((a, b) => a.localeCompare(b)),
+    [events]
+  )
+
+  return { events: filtered, loading, locations }
 }
 
 // Activities can have no start date.
@@ -92,3 +126,63 @@ export const eventVenue = (e: Event) => getEventVenueDisplay(e)
 /** Ongoing = started (or undated, e.g. an open activity) and not yet ended. */
 export const isOngoing = (e: Event, now = Date.now()) =>
   (Number.isNaN(startMs(e)) || startMs(e) <= now) && (!e.endTime || new Date(e.endTime).getTime() >= now)
+
+/* ------------------------------- Membership ------------------------------- */
+
+export interface LandingPlan {
+  _id: string
+  name: string
+  description?: string
+  price: number
+  currency: string
+  duration?: number
+  planStartDate?: string
+  planEndDate?: string
+  isActive?: boolean
+  club: { _id: string; name: string }
+}
+
+type ClubWithPlans = { _id: string; name: string; membershipPlans?: Omit<LandingPlan, "club">[] }
+
+/** Active membership plans of every public club, cheapest first. */
+export function useLandingPlans() {
+  const [plans, setPlans] = useState<LandingPlan[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    apiClient
+      .getPublicClubs()
+      .then((res) => {
+        if (cancelled || !res.success) return
+        const clubs = ((res.data as { clubs?: unknown } | undefined)?.clubs ?? []) as ClubWithPlans[]
+        setPlans(
+          clubs
+            .flatMap((club) =>
+              (club.membershipPlans ?? [])
+                .filter((p) => p?.isActive)
+                .map((p) => ({ ...p, club: { _id: club._id, name: club.name } }))
+            )
+            .sort((a, b) => (a.price || 0) - (b.price || 0))
+        )
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return { plans, loading }
+}
+
+const monthYear = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { month: "short", year: "numeric" }).replace(" ", ", ")
+
+/** "Sep, 2026 - Sep, 2027" from the plan window, else its length ("12 months", "Lifetime"). */
+export const planValidity = (p: LandingPlan) => {
+  if (p.planStartDate && p.planEndDate) return `${monthYear(p.planStartDate)} - ${monthYear(p.planEndDate)}`
+  const months = p.duration ?? 0
+  if (months === 0) return "Lifetime"
+  return months === 1 ? "1 month" : `${months} months`
+}

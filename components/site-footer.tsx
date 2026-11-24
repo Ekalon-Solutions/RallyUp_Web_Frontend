@@ -106,7 +106,7 @@ export function SiteFooter({ brandName = "Wingman Pro" }: { brandName?: string }
                 <nav className="flex flex-col gap-[0.75rem] md:gap-[1.5rem]">
                   {col.links.map((link) => (
                     <Link
-                      key={link.href}
+                      key={link.label}
                       href={link.href}
                       className="relative w-fit font-['Inter',_sans-serif] font-normal text-[0.75rem] md:text-[0.875rem] leading-[1.0625rem] md:leading-[1.5] text-[#BCCBB9] hover:text-[#F4F4EE] transition-colors after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-full after:bg-[#6CABDD] after:opacity-0 after:transition-opacity after:duration-300 after:ease-[cubic-bezier(0.7,-0.4,0.4,1.4)] hover:after:opacity-100"
                     >
